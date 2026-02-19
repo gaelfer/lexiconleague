@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -136,7 +136,15 @@ function LockIcon({ className = "w-4 h-4", color = "currentColor" }: { className
   );
 }
 
-export default function Home() {
+export default function HomePage() {
+  return (
+    <Suspense>
+      <Home />
+    </Suspense>
+  );
+}
+
+function Home() {
   const { user, loading, signOut } = useAuth();
   const { light } = useTheme();
   const searchParams = useSearchParams();
