@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Bow: cute ribbon bow on top -->
+  <ellipse cx="40" cy="28" rx="10" ry="7" fill="#EC4899" transform="rotate(-15 40 28)"/>
+  <ellipse cx="60" cy="28" rx="10" ry="7" fill="#EC4899" transform="rotate(15 60 28)"/>
+  <circle cx="50" cy="30" r="4" fill="#DB2777"/>
+  <!-- Ribbon tails -->
+  <path d="M46 34Q42 44 38 48" fill="none" stroke="#EC4899" stroke-width="3" stroke-linecap="round"/>
+  <path d="M54 34Q58 44 62 48" fill="none" stroke="#EC4899" stroke-width="3" stroke-linecap="round"/>
+  <!-- Shine -->
+  <ellipse cx="38" cy="25" rx="2" ry="1.5" fill="white" opacity="0.3"/>
+</svg>

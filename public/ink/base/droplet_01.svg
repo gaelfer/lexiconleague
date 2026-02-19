@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+  <!-- Classic: friendly teardrop with round bottom and cute proportions -->
+  <path d="M50 10C50 10 24 42 24 60C24 74.4 35.6 88 50 88C64.4 88 76 74.4 76 60C76 42 50 10 50 10z"/>
+  <!-- Highlight/shine -->
+  <ellipse cx="38" cy="52" rx="6" ry="8" fill="white" opacity="0.18"/>
+</svg>

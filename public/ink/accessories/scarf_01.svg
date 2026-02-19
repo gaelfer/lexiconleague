@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Scarf: cozy scarf around lower area -->
+  <path d="M24 72Q50 68 76 72Q78 78 76 82Q50 78 24 82Q22 78 24 72z" fill="#3B82F6"/>
+  <!-- Stripe -->
+  <path d="M26 76Q50 72 74 76" fill="none" stroke="white" stroke-width="1.5" opacity="0.3"/>
+  <!-- Hanging end -->
+  <path d="M60 78Q62 86 58 94" fill="none" stroke="#3B82F6" stroke-width="6" stroke-linecap="round"/>
+  <path d="M60 78Q62 86 58 94" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 4" opacity="0.4"/>
+</svg>

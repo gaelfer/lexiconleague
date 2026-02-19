@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Crown: golden royal crown on top -->
+  <path d="M28 40L34 22L42 34L50 16L58 34L66 22L72 40z" fill="#EAB308"/>
+  <rect x="28" y="38" width="44" height="7" rx="1.5" fill="#D4AF37"/>
+  <!-- Jewels -->
+  <circle cx="38" cy="25" r="2.5" fill="#EF4444"/>
+  <circle cx="50" cy="18" r="2.5" fill="#3B82F6"/>
+  <circle cx="62" cy="25" r="2.5" fill="#22C55E"/>
+  <!-- Shine -->
+  <path d="M34 38L36 32" stroke="white" stroke-width="0.8" opacity="0.3"/>
+</svg>

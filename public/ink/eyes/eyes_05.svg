@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Sparkle: big starry anime eyes -->
+  <ellipse cx="37" cy="54" rx="9" ry="10" fill="white"/>
+  <ellipse cx="63" cy="54" rx="9" ry="10" fill="white"/>
+  <circle cx="37" cy="55" r="6" fill="#0F172A"/>
+  <circle cx="63" cy="55" r="6" fill="#0F172A"/>
+  <!-- Big star highlights -->
+  <circle cx="40" cy="51" r="2.5" fill="white"/>
+  <circle cx="66" cy="51" r="2.5" fill="white"/>
+  <circle cx="35" cy="57" r="1.2" fill="white"/>
+  <circle cx="61" cy="57" r="1.2" fill="white"/>
+  <circle cx="39" cy="58" r="0.7" fill="white"/>
+  <circle cx="65" cy="58" r="0.7" fill="white"/>
+  <!-- Tiny "o" mouth -->
+  <ellipse cx="50" cy="68" rx="3" ry="2.5" fill="white" opacity="0.85"/>
+</svg>

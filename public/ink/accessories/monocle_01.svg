@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Monocle: classy single lens on right eye -->
+  <circle cx="63" cy="54" r="12" fill="none" stroke="#D4AF37" stroke-width="2.5"/>
+  <circle cx="63" cy="54" r="10" fill="white" opacity="0.08"/>
+  <!-- Glint -->
+  <path d="M57 48L60 51" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+  <!-- Chain -->
+  <path d="M75 54Q80 62 78 74" fill="none" stroke="#D4AF37" stroke-width="1.2" stroke-linecap="round"/>
+</svg>

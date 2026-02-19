@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Friendly: big round eyes with large pupils and sparkle -->
+  <ellipse cx="37" cy="54" rx="8" ry="9" fill="white"/>
+  <ellipse cx="63" cy="54" rx="8" ry="9" fill="white"/>
+  <circle cx="38" cy="55" r="5" fill="#0F172A"/>
+  <circle cx="64" cy="55" r="5" fill="#0F172A"/>
+  <!-- Sparkle highlights -->
+  <circle cx="40" cy="52" r="2" fill="white"/>
+  <circle cx="66" cy="52" r="2" fill="white"/>
+  <circle cx="36" cy="56" r="0.8" fill="white"/>
+  <circle cx="62" cy="56" r="0.8" fill="white"/>
+  <!-- Tiny smile -->
+  <path d="M44 66Q50 71 56 66" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" opacity="0.9"/>
+</svg>

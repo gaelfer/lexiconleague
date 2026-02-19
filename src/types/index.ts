@@ -1,0 +1,140 @@
+// ── Question ────────────────────────────────────────────────────────────────
+export type Subject = "vocabulary" | "punctuation";
+export type Difficulty = 1 | 2 | 3 | 4 | 5;
+export type SkillTag =
+  | "synonyms"
+  | "antonyms"
+  | "definitions"
+  | "context-clues"
+  | "word-forms"
+  | "commas"
+  | "apostrophes"
+  | "quotation-marks"
+  | "semicolons"
+  | "capitalization";
+
+export interface Question {
+  id: string;
+  subject: Subject;
+  difficulty: Difficulty;
+  skill_tag: SkillTag;
+  prompt: string;
+  choices: string[];
+  answer_index: number;
+}
+
+// ── Rank ────────────────────────────────────────────────────────────────────
+export type RankTier = "Bronze" | "Silver" | "Gold" | "Platinum" | "Diamond";
+
+export const RANK_TIERS: RankTier[] = [
+  "Bronze",
+  "Silver",
+  "Gold",
+  "Platinum",
+  "Diamond",
+];
+
+export const RANK_THRESHOLDS: Record<RankTier, number> = {
+  Bronze: 0,
+  Silver: 300,
+  Gold: 700,
+  Platinum: 1200,
+  Diamond: 2000,
+};
+
+export const RANK_COLORS: Record<RankTier, string> = {
+  Bronze: "#CD7F32",
+  Silver: "#C0C0C0",
+  Gold: "#D4AF37",
+  Platinum: "#7DD3FC",
+  Diamond: "#A78BFA",
+};
+
+export const RANK_BADGE: Record<RankTier, string> = {
+  Bronze: "🥉",
+  Silver: "🥈",
+  Gold: "🏆",
+  Platinum: "💎",
+  Diamond: "✨",
+};
+
+// ── User ────────────────────────────────────────────────────────────────────
+export interface UserProfile {
+  id: string;
+  email: string;
+  username: string;
+  rank_tier: RankTier;
+  trophies: number;
+  xp: number;
+  ink_drops: number;
+  unlocked_items: string[];
+  daily_reward_claimed_at: string | null;
+  daily_streak: number;
+  avatar_config: InkAvatarConfig;
+  created_at: string;
+}
+
+// ── Match ───────────────────────────────────────────────────────────────────
+export type GameMode = "casual" | "ranked";
+export type MatchResult = "win" | "loss" | "draw";
+
+export interface MatchHistory {
+  user_id: string;
+  mode: GameMode;
+  score: number;
+  accuracy: number;
+  result: MatchResult;
+  trophies_change: number;
+  created_at: string;
+}
+
+// ── Game State ───────────────────────────────────────────────────────────────
+export interface GameState {
+  mode: GameMode;
+  subject: Subject;
+  questions: Question[];
+  currentIndex: number;
+  score: number;
+  correctCount: number;
+  incorrectCount: number;
+  timeLeft: number;
+  isFinished: boolean;
+  answers: (number | null)[];
+}
+
+export interface GameResult {
+  score: number;
+  correct: number;
+  incorrect: number;
+  accuracy: number;
+  totalQuestions: number;
+  mode: GameMode;
+  subject: Subject;
+  trophiesChange: number;
+  newTier?: RankTier;
+}
+
+// ── Ink Avatar ──────────────────────────────────────────────────────────────
+export interface InkAvatarConfig {
+  base: string;
+  color: string;
+  eyes: string;
+  accessory: string;
+  aura: string;
+}
+
+export const DEFAULT_AVATAR_CONFIG: InkAvatarConfig = {
+  base: "droplet_01",
+  color: "#1E293B",
+  eyes: "eyes_01",
+  accessory: "none",
+  aura: "none",
+};
+
+// ── Skill Stats ──────────────────────────────────────────────────────────────
+export interface UserSkillStats {
+  user_id: string;
+  skill_tag: SkillTag;
+  accuracy: number;
+  attempts: number;
+}

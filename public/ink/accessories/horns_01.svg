@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Devil horns: playful red horns -->
+  <path d="M32 42L24 18L38 36z" fill="#EF4444"/>
+  <path d="M68 42L76 18L62 36z" fill="#EF4444"/>
+  <!-- Inner highlight -->
+  <path d="M30 38L26 22L34 34z" fill="#FCA5A5" opacity="0.4"/>
+  <path d="M70 38L74 22L66 34z" fill="#FCA5A5" opacity="0.4"/>
+</svg>

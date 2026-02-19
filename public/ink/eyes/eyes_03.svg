@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Happy: anime-style closed happy eyes (^_^) with big grin -->
+  <path d="M30 54Q37 46 44 54" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M56 54Q63 46 70 54" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Blush spots -->
+  <ellipse cx="30" cy="60" rx="4" ry="2.5" fill="#FF9999" opacity="0.4"/>
+  <ellipse cx="70" cy="60" rx="4" ry="2.5" fill="#FF9999" opacity="0.4"/>
+  <!-- Big happy mouth -->
+  <path d="M40 65Q50 74 60 65" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+  <!-- Pointed: sharp top, wide round bottom, energetic feel -->
+  <path d="M50 6L28 44C22 54 22 68 30 80C38 90 44 94 50 94C56 94 62 90 70 80C78 68 78 54 72 44L50 6z"/>
+  <!-- Highlight -->
+  <ellipse cx="38" cy="50" rx="5" ry="9" fill="white" opacity="0.16"/>
+</svg>
