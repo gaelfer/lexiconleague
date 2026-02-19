@@ -11,7 +11,7 @@ export interface PartyQueuePayload {
   seed: string;
   startedAt: number;
   opponents: OpponentInfo[];
-  teamMembers: { username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[];
+  teamMembers: { id?: string; username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[];
   botResults: {
     opponents: { correct: number; total: number }[];
     teammates: { correct: number; total: number }[];
