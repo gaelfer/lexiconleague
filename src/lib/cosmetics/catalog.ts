@@ -66,6 +66,7 @@ export const ACCESSORIES: CosmeticItem[] = [
   { id: "horns_01", label: "Horns", price: 200, category: "accessory" },
   { id: "glasses_01", label: "Glasses", price: 130, category: "accessory" },
   { id: "monocle_01", label: "Monocle", price: 220, category: "accessory" },
+  { id: "suit_01", label: "Tailored Suit", price: 320, category: "accessory" },
   { id: "quill_01", label: "Quill", price: 180, category: "accessory" },
   { id: "scarf_01", label: "Scarf", price: 140, category: "accessory" },
 ];

@@ -10,23 +10,23 @@ export const RANK_REWARD_ITEM_IDS: Record<RankTier, string[]> = {
   Emerald: ["color_#10B981", "droplet_05", "aura_glow_03", "crown_01", "eyes_05"],
 };
 
-// ── Trophy deltas (harder to gain at higher ranks) ─────────────────────────────
-const TROPHY_WIN: Record<RankTier, number> = {
-  Bronze: 24,
-  Silver: 16,
-  Gold: 10,
-  Platinum: 6,
-  Diamond: 4,
-  Emerald: 2,
+// ── Trophy deltas: 4-5 games for early ranks, Plat threshold 1k, harder at top ──
+export const TROPHY_WIN: Record<RankTier, number> = {
+  Bronze: 25,
+  Silver: 22,
+  Gold: 16,
+  Platinum: 12,
+  Diamond: 8,
+  Emerald: 4,
 };
 
-const TROPHY_LOSS: Record<RankTier, number> = {
-  Bronze: -8,
-  Silver: -14,
-  Gold: -18,
-  Platinum: -22,
-  Diamond: -26,
-  Emerald: -30,
+export const TROPHY_LOSS: Record<RankTier, number> = {
+  Bronze: -10,
+  Silver: -12,
+  Gold: -16,
+  Platinum: -20,
+  Diamond: -24,
+  Emerald: -28,
 };
 
 // Score needed (out of possible) to count as a "win"
@@ -88,9 +88,18 @@ export function getTrophiesInTier(trophies: number, tier: RankTier): number {
 
 export function getTrophiesNeededForNextTier(tier: RankTier): number | null {
   const idx = RANK_TIERS.indexOf(tier);
-  if (idx === RANK_TIERS.length - 1) return null; // Diamond — max tier
+  if (idx === RANK_TIERS.length - 1) return null;
   const nextTier = RANK_TIERS[idx + 1];
   return RANK_THRESHOLDS[nextTier];
+}
+
+/** Trophies remaining until next tier (never negative). Uses tier from trophies. */
+export function getTrophiesToNextTier(trophies: number): { nextTier: RankTier; needed: number } | null {
+  const tier = getTierFromTrophies(trophies);
+  const threshold = getTrophiesNeededForNextTier(tier);
+  if (threshold == null) return null;
+  const needed = Math.max(0, threshold - trophies);
+  return { nextTier: RANK_TIERS[RANK_TIERS.indexOf(tier) + 1], needed };
 }
 
 export function getTierProgress(trophies: number, tier: RankTier): number {
@@ -110,8 +119,8 @@ export function getPlacementTier(
 ): { tier: RankTier; trophies: number } {
   const accuracy = total > 0 ? correct / total : 0;
 
-  if (accuracy >= 0.85) return { tier: "Gold", trophies: 700 };
-  if (accuracy >= 0.70) return { tier: "Silver", trophies: 400 };
-  if (accuracy >= 0.50) return { tier: "Silver", trophies: 300 };
+  if (accuracy >= 0.85) return { tier: "Gold", trophies: 400 };
+  if (accuracy >= 0.70) return { tier: "Silver", trophies: 150 };
+  if (accuracy >= 0.50) return { tier: "Silver", trophies: 120 };
   return { tier: "Bronze", trophies: 50 };
 }

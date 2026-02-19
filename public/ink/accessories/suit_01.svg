@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Suit jacket contoured to teardrop silhouette -->
+  <!-- Jacket body -->
+  <path d="
+    M44 73
+    L27 73
+    C25 80 37 92 50 94
+    C63 92 75 80 73 73
+    L56 73
+    L50 83
+    Z
+  " fill="#0B1220"/>
+  <!-- Jacket highlight (left side sheen) -->
+  <path d="
+    M39 73
+    L29 73
+    C27 79 34 88 42 92
+  " fill="none" stroke="white" stroke-width="0.8" opacity="0.1"/>
+  <!-- Left lapel -->
+  <path d="M44 73 L35 73 Q34 79 43 81 Z" fill="#1E293B"/>
+  <!-- Right lapel -->
+  <path d="M56 73 L65 73 Q66 79 57 81 Z" fill="#1E293B"/>
+  <!-- Lapel edge stitch -->
+  <path d="M44 73 Q39 77 43 81" fill="none" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <path d="M56 73 Q61 77 57 81" fill="none" stroke="white" stroke-width="0.5" opacity="0.12"/>
+  <!-- Shirt visible through V-neck -->
+  <path d="M44 73 L50 83 L56 73 Z" fill="#E5E7EB"/>
+  <!-- Collar points -->
+  <path d="M44 73 L42.5 71.5 L45 73 Z" fill="#E5E7EB"/>
+  <path d="M56 73 L57.5 71.5 L55 73 Z" fill="#E5E7EB"/>
+  <!-- Tie knot -->
+  <path d="M50 74.5 L52.5 77.5 L50 80.5 L47.5 77.5 Z" fill="#8B5CF6"/>
+  <!-- Tie tail -->
+  <path d="M49 80.5 L51 80.5 L50 88 Z" fill="#6D28D9"/>
+  <!-- Tie highlight -->
+  <path d="M49.5 75.5 L50.5 77" stroke="white" stroke-width="0.5" stroke-linecap="round" opacity="0.2"/>
+  <!-- Jacket buttons -->
+  <circle cx="44" cy="84" r="1" fill="#334155"/>
+  <circle cx="44" cy="88" r="1" fill="#334155"/>
+  <!-- Button shine -->
+  <circle cx="43.7" cy="83.6" r="0.4" fill="white" opacity="0.25"/>
+  <circle cx="43.7" cy="87.6" r="0.4" fill="white" opacity="0.25"/>
+  <!-- Pocket square -->
+  <path d="M60 78.5 L63.5 78 L62.5 82 L60.5 81.5 Z" fill="#FBBF24"/>
+  <path d="M61 78.5 L62.5 78.2" stroke="white" stroke-width="0.4" opacity="0.2"/>
+</svg>

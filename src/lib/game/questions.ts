@@ -644,6 +644,59 @@ export function getVocabQuestionsByGrade(grade: VocabGrade, count: number = 30):
   return selected.map((q, i) => shuffleQuestionChoices(q, `${sessionSeed}_${q.id}_${i}`));
 }
 
+/** Vocab grade for placement match (neutral assessment). */
+export const PLACEMENT_VOCAB_GRADE: VocabGrade = 5;
+
+const VOCAB_LEVEL_ORDER: VocabLevel[] = [3, 4, 5, 6, 7, 8, "psat", "sat"];
+
+/** Tier caps: Bronze/Silver/Gold = Grade 8, Platinum = PSAT, Diamond/Emerald = SAT */
+const TIER_VOCAB_CAPS: Record<string, VocabLevel> = {
+  Bronze: 8,
+  Silver: 8,
+  Gold: 8,
+  Platinum: "psat",
+  Diamond: "sat",
+  Emerald: "sat",
+};
+
+function clampToTierCap(value: VocabLevel, tier: string): VocabLevel {
+  const cap = TIER_VOCAB_CAPS[tier] ?? 8;
+  const valueIdx = VOCAB_LEVEL_ORDER.indexOf(value);
+  const capIdx = VOCAB_LEVEL_ORDER.indexOf(cap);
+  if (valueIdx <= capIdx) return value;
+  return cap;
+}
+
+/**
+ * Get vocab grade for ranked based on placement + tier progression.
+ * Bronze/Silver/Gold capped at Grade 8; Platinum at PSAT; Diamond/Emerald at SAT.
+ */
+export function getVocabGradeForRanked(
+  placementGrade: VocabGrade | undefined,
+  rankTier: string,
+  trophies: number
+): VocabLevel {
+  const base = placementGrade ?? 5;
+  const tierBonus: Record<string, number> = {
+    Bronze: 0,
+    Silver: 1,
+    Gold: 2,
+    Platinum: 3,
+    Diamond: 4,
+    Emerald: 5,
+  };
+  const bonus = tierBonus[rankTier] ?? 0;
+  let rawLevel: VocabLevel;
+  if (trophies >= 2500) rawLevel = "sat";
+  else if (trophies >= 2000) rawLevel = "psat";
+  else {
+    let grade = Math.min(8, base + bonus);
+    if (trophies >= 1500) grade = Math.min(8, grade + 1);
+    rawLevel = grade as VocabGrade;
+  }
+  return clampToTierCap(rawLevel, rankTier);
+}
+
 /** Get vocabulary questions for any level (grades 3-8, psat, sat). */
 export function getVocabQuestionsByLevel(level: VocabLevel, count: number = 30): Question[] {
   const pool = VOCAB_BY_LEVEL[level] ?? VOCAB_QUESTIONS;

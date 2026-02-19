@@ -7,11 +7,13 @@ import { useTheme } from "@/context/ThemeContext";
 import { getProfile, createGuestProfile } from "@/lib/user/storage";
 import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { fetchLeaderboard, LeaderboardEntry } from "@/lib/supabase/profile";
-import { getTierProgress, getTrophiesNeededForNextTier } from "@/lib/game/rank";
+import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies } from "@/lib/game/rank";
+import { getLevel } from "@/lib/user/levels";
 import { RANK_TIERS, RANK_COLORS, RANK_THRESHOLDS, RANK_INKLING_CONFIG, RankTier } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
 import RankBadge from "@/components/RankBadge";
 import ThemeToggle from "@/components/ThemeToggle";
+import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import TrophyIcon from "@/components/icons/TrophyIcon";
 import { DEFAULT_AVATAR_CONFIG } from "@/types";
 
@@ -94,7 +96,7 @@ function TrophyIconSmall({ rank }: { rank: number }) {
 export default function RankedScreenPage() {
   const { user, loading: authLoading } = useAuth();
   const { light } = useTheme();
-  const [profile, setProfile] = useState(createGuestProfile());
+  const [profile, setProfile] = useState(() => getProfile() ?? createGuestProfile());
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -120,10 +122,11 @@ export default function RankedScreenPage() {
     load();
   }, [user, authLoading]);
 
-  const tierProgress = getTierProgress(profile.trophies, profile.rank_tier);
-  const tierIdx = RANK_TIERS.indexOf(profile.rank_tier);
-  const tierColor = RANK_COLORS[profile.rank_tier];
-  const nextTier = getTrophiesNeededForNextTier(profile.rank_tier);
+  const displayTier = getTierFromTrophies(profile.trophies);
+  const tierProgress = getTierProgress(profile.trophies, displayTier);
+  const tierIdx = RANK_TIERS.indexOf(displayTier);
+  const tierColor = RANK_COLORS[displayTier];
+  const toNextTier = getTrophiesToNextTier(profile.trophies);
 
   const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
   const text = light ? "text-[#0F172A]" : "text-white";
@@ -150,6 +153,7 @@ export default function RankedScreenPage() {
           Leaderboard
         </h1>
         <div className="flex items-center gap-2">
+          <GlobalNotificationBar />
           <ThemeToggle />
           <Link
             href="/play/ranked"
@@ -195,7 +199,7 @@ export default function RankedScreenPage() {
             {/* Center: giant tier emblem */}
             <div className="flex flex-col items-center text-center">
               <div className="w-24 h-24 sm:w-28 sm:h-28 mb-3 relative">
-                <BigTierIcon tier={profile.rank_tier} color={tierColor} />
+                <BigTierIcon tier={displayTier} color={tierColor} />
                 <div
                   className="absolute inset-0 rounded-full blur-xl opacity-25 pointer-events-none"
                   style={{ background: tierColor }}
@@ -205,10 +209,10 @@ export default function RankedScreenPage() {
                 className="text-3xl sm:text-4xl font-extrabold tracking-tight"
                 style={{ color: tierColor }}
               >
-                {profile.rank_tier}
+                {displayTier}
               </h2>
               <p className={`text-sm font-semibold mt-1 ${textMuted}`}>
-                {TIER_DESCRIPTIONS[profile.rank_tier]}
+                {TIER_DESCRIPTIONS[displayTier]}
               </p>
               <div className="flex items-center gap-2 mt-3">
                 <TrophyIcon className="w-4 h-4" color={MINT} />
@@ -222,7 +226,7 @@ export default function RankedScreenPage() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: tierColor }} />
-                  <span className={`text-xs font-bold ${text}`}>{profile.rank_tier}</span>
+                  <span className={`text-xs font-bold ${text}`}>{displayTier}</span>
                 </div>
                 {tierIdx < RANK_TIERS.length - 1 ? (
                   <div className="flex items-center gap-1.5">
@@ -243,9 +247,9 @@ export default function RankedScreenPage() {
                   }}
                 />
               </div>
-              {nextTier != null && (
+              {toNextTier != null && (
                 <p className={`text-xs font-semibold mt-2 text-center ${textMuted}`}>
-                  <span className="font-bold" style={{ color: tierColor }}>{nextTier - profile.trophies}</span> trophies to <span className="font-bold">{RANK_TIERS[tierIdx + 1]}</span>
+                  <span className="font-bold" style={{ color: tierColor }}>{toNextTier.needed}</span> trophies to <span className="font-bold">{toNextTier.nextTier}</span>
                 </p>
               )}
             </div>
@@ -377,7 +381,10 @@ export default function RankedScreenPage() {
                         {entry.username || "Challenger"}
                         {isCurrentUser && <span className="ml-1.5 text-xs font-semibold" style={{ color: BLUE }}>(you)</span>}
                       </p>
-                      <RankBadge tier={tier} size="sm" />
+                      <div className="flex items-center gap-2">
+                        <RankBadge tier={tier} size="sm" />
+                        <span className={`text-[10px] font-medium ${textFaint}`}>Lv {getLevel(entry.xp ?? 0)}</span>
+                      </div>
                     </div>
                     <span className="font-bold tabular-nums shrink-0" style={{ color: MINT }}>{entry.trophies}</span>
                   </div>

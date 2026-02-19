@@ -34,6 +34,15 @@ export async function syncProfileForUser(
       daily_reward_claimed_at: useLocalDaily ? local!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
       daily_streak: useLocalDaily ? (local!.daily_streak ?? 0) : (remote.daily_streak ?? 0),
       vocab_grade: remote.vocab_grade ?? local?.vocab_grade,
+      placement_completed: remote.placement_completed ?? local?.placement_completed,
+      placement_vocab_grade: remote.placement_vocab_grade ?? local?.placement_vocab_grade,
+      tutorial_completed: (remote.tutorial_completed ?? false) || (local?.tutorial_completed ?? false),
+      claimed_level_rewards: [
+        ...new Set([
+          ...(remote.claimed_level_rewards ?? []),
+          ...(local?.claimed_level_rewards ?? []),
+        ]),
+      ],
     };
     saveProfile(merged);
     // Persist merged state to Supabase

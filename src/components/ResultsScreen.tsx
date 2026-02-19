@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { GameResult, RANK_COLORS } from "@/types";
+import { GameResult, RANK_COLORS, GameResultMetadata } from "@/types";
 import { getProfile, getPersonalBests } from "@/lib/user/storage";
+import { addPendingNotification } from "@/lib/user/pending-notifications";
 import RankBadge from "./RankBadge";
 import ProgressBar from "./ProgressBar";
 import InkAvatar from "./InkAvatar";
@@ -15,19 +16,41 @@ import { getTierProgress, GAME_DURATION } from "@/lib/game/rank";
 interface ResultsScreenProps {
   result: GameResult;
   onPlayAgain: () => void;
+  /** Set when this was a placement match; shows grade assignment. */
+  placementGrade?: number;
+  /** Metadata for rank-up/level-up popups */
+  metadata?: GameResultMetadata;
 }
 
-export default function ResultsScreen({ result, onPlayAgain }: ResultsScreenProps) {
+export default function ResultsScreen({ result, onPlayAgain, placementGrade, metadata }: ResultsScreenProps) {
   const [profile, setProfile] = useState(getProfile());
   const [bests, setBests] = useState(getPersonalBests());
   const [visible, setVisible] = useState(false);
+  const [rankUpPopup, setRankUpPopup] = useState(metadata?.rankUp ?? null);
+  const [levelUpPopup, setLevelUpPopup] = useState(metadata?.levelUp ?? null);
 
   useEffect(() => {
     setProfile(getProfile());
     setBests(getPersonalBests());
+    setRankUpPopup(metadata?.rankUp ?? null);
+    setLevelUpPopup(metadata?.levelUp ?? null);
     const t = setTimeout(() => setVisible(true), 100);
     return () => clearTimeout(t);
-  }, []);
+  }, [metadata?.rankUp, metadata?.levelUp]);
+
+  function dismissRankUpPopup() {
+    if (rankUpPopup) {
+      addPendingNotification("rank_up", { tier: rankUpPopup.newTier });
+      setRankUpPopup(null);
+    }
+  }
+
+  function dismissLevelUpPopup() {
+    if (levelUpPopup) {
+      addPendingNotification("level_up", { level: levelUpPopup.newLevel });
+      setLevelUpPopup(null);
+    }
+  }
 
   const isWin = result.trophiesChange > 0;
   const isDraw = result.trophiesChange === 0 && result.mode === "ranked";
@@ -45,7 +68,11 @@ export default function ResultsScreen({ result, onPlayAgain }: ResultsScreenProp
   let outcomeLabel = "";
   let outcomeColor = "";
   let OutcomeIcon = SparkIcon;
-  if (result.mode === "casual") {
+  if (placementGrade != null) {
+    outcomeLabel = "Placement Complete";
+    outcomeColor = "text-[#3B82F6]";
+    OutcomeIcon = SparkIcon;
+  } else if (result.mode === "casual") {
     outcomeLabel = "Sprint Complete";
     outcomeColor = "text-[#3B82F6]";
     OutcomeIcon = SparkIcon;
@@ -67,7 +94,64 @@ export default function ResultsScreen({ result, onPlayAgain }: ResultsScreenProp
   const dropsEarned = result.correct * 2 + (result.trophiesChange > 0 ? 5 : 0);
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-8">
+    <main className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-8 relative">
+      {/* Rank-up popup */}
+      {rankUpPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border-2 border-[#D4AF37]">
+            <div className="text-center">
+              <p className="text-2xl font-extrabold text-[#D4AF37]">Rank Up!</p>
+              <p className="mt-2 text-[#0F172A] font-bold">You reached {rankUpPopup.newTier}!</p>
+              <p className="mt-1 text-sm text-[#64748B]">Keep climbing the leaderboard</p>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <Link
+                href="/ranked"
+                onClick={() => setRankUpPopup(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-white text-center bg-[#34D399] hover:opacity-90"
+              >
+                View Ranked
+              </Link>
+              <button
+                onClick={dismissRankUpPopup}
+                className="flex-1 py-3 rounded-xl font-bold text-[#64748B] bg-[#F1F5F9] hover:bg-[#E2E8F0]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Level-up popup */}
+      {levelUpPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border-2 border-[#8B5CF6]">
+            <div className="text-center">
+              <p className="text-2xl font-extrabold text-[#8B5CF6]">Level Up!</p>
+              <p className="mt-2 text-[#0F172A] font-bold">You reached Level {levelUpPopup.newLevel}!</p>
+              {levelUpPopup.hasUnclaimedRewards && (
+                <p className="mt-1 text-sm text-[#64748B]">You have rewards to claim</p>
+              )}
+            </div>
+            <div className="mt-6 flex gap-3">
+              <Link
+                href="/levels"
+                onClick={() => setLevelUpPopup(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-white text-center bg-[#8B5CF6] hover:opacity-90"
+              >
+                Claim Rewards
+              </Link>
+              <button
+                onClick={dismissLevelUpPopup}
+                className="flex-1 py-3 rounded-xl font-bold text-[#64748B] bg-[#F1F5F9] hover:bg-[#E2E8F0]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div
         className={`w-full max-w-md space-y-5 transition-all duration-500 ${
           visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
@@ -84,7 +168,12 @@ export default function ResultsScreen({ result, onPlayAgain }: ResultsScreenProp
             )}
           </div>
           <h1 className={`text-4xl font-extrabold ${outcomeColor}`}>{outcomeLabel}</h1>
-          {isPersonalBest && (
+          {placementGrade != null && (
+            <p className="mt-2 text-sm font-medium text-[#64748B]">
+              You&apos;ll get <span className="font-bold text-[#0F172A]">Grade {placementGrade}</span> vocabulary in ranked. Climb to face harder questions!
+            </p>
+          )}
+          {isPersonalBest && !placementGrade && (
             <div className="inline-flex items-center gap-1 mt-2 px-3 py-1.5 rounded-full bg-[#ECFDF5] border border-[#34D399]/50 text-[#059669] text-xs font-bold uppercase tracking-wider">
               New Personal Best!
             </div>
@@ -115,21 +204,24 @@ export default function ResultsScreen({ result, onPlayAgain }: ResultsScreenProp
         {result.mode === "ranked" && (
           <div
             className={`flex items-center justify-between rounded-2xl px-5 py-4 border-2 ${
-              isWin
+              placementGrade != null
+                ? "bg-[#DBEAFE] border-[#3B82F6]/40"
+                : isWin
                 ? "bg-[#ECFDF5] border-[#22C55E]"
                 : isLoss
                 ? "bg-red-50 border-red-200"
                 : "bg-[#F8FAFC] border-[#E2E8F0]"
             }`}
           >
-            <span className="text-[#0F172A] font-bold">Trophies</span>
+            <span className="text-[#0F172A] font-bold">
+              {placementGrade != null ? "Placement" : "Trophies"}
+            </span>
             <span
               className={`text-xl font-extrabold ${
-                isWin ? "text-[#22C55E]" : isLoss ? "text-[#EF4444]" : "text-[#64748B]"
+                placementGrade != null ? "text-[#3B82F6]" : isWin ? "text-[#22C55E]" : isLoss ? "text-[#EF4444]" : "text-[#64748B]"
               }`}
             >
-              {result.trophiesChange > 0 ? "+" : ""}
-              {result.trophiesChange}
+              {placementGrade != null ? "Grade " + placementGrade : `${result.trophiesChange > 0 ? "+" : ""}${result.trophiesChange}`}
             </span>
           </div>
         )}

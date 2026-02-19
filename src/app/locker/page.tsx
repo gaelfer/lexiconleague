@@ -23,6 +23,7 @@ import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
 import ThemeToggle from "@/components/ThemeToggle";
+import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 
 type Tab = "base" | "color" | "eyes" | "accessory" | "aura";
 
@@ -185,6 +186,7 @@ export default function LockerPage() {
           Ink Locker
         </h1>
         <div className="flex items-center gap-3">
+          <GlobalNotificationBar />
           <ThemeToggle />
           <Link
             href="/shop"

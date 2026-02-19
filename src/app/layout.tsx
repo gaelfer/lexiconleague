@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { PartyProvider } from "@/context/PartyContext";
+import { NotificationProvider } from "@/context/NotificationContext";
+import PartyBar from "@/components/PartyBar";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -13,6 +16,9 @@ export const metadata: Metadata = {
   title: "Lexicon League — Words are your superpower!",
   description:
     "A fun vocabulary and punctuation game for kids. Climb the ranks, beat your best, and become a word champion!",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -24,7 +30,14 @@ export default function RootLayout({
     <html lang="en">
       <body className="font-sans antialiased min-h-screen bg-white text-[#0F172A]">
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <PartyProvider>
+              <NotificationProvider>
+                {children}
+                <PartyBar />
+              </NotificationProvider>
+            </PartyProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

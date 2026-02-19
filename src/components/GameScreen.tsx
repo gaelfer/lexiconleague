@@ -5,7 +5,9 @@ import { Subject, GameMode, GameResult, DEFAULT_AVATAR_CONFIG, InkAvatarConfig, 
 import type { OpponentInfo } from "@/lib/game/matchmaking";
 import { getQuestionsForMode } from "@/lib/game/questions";
 import { useGame } from "@/hooks/useGame";
-import { applyGameResult, updatePersonalBest } from "@/lib/user/storage";
+import { applyGameResult, updatePersonalBest, getProfile } from "@/lib/user/storage";
+import { getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
+import { isLevelRewardClaimed } from "@/lib/user/storage";
 import TimerRing from "./TimerRing";
 import InkAvatar from "./InkAvatar";
 import { GAME_DURATION } from "@/lib/game/rank";
@@ -13,7 +15,7 @@ import { GAME_DURATION } from "@/lib/game/rank";
 interface GameScreenProps {
   mode: GameMode;
   subject: Subject;
-  onComplete: (result: GameResult) => void;
+  onComplete: (result: GameResult, metadata?: import("@/types").GameResultMetadata) => void;
   /** Called each time the player answers a question (for ranked live opponent sync) */
   onAnswerProgress?: (answered: number, score: number) => void;
   /** Opponent's answered count (for ranked live display) */
@@ -49,9 +51,24 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
     subject,
     questions,
     onComplete: (result) => {
+      const prevProfile = getProfile();
+      const prevTier = prevProfile?.rank_tier;
+      const prevLevel = prevProfile ? getLevel(prevProfile.xp) : 1;
       applyGameResult(result);
       updatePersonalBest(result);
-      onComplete(result);
+      const newProfile = getProfile();
+      const newTier = newProfile?.rank_tier;
+      const newLevel = newProfile ? getLevel(newProfile.xp) : 1;
+      const rankUp = result.mode === "ranked" && prevTier && newTier && prevTier !== newTier
+        ? { newTier: newTier }
+        : undefined;
+      const unclaimed = newProfile
+        ? LEVEL_REWARDS.filter((r) => r.level <= newLevel && !isLevelRewardClaimed(r.level, newProfile))
+        : [];
+      const levelUp = newLevel > prevLevel
+        ? { newLevel, hasUnclaimedRewards: unclaimed.length > 0 }
+        : undefined;
+      onComplete(result, { rankUp, levelUp });
     },
     onAnswerProgress,
     getOpponentScore,

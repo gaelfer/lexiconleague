@@ -43,11 +43,11 @@ export const RANK_TIERS: RankTier[] = [
 
 export const RANK_THRESHOLDS: Record<RankTier, number> = {
   Bronze: 0,
-  Silver: 300,
-  Gold: 700,
-  Platinum: 1200,
-  Diamond: 2000,
-  Emerald: 3000,
+  Silver: 100,
+  Gold: 350,
+  Platinum: 1000,
+  Diamond: 1500,
+  Emerald: 2500,
 };
 
 export const RANK_COLORS: Record<RankTier, string> = {
@@ -94,6 +94,14 @@ export interface UserProfile {
   vocab_grade?: VocabLevel;
   /** Level numbers for which rewards have been claimed (Level & Rewards screen). */
   claimed_level_rewards?: number[];
+  /** Hidden MMR for ranked matchmaking (admin-only in Supabase). */
+  mmr?: number;
+  /** Set after placement match; determines ranked question difficulty. */
+  placement_vocab_grade?: VocabGrade;
+  /** True after first ranked game (placement). */
+  placement_completed?: boolean;
+  /** True after completing or skipping the first-time home tutorial. */
+  tutorial_completed?: boolean;
   created_at: string;
 }
 
@@ -135,6 +143,12 @@ export interface GameResult {
   subject: Subject;
   trophiesChange: number;
   newTier?: RankTier;
+}
+
+/** Metadata passed after a game to show rank-up/level-up popups */
+export interface GameResultMetadata {
+  rankUp?: { newTier: string };
+  levelUp?: { newLevel: number; hasUnclaimedRewards: boolean };
 }
 
 // ── Ink Avatar ──────────────────────────────────────────────────────────────

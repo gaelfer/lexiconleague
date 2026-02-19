@@ -46,7 +46,7 @@ export function generateBotScore(playerTier: RankTier): { correct: number; incor
   const correctRanges: Record<string, [number, number]> = {
     Bronze: [4, 10],
     Silver: [7, 13],
-    Gold: [10, 16],
+    Gold: [14, 21],
     Platinum: [13, 19],
     Diamond: [16, 22],
     Emerald: [19, 26],
@@ -54,7 +54,7 @@ export function generateBotScore(playerTier: RankTier): { correct: number; incor
   const incorrectRanges: Record<string, [number, number]> = {
     Bronze: [3, 6],
     Silver: [2, 5],
-    Gold: [1, 4],
+    Gold: [1, 3],
     Platinum: [1, 3],
     Diamond: [0, 2],
     Emerald: [0, 2],

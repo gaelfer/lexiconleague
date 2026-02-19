@@ -9,8 +9,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/context/ThemeContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import GoogleIcon from "@/components/icons/GoogleIcon";
-import AppleIcon from "@/components/icons/AppleIcon";
-import MicrosoftIcon from "@/components/icons/MicrosoftIcon";
 import MailIcon from "@/components/icons/MailIcon";
 import TrophyIcon from "@/components/icons/TrophyIcon";
 
@@ -198,22 +196,6 @@ function SignupPageInner() {
               >
                 <GoogleIcon className="w-5 h-5 shrink-0" />
                 <span className="flex-1 text-center">Sign up with Google</span>
-              </button>
-
-              <button
-                onClick={() => handleOAuth("azure")}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] hover:border-[#BFDBFE] transition-all font-bold text-[#0F172A] text-sm"
-              >
-                <MicrosoftIcon className="w-5 h-5 shrink-0" />
-                <span className="flex-1 text-center">Sign up with Microsoft</span>
-              </button>
-
-              <button
-                onClick={() => handleOAuth("apple")}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-[#0F172A] bg-[#0F172A] hover:bg-[#1E293B] transition-all font-bold text-white text-sm"
-              >
-                <AppleIcon className="w-5 h-5 shrink-0" />
-                <span className="flex-1 text-center">Sign up with Apple</span>
               </button>
 
               <div className="flex items-center gap-3 my-1">

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { getProfile, createGuestProfile } from "@/lib/user/storage";
+import { getProfile, saveProfile, createGuestProfile } from "@/lib/user/storage";
+import { upsertProfile } from "@/lib/supabase/profile";
 import { UserProfile } from "@/types";
 import RankBadge from "@/components/RankBadge";
 import InkAvatar from "@/components/InkAvatar";
@@ -13,7 +15,9 @@ import BookIcon from "@/components/icons/BookIcon";
 import TrophyIcon from "@/components/icons/TrophyIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
 import ThemeToggle from "@/components/ThemeToggle";
-import { getTierProgress, getTrophiesInTier, getTrophiesNeededForNextTier } from "@/lib/game/rank";
+import GlobalNotificationBar from "@/components/GlobalNotificationBar";
+import HomeTutorialOverlay from "@/components/HomeTutorialOverlay";
+import { getTierProgress, getTrophiesInTier, getTrophiesToNextTier, getTierFromTrophies } from "@/lib/game/rank";
 import { getLevelProgress, getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
 import { canClaimDailyReward } from "@/lib/user/daily-rewards";
 import { syncProfileForUser } from "@/lib/user/profile-sync";
@@ -46,6 +50,17 @@ function UserIcon({ className = "w-6 h-6", color = "currentColor" }: { className
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function UsersIcon({ className = "w-6 h-6", color = "currentColor" }: { className?: string; color?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   );
 }
@@ -124,8 +139,11 @@ function LockIcon({ className = "w-4 h-4", color = "currentColor" }: { className
 export default function Home() {
   const { user, loading, signOut } = useAuth();
   const { light } = useTheme();
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialDismissed, setTutorialDismissed] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -141,10 +159,33 @@ export default function Home() {
     load();
   }, [user]);
 
-  const tierProgress = profile ? getTierProgress(profile.trophies, profile.rank_tier) : 0;
-  const trophiesInTier = profile ? getTrophiesInTier(profile.trophies, profile.rank_tier) : 0;
-  const tierIdx = profile ? RANK_TIERS.indexOf(profile.rank_tier) : 0;
-  const tierColor = profile ? RANK_COLORS[profile.rank_tier] : BLUE;
+  useEffect(() => {
+    if (!user || !profile) return;
+    if (tutorialDismissed) return;
+    const forceTutorial = searchParams.get("tutorial") === "1";
+    if (forceTutorial || !profile.tutorial_completed) {
+      setShowTutorial(true);
+    }
+  }, [user, profile, searchParams, tutorialDismissed]);
+
+  async function handleTutorialFinish() {
+    setShowTutorial(false);
+    setTutorialDismissed(true);
+    if (!profile) return;
+    if (profile.tutorial_completed) return;
+    const updated = { ...profile, tutorial_completed: true };
+    setProfile(updated);
+    saveProfile(updated);
+    if (user) {
+      await upsertProfile(user.id, { tutorial_completed: true });
+    }
+  }
+
+  const displayTier = profile ? getTierFromTrophies(profile.trophies) : "Bronze";
+  const tierProgress = profile ? getTierProgress(profile.trophies, displayTier) : 0;
+  const trophiesInTier = profile ? getTrophiesInTier(profile.trophies, displayTier) : 0;
+  const tierIdx = profile ? RANK_TIERS.indexOf(displayTier) : 0;
+  const tierColor = profile ? RANK_COLORS[displayTier] : BLUE;
   const levelProgress = profile ? getLevelProgress(profile.xp) : null;
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
@@ -193,6 +234,7 @@ export default function Home() {
         </Link>
 
         <div className="flex items-center gap-2">
+          {user && <GlobalNotificationBar />}
           <ThemeToggle />
           {!loading && (
             <>
@@ -310,6 +352,7 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row gap-3 mt-2">
           <Link
             href="/play/casual"
+            data-tutorial-id="casual"
             className="inline-flex items-center justify-center gap-2 px-6 py-3.5 font-bold text-white rounded-xl transition-colors"
             style={{ backgroundColor: BLUE }}
           >
@@ -318,6 +361,7 @@ export default function Home() {
           </Link>
           <Link
             href={user ? "/ranked" : "/auth/signup"}
+            data-tutorial-id="ranked"
             className={`inline-flex items-center justify-center gap-2 px-6 py-3.5 font-bold rounded-xl border-2 transition-colors ${light ? "border-[#34D399] text-[#059669] hover:bg-[#34D399]/10" : "border-[#34D399]/60 text-[#34D399] hover:bg-[#34D399]/10"}`}
           >
             <TrophyIcon className="w-5 h-5" color={MINT} />
@@ -354,9 +398,10 @@ export default function Home() {
 
       {profile && (
         <>
-          {/* Rank card — for ranked mode */}
+          {/* Rank card — for ranked mode (clickable → /ranked) */}
           <section className="relative z-10 px-4 sm:px-6 pb-3 max-w-lg mx-auto w-full">
-            <div className={`rounded-xl p-5 ${cardBg} border ${cardBorder} relative overflow-visible`}>
+            <Link href={user ? "/ranked" : "/auth/signup"} className="block">
+            <div className={`rounded-xl p-5 ${cardBg} border ${cardBorder} relative overflow-visible cursor-pointer transition-all hover:border-[#34D399]/40 hover:shadow-md active:scale-[0.99]`}>
               <div className="absolute -bottom-1 -left-4 opacity-40 pointer-events-none" style={{ transform: "rotate(-8deg)" }}>
                 <InkAvatar config={{ base: "droplet_04", color: "#C0C0C0", eyes: "eyes_05", accessory: "monocle_01", aura: "none" }} size={56} />
               </div>
@@ -365,14 +410,15 @@ export default function Home() {
               </div>
               <div className="flex items-center justify-between mb-3">
                 <p className={`${textFaint} text-xs font-semibold uppercase mb-1`}>{user ? "Your rank" : "Progress"}</p>
-                <RankBadge tier={profile.rank_tier} trophies={profile.trophies} showTrophies size="md" />
+                <RankBadge tier={displayTier} trophies={profile.trophies} showTrophies size="md" />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-medium">
-                  <span className={textMuted}>{profile.rank_tier} · {trophiesInTier} trophies</span>
-                  {tierIdx < RANK_TIERS.length - 1 && (
-                    <span className={textFaint}>{(getTrophiesNeededForNextTier(profile.rank_tier) ?? 0) - profile.trophies} to {RANK_TIERS[tierIdx + 1]}</span>
-                  )}
+                  <span className={textMuted}>{displayTier} · {trophiesInTier} trophies</span>
+                  {(() => {
+                    const toNext = getTrophiesToNextTier(profile.trophies);
+                    return toNext ? <span className={textFaint}>{toNext.needed} to {toNext.nextTier}</span> : null;
+                  })()}
                 </div>
                 <div className={`w-full h-2.5 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
                   <div
@@ -384,12 +430,13 @@ export default function Home() {
               {!user && (
                 <div className={`mt-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"}`}>
                   <span className="text-sm font-semibold" style={{ color: MINT }}>Save progress</span>
-                  <Link href="/auth/signup" className="text-xs font-bold px-4 py-2 rounded-lg text-white transition-colors" style={{ backgroundColor: MINT }}>
+                  <span className="text-xs font-bold px-4 py-2 rounded-lg text-white transition-colors inline-flex items-center" style={{ backgroundColor: MINT }}>
                     Join Free
-                  </Link>
+                  </span>
                 </div>
               )}
             </div>
+            </Link>
           </section>
 
           {/* Level & Rewards — compact preview (click to open full roadmap) */}
@@ -459,15 +506,15 @@ export default function Home() {
                 </div>
               )}
             </div>
-            </Link>
             <p className={`text-[10px] font-medium ${textFaint} text-center mt-1.5`}>Tap to view full roadmap →</p>
+            </Link>
           </section>
         </>
       )}
 
       {profile && canClaimDailyReward(profile) && (
         <section className="relative z-10 px-4 sm:px-6 py-2 max-w-lg mx-auto w-full">
-          <Link href="/shop" className="block relative">
+          <Link href="/shop" className="block relative" data-tutorial-id="daily-reward">
             <div className={`rounded-xl p-4 flex items-center gap-4 ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"} transition-colors hover:opacity-90 overflow-visible relative`}>
               <div className="absolute -top-2 -left-2 opacity-40 pointer-events-none" style={{ transform: "rotate(-12deg)" }}>
                 <InkAvatar config={{ base: "droplet_02", color: "#F97316", eyes: "eyes_03", accessory: "scarf_01", aura: "none" }} size={52} />
@@ -589,14 +636,15 @@ export default function Home() {
       </section>
 
       <section className="relative z-10 px-4 sm:px-6 pb-8 max-w-2xl mx-auto w-full">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
-            { href: "/shop", label: "Ink Shop", Icon: InkDropIcon, color: MINT },
-            { href: "/locker", label: "Ink Locker", Icon: LockOpenIcon, color: BLUE },
-            { href: "/ranked", label: "Leaderboard", Icon: BarChartIcon, color: MINT },
+            { href: "/shop", label: "Ink Shop", Icon: InkDropIcon, color: MINT, tutorialId: "shop" },
+            { href: "/locker", label: "Ink Locker", Icon: LockOpenIcon, color: BLUE, tutorialId: "locker" },
+            { href: "/ranked", label: "Leaderboard", Icon: BarChartIcon, color: MINT, tutorialId: "leaderboard" },
+            { href: user ? "/friends" : "/auth/signup", label: "Friends", Icon: UsersIcon, color: "#8B5CF6", tutorialId: "friends" },
             { href: user ? "/profile" : "/auth/signup", label: user ? "Profile" : "Join Free", Icon: UserIcon, color: BLUE },
           ].map((link) => (
-            <Link key={link.href + link.label} href={link.href} className="block">
+            <Link key={link.href + link.label} href={link.href} className="block" data-tutorial-id={link.tutorialId}>
               <div className={`rounded-xl p-4 ${cardBg} border ${cardBorder} text-center transition-colors hover:border-opacity-60`}>
                 <link.Icon className="w-6 h-6 mx-auto mb-2" color={link.color} />
                 <p className={`${text} text-sm font-semibold`}>{link.label}</p>
@@ -609,6 +657,12 @@ export default function Home() {
       <footer className={`relative z-10 mt-auto text-center py-6 text-sm ${textFaint} font-medium border-t ${cardBorder}`}>
         Lexicon League · Season 1
       </footer>
+
+      <HomeTutorialOverlay
+        open={showTutorial}
+        light={light}
+        onFinish={handleTutorialFinish}
+      />
     </main>
   );
 }

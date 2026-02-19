@@ -34,6 +34,7 @@ export function createGuestProfile(): UserProfile {
     daily_reward_claimed_at: null,
     daily_streak: 0,
     avatar_config: { ...DEFAULT_AVATAR_CONFIG },
+    tutorial_completed: false,
     created_at: new Date().toISOString(),
   };
   saveProfile(profile);
@@ -45,13 +46,34 @@ export function saveProfile(profile: UserProfile): void {
   localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
 }
 
+/** Map placement match accuracy to starting vocab grade (3-8). */
+function getPlacementVocabGrade(correct: number, total: number): 3 | 4 | 5 | 6 | 7 | 8 {
+  const accuracy = total > 0 ? correct / total : 0;
+  if (accuracy >= 0.85) return 8;
+  if (accuracy >= 0.75) return 7;
+  if (accuracy >= 0.65) return 6;
+  if (accuracy >= 0.55) return 5;
+  if (accuracy >= 0.45) return 4;
+  return 3;
+}
+
 export function applyGameResult(result: GameResult): UserProfile {
   let profile = getProfile() ?? createGuestProfile();
-  profile.trophies = Math.max(0, profile.trophies + result.trophiesChange);
-  profile.xp += result.correct * 5 + (result.trophiesChange > 0 ? 20 : 0);
-  profile.rank_tier = getTierFromTrophies(profile.trophies);
-  const dropsEarned = result.correct * 2 + (result.trophiesChange > 0 ? 5 : 0);
-  profile.ink_drops = (profile.ink_drops ?? 0) + dropsEarned;
+  const isPlacement = result.mode === "ranked" && !profile.placement_completed;
+
+  if (isPlacement) {
+    profile.placement_vocab_grade = getPlacementVocabGrade(result.correct, result.totalQuestions);
+    profile.placement_completed = true;
+    profile.xp += result.correct * 5 + 20;
+    profile.ink_drops = (profile.ink_drops ?? 0) + result.correct * 2 + 5;
+    // No trophy change for placement match
+  } else {
+    profile.trophies = Math.max(0, profile.trophies + result.trophiesChange);
+    profile.xp += result.correct * 5 + (result.trophiesChange > 0 ? 20 : 0);
+    profile.rank_tier = getTierFromTrophies(profile.trophies);
+    const dropsEarned = result.correct * 2 + (result.trophiesChange > 0 ? 5 : 0);
+    profile.ink_drops = (profile.ink_drops ?? 0) + dropsEarned;
+  }
 
   // Unlock ranked reward skins per tier
   if (result.mode === "ranked") {

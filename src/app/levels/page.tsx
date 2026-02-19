@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { getProfile, createGuestProfile, claimLevelReward, isLevelRewardClaimed } from "@/lib/user/storage";
+import { getProfile, saveProfile, createGuestProfile, claimLevelReward, isLevelRewardClaimed } from "@/lib/user/storage";
+import { fetchProfile, claimLevelRewardRemote } from "@/lib/supabase/profile";
 import { getLevelProgress, LEVEL_REWARDS } from "@/lib/user/levels";
 import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import ThemeToggle from "@/components/ThemeToggle";
+import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 
 const BLUE = "#3B82F6";
 const MINT = "#34D399";
@@ -62,6 +65,7 @@ function LockIcon({ className = "w-4 h-4", color = "currentColor" }: { className
 }
 
 export default function LevelsPage() {
+  const { user } = useAuth();
   const { light } = useTheme();
   const [profile, setProfile] = useState(() => getProfile() ?? createGuestProfile());
   const levelProgress = getLevelProgress(profile.xp);
@@ -94,7 +98,10 @@ export default function LevelsPage() {
           <GiftIcon className="w-5 h-5" color={BLUE} />
           Level & Rewards
         </h1>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <GlobalNotificationBar />
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="flex-1 px-4 sm:px-6 py-4 max-w-4xl mx-auto w-full">
@@ -147,7 +154,19 @@ export default function LevelsPage() {
                 const rewardColor = reward.type === "ink_drops" ? MINT : reward.type === "cosmetic" ? "#8B5CF6" : reward.type === "title" ? "#D4AF37" : BLUE;
                 const above = i % 2 === 0;
 
-                function handleClaim() {
+                async function handleClaim() {
+                  if (user) {
+                    const result = await claimLevelRewardRemote(reward.level);
+                    if (result.success) {
+                      const remote = await fetchProfile(user.id);
+                      if (remote) {
+                        saveProfile(remote);
+                        setProfile(remote);
+                      }
+                    }
+                    return;
+                  }
+
                   const result = claimLevelReward(reward.level);
                   if (result.success) setProfile(getProfile() ?? profile);
                 }

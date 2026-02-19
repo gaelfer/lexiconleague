@@ -7,6 +7,7 @@ import { getProfile, createGuestProfile } from "@/lib/user/storage";
 import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { upsertProfile } from "@/lib/supabase/profile";
 import { useAuth } from "@/context/AuthContext";
+import { useParty } from "@/context/PartyContext";
 import { createClient } from "@/lib/supabase/client";
 import {
   OpponentInfo,
@@ -24,7 +25,8 @@ import TrophyIcon from "@/components/icons/TrophyIcon";
 import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
-import { getTierProgress, getTrophiesNeededForNextTier, calculateScore } from "@/lib/game/rank";
+import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, calculateScore, TROPHY_WIN, TROPHY_LOSS } from "@/lib/game/rank";
+import { getVocabGradeForRanked, PLACEMENT_VOCAB_GRADE } from "@/lib/game/questions";
 
 type Phase = "lobby" | "searching" | "prematch" | "playing" | "results";
 
@@ -40,9 +42,11 @@ const MINT = "#34D399";
 export default function RankedPage() {
   const { user, loading: authLoading } = useAuth();
   const { light } = useTheme();
+  const { members, canPlayRanked } = useParty();
   const [phase, setPhase] = useState<Phase>("lobby");
   const [subject, setSubject] = useState<Subject>("vocabulary");
   const [result, setResult] = useState<GameResult | null>(null);
+  const [resultMetadata, setResultMetadata] = useState<import("@/types").GameResultMetadata | undefined>(undefined);
   const [profile, setProfile] = useState(getProfile() ?? createGuestProfile());
   const [opponent, setOpponent] = useState<OpponentInfo | null>(null);
   const [matchSeed, setMatchSeed] = useState("");
@@ -55,6 +59,7 @@ export default function RankedPage() {
   const channelRef = useRef<any>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const matchedRef = useRef(false);
+  const isPlacementMatchRef = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -149,6 +154,7 @@ export default function RankedPage() {
   }, [cleanupChannel]);
 
   function startSearch() {
+    if (!canPlayRanked) return;
     matchedRef.current = false;
     setPhase("searching");
 
@@ -205,6 +211,7 @@ export default function RankedPage() {
             isBot: false,
           };
 
+          isPlacementMatchRef.current = !(getProfile() ?? createGuestProfile()).placement_completed;
           setMatchSeed(seed);
           setOpponent(opp);
           if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -223,6 +230,7 @@ export default function RankedPage() {
             avatar_config: payload.player?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
             isBot: false,
           };
+          isPlacementMatchRef.current = !(getProfile() ?? createGuestProfile()).placement_completed;
           setMatchSeed(payload.seed);
           setOpponent(opp);
           if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -264,6 +272,7 @@ export default function RankedPage() {
   }
 
   function matchWithBot() {
+    isPlacementMatchRef.current = !profile.placement_completed;
     const bot = generateBotOpponent(profile.rank_tier);
     const botResult = generateBotScore(profile.rank_tier);
     botResultRef.current = { correct: botResult.correct, total: botResult.total };
@@ -274,14 +283,12 @@ export default function RankedPage() {
     setPhase("prematch");
   }
 
-  function handleComplete(r: GameResult) {
+  function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
     setResult(r);
-
-    // Persist updated profile to Supabase for auth users
-    if (user) {
-      const updated = getProfile();
-      if (updated) upsertProfile(user.id, updated);
-    }
+    setResultMetadata(metadata);
+    const updated = getProfile();
+    if (updated) setProfile(updated);
+    if (user && updated) upsertProfile(user.id, updated);
 
     if (opponent && !opponent.isBot && channelRef.current && user) {
       try {
@@ -309,6 +316,7 @@ export default function RankedPage() {
     const fresh = getProfile() ?? createGuestProfile();
     setProfile(fresh);
     setResult(null);
+    setResultMetadata(undefined);
     setOpponent(null);
     setOpponentScore(null);
     setOpponentAnswered(null);
@@ -349,6 +357,13 @@ export default function RankedPage() {
       opponent?.isBot && botResultRef.current
         ? calculateScore(botResultRef.current.correct)
         : opponentScore;
+    const isPlacement = !profile.placement_completed;
+    const rankedVocabGrade =
+      subject === "vocabulary"
+        ? isPlacement
+          ? PLACEMENT_VOCAB_GRADE
+          : getVocabGradeForRanked(profile.placement_vocab_grade, getTierFromTrophies(profile.trophies), profile.trophies)
+        : undefined;
     return (
       <GameScreen
         mode="ranked"
@@ -360,6 +375,7 @@ export default function RankedPage() {
         opponent={opponent}
         playerAvatarConfig={profile.avatar_config}
         getOpponentScore={getOpponentScore}
+        vocabGrade={rankedVocabGrade}
       />
     );
   }
@@ -418,7 +434,12 @@ export default function RankedPage() {
             </div>
           </div>
         )}
-        <ResultsScreen result={result} onPlayAgain={handlePlayAgain} />
+        <ResultsScreen
+          result={result}
+          onPlayAgain={handlePlayAgain}
+          placementGrade={isPlacementMatchRef.current ? (getProfile()?.placement_vocab_grade) : undefined}
+          metadata={resultMetadata}
+        />
       </div>
     );
   }
@@ -512,22 +533,8 @@ export default function RankedPage() {
   const tierIdx = RANK_TIERS.indexOf(profile.rank_tier);
   const isGoldPlus = tierIdx >= RANK_TIERS.indexOf("Gold");
   const tierProgress = getTierProgress(profile.trophies, profile.rank_tier);
-  const winTrophies =
-    profile.rank_tier === "Bronze"
-      ? 20
-      : profile.rank_tier === "Silver"
-      ? 18
-      : profile.rank_tier === "Gold"
-      ? 16
-      : 14;
-  const lossTrophies =
-    profile.rank_tier === "Bronze"
-      ? 10
-      : profile.rank_tier === "Silver"
-      ? 12
-      : profile.rank_tier === "Gold"
-      ? 14
-      : 16;
+  const winTrophies = TROPHY_WIN[profile.rank_tier];
+  const lossTrophies = Math.abs(TROPHY_LOSS[profile.rank_tier]);
 
   return (
     <main className={`min-h-screen ${bg} flex flex-col items-center justify-center px-6`}>
@@ -591,19 +598,29 @@ export default function RankedPage() {
                     }}
                   />
                 </div>
-                {tierIdx < RANK_TIERS.length - 1 && (
-                  <p className={`text-xs font-semibold mt-2 ${textMuted}`}>
-                    {(getTrophiesNeededForNextTier(profile.rank_tier) ?? 0) - profile.trophies} trophies to {RANK_TIERS[tierIdx + 1]}
-                  </p>
-                )}
+                {(() => {
+                  const toNext = getTrophiesToNextTier(profile.trophies);
+                  return toNext ? (
+                    <p className={`text-xs font-semibold mt-2 ${textMuted}`}>
+                      {toNext.needed} trophies to {toNext.nextTier}
+                    </p>
+                  ) : null;
+                })()}
               </div>
             </div>
           </div>
         </div>
 
+        {!profile.placement_completed && (
+          <div className={`rounded-xl p-4 ${light ? "bg-[#DBEAFE] border-[#3B82F6]/30" : "bg-[#3B82F6]/15 border-[#3B82F6]/30"} border`}>
+            <p className={`text-sm font-bold ${text}`}>Placement Match</p>
+            <p className={`text-xs ${textMuted} mt-1`}>Play vs a bot to determine your question difficulty. Younger and older players compete fairly!</p>
+          </div>
+        )}
+
         {/* Match info */}
         <div className={`rounded-2xl p-4 ${cardBg} border ${cardBorder} shadow-md`}>
-          <p className={`font-bold text-sm mb-3 ${text}`}>This match</p>
+          <p className={`font-bold text-sm mb-3 ${text}`}>{profile.placement_completed ? "This match" : "Placement"}</p>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className={`flex items-center gap-2 ${textMuted}`}>
               {subject === "vocabulary" ? (
@@ -619,22 +636,34 @@ export default function RankedPage() {
               <span className="font-bold">60s</span>
               <span>sprint</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[#22C55E] font-bold">
-                Win: +{winTrophies}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-red-500 font-bold">
-                Loss: -{lossTrophies}
-              </span>
-            </div>
+            {profile.placement_completed && (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#22C55E] font-bold">
+                    Win: +{winTrophies}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-red-500 font-bold">
+                    Loss: {TROPHY_LOSS[profile.rank_tier]}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
+        {!canPlayRanked && (
+          <div className={`rounded-xl p-4 ${light ? "bg-amber-50 border border-amber-200" : "bg-amber-500/10 border border-amber-500/30"}`}>
+            <p className={`text-sm font-bold ${text}`}>Leave your party to play ranked</p>
+            <p className={`text-xs ${textMuted} mt-1`}>Parties are not allowed in ranked. Clear your party ({members.length} members) to queue.</p>
+          </div>
+        )}
+
         <button
           onClick={startSearch}
-          className="w-full py-4 rounded-2xl font-extrabold text-lg text-white transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 hover:opacity-90"
+          disabled={!canPlayRanked}
+          className="w-full py-4 rounded-2xl font-extrabold text-lg text-white transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           style={{ backgroundColor: MINT }}
         >
           <TrophyIcon className="w-6 h-6" color="white" />

@@ -12,6 +12,7 @@ import { VocabLevel } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
 import RankBadge from "@/components/RankBadge";
 import ThemeToggle from "@/components/ThemeToggle";
+import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 
 const VOCAB_LEVELS: { value: VocabLevel; label: string }[] = [
   { value: 3, label: "Grade 3" },
@@ -34,7 +35,7 @@ export default function ProfilePage() {
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [savingUsername, setSavingUsername] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
-  const [profile, setProfile] = useState(createGuestProfile());
+  const [profile, setProfile] = useState(() => getProfile() ?? createGuestProfile());
   const [loading, setLoading] = useState(true);
   const [savingGrade, setSavingGrade] = useState(false);
 
@@ -152,7 +153,10 @@ export default function ProfilePage() {
           Back
         </Link>
         <h1 className={`text-lg font-bold ${text}`}>Profile</h1>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <GlobalNotificationBar />
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="flex-1 max-w-md mx-auto w-full px-4 py-6 space-y-6">
@@ -223,6 +227,20 @@ export default function ProfilePage() {
 
         {user && (
           <>
+            <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} shadow-lg`}>
+              <h2 className={`${text} font-bold text-base mb-2`}>Tutorial</h2>
+              <p className={`${textMuted} text-xs mb-4`}>
+                Want a refresher? Replay the guided walkthrough from home.
+              </p>
+              <Link
+                href="/?tutorial=1"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
+                style={{ backgroundColor: "#3B82F6" }}
+              >
+                Replay tutorial
+              </Link>
+            </div>
+
             {/* Username change */}
             <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} shadow-lg`}>
               <h2 className={`${text} font-bold text-base mb-3`}>Username</h2>

@@ -26,7 +26,12 @@ export interface DbProfile {
   daily_streak: number;
   avatar_config: Record<string, unknown>;
   vocab_grade?: string | null;
+  mmr?: number | null;
+  placement_vocab_grade?: number | null;
+  placement_completed?: boolean | null;
+  tutorial_completed?: boolean | null;
   username_changed_at: string | null;
+  claimed_level_rewards?: number[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -36,12 +41,13 @@ const VALID_VOCAB_LEVELS: VocabLevel[] = [3, 4, 5, 6, 7, 8, "psat", "sat"];
 export function dbProfileToUserProfile(row: DbProfile): UserProfile {
   const raw = row.vocab_grade;
   const vocab_grade = raw && VALID_VOCAB_LEVELS.includes(raw as VocabLevel) ? (raw as VocabLevel) : undefined;
+  const trophies = row.trophies ?? 0;
   return {
     id: row.id,
     email: row.email ?? "",
     username: row.username,
-    rank_tier: row.rank_tier as RankTier,
-    trophies: row.trophies,
+    rank_tier: getTierFromTrophies(trophies) as RankTier,
+    trophies,
     xp: row.xp,
     ink_drops: row.ink_drops,
     unlocked_items: row.unlocked_items ?? [...DEFAULT_UNLOCKED],
@@ -52,6 +58,11 @@ export function dbProfileToUserProfile(row: DbProfile): UserProfile {
       ...(row.avatar_config as object),
     },
     vocab_grade,
+    mmr: row.mmr ?? undefined,
+    placement_vocab_grade: row.placement_vocab_grade != null ? (row.placement_vocab_grade as 3 | 4 | 5 | 6 | 7 | 8) : undefined,
+    placement_completed: row.placement_completed ?? undefined,
+    tutorial_completed: row.tutorial_completed ?? undefined,
+    claimed_level_rewards: Array.isArray(row.claimed_level_rewards) ? row.claimed_level_rewards : undefined,
     created_at: row.created_at,
   };
 }
@@ -73,12 +84,14 @@ export async function upsertProfile(
   profile: Partial<UserProfile>
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient();
+  const trophies = profile.trophies;
+  const rankTier = trophies != null ? getTierFromTrophies(trophies) : profile.rank_tier;
   const { error } = await supabase.from("profiles").upsert(
     {
       id: userId,
       username: profile.username,
       email: profile.email,
-      rank_tier: profile.rank_tier,
+      rank_tier: rankTier ?? profile.rank_tier,
       trophies: profile.trophies,
       xp: profile.xp,
       ink_drops: profile.ink_drops,
@@ -87,12 +100,27 @@ export async function upsertProfile(
       daily_streak: profile.daily_streak,
       avatar_config: profile.avatar_config,
       vocab_grade: profile.vocab_grade != null ? String(profile.vocab_grade) : null,
+      mmr: profile.mmr ?? undefined,
+      placement_vocab_grade: profile.placement_vocab_grade ?? undefined,
+      placement_completed: profile.placement_completed ?? undefined,
+      tutorial_completed: profile.tutorial_completed ?? undefined,
+      claimed_level_rewards: profile.claimed_level_rewards ?? [],
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" }
   );
 
   if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function claimLevelRewardRemote(level: number): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("claim_level_reward", { p_level: level });
+
+  if (error) return { success: false, error: error.message };
+  const result = (data as { success?: boolean; error?: string } | null) ?? null;
+  if (!result?.success) return { success: false, error: result?.error ?? "Failed to claim reward" };
   return { success: true };
 }
 
@@ -137,6 +165,7 @@ export interface LeaderboardEntry {
   username: string;
   rank_tier: string;
   trophies: number;
+  xp: number;
   avatar_config: Record<string, unknown>;
   rank: number;
 }
@@ -147,18 +176,22 @@ export async function fetchLeaderboard(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, username, rank_tier, trophies, avatar_config")
+    .select("id, username, rank_tier, trophies, xp, avatar_config")
     .order("trophies", { ascending: false })
     .limit(limit);
 
   if (error) return [];
 
-  return (data ?? []).map((row, i) => ({
-    id: row.id,
-    username: row.username ?? "Challenger",
-    rank_tier: row.rank_tier ?? "Bronze",
-    trophies: row.trophies ?? 0,
-    avatar_config: (row.avatar_config as Record<string, unknown>) ?? {},
-    rank: i + 1,
-  }));
+  return (data ?? []).map((row, i) => {
+    const trophies = row.trophies ?? 0;
+    return {
+      id: row.id,
+      username: row.username ?? "Challenger",
+      rank_tier: getTierFromTrophies(trophies),
+      trophies,
+      xp: row.xp ?? 0,
+      avatar_config: (row.avatar_config as Record<string, unknown>) ?? {},
+      rank: i + 1,
+    };
+  });
 }

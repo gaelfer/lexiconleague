@@ -37,6 +37,7 @@ import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
 import ThemeToggle from "@/components/ThemeToggle";
+import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 
 type ShopTab = "daily" | "bases" | "colors" | "eyes" | "accessories" | "auras";
 
@@ -240,6 +241,7 @@ export default function ShopPage() {
           Ink Shop
         </h1>
         <div className="flex items-center gap-2">
+          <GlobalNotificationBar />
           <ThemeToggle />
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 ${
