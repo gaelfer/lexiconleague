@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useEffect } from "react";
-import { Subject, GameMode, GameResult, DEFAULT_AVATAR_CONFIG, InkAvatarConfig } from "@/types";
+import { Subject, GameMode, GameResult, DEFAULT_AVATAR_CONFIG, InkAvatarConfig, VocabLevel } from "@/types";
 import type { OpponentInfo } from "@/lib/game/matchmaking";
 import { getQuestionsForMode } from "@/lib/game/questions";
 import { useGame } from "@/hooks/useGame";
@@ -26,10 +26,12 @@ interface GameScreenProps {
   playerAvatarConfig?: InkAvatarConfig;
   /** For ranked: returns opponent's final score (used for win/loss & trophies) */
   getOpponentScore?: () => number | null;
+  /** For casual vocabulary: grade level (3-8) or psat/sat to filter questions */
+  vocabGrade?: VocabLevel;
 }
 
-export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, playerAvatarConfig, getOpponentScore }: GameScreenProps) {
-  const questions = useMemo(() => getQuestionsForMode(subject, 30), [subject]);
+export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, playerAvatarConfig, getOpponentScore, vocabGrade }: GameScreenProps) {
+  const questions = useMemo(() => getQuestionsForMode(subject, 30, vocabGrade), [subject, vocabGrade]);
 
   const {
     currentQuestion,

@@ -13,6 +13,10 @@ export type SkillTag =
   | "semicolons"
   | "capitalization";
 
+export type VocabGrade = 3 | 4 | 5 | 6 | 7 | 8;
+/** Extended vocab level: grades 3-8, or PSAT/SAT for advanced test prep. */
+export type VocabLevel = VocabGrade | "psat" | "sat";
+
 export interface Question {
   id: string;
   subject: Subject;
@@ -21,6 +25,8 @@ export interface Question {
   prompt: string;
   choices: string[];
   answer_index: number;
+  /** For vocabulary: target grade level (3-8, psat, sat). Used for casual grade selection. */
+  gradeLevel?: VocabGrade | "psat" | "sat";
 }
 
 // ── Rank ────────────────────────────────────────────────────────────────────
@@ -84,6 +90,8 @@ export interface UserProfile {
   daily_reward_claimed_at: string | null;
   daily_streak: number;
   avatar_config: InkAvatarConfig;
+  /** Preferred vocab level for casual mode (grades 3-8, psat, sat). */
+  vocab_grade?: VocabLevel;
   created_at: string;
 }
 

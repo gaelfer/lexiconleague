@@ -33,6 +33,7 @@ export async function syncProfileForUser(
       ],
       daily_reward_claimed_at: useLocalDaily ? local!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
       daily_streak: useLocalDaily ? (local!.daily_streak ?? 0) : (remote.daily_streak ?? 0),
+      vocab_grade: remote.vocab_grade ?? local?.vocab_grade,
     };
     saveProfile(merged);
     // Persist merged state to Supabase

@@ -1,6 +1,6 @@
 "use client";
 
-import { UserProfile, DEFAULT_AVATAR_CONFIG, RankTier } from "@/types";
+import { UserProfile, DEFAULT_AVATAR_CONFIG, RankTier, VocabLevel } from "@/types";
 import { getTierFromTrophies } from "@/lib/game/rank";
 import { createClient } from "./client";
 
@@ -25,12 +25,17 @@ export interface DbProfile {
   daily_reward_claimed_at: string | null;
   daily_streak: number;
   avatar_config: Record<string, unknown>;
+  vocab_grade?: string | null;
   username_changed_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
+const VALID_VOCAB_LEVELS: VocabLevel[] = [3, 4, 5, 6, 7, 8, "psat", "sat"];
+
 export function dbProfileToUserProfile(row: DbProfile): UserProfile {
+  const raw = row.vocab_grade;
+  const vocab_grade = raw && VALID_VOCAB_LEVELS.includes(raw as VocabLevel) ? (raw as VocabLevel) : undefined;
   return {
     id: row.id,
     email: row.email ?? "",
@@ -46,6 +51,7 @@ export function dbProfileToUserProfile(row: DbProfile): UserProfile {
       ...DEFAULT_AVATAR_CONFIG,
       ...(row.avatar_config as object),
     },
+    vocab_grade,
     created_at: row.created_at,
   };
 }
@@ -80,6 +86,7 @@ export async function upsertProfile(
       daily_reward_claimed_at: profile.daily_reward_claimed_at,
       daily_streak: profile.daily_streak,
       avatar_config: profile.avatar_config,
+      vocab_grade: profile.vocab_grade != null ? String(profile.vocab_grade) : null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" }

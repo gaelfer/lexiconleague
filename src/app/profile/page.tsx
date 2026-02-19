@@ -7,10 +7,22 @@ import { useTheme } from "@/context/ThemeContext";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile, saveProfile, createGuestProfile } from "@/lib/user/storage";
 import { syncProfileForUser } from "@/lib/user/profile-sync";
-import { updateUsername } from "@/lib/supabase/profile";
+import { updateUsername, upsertProfile } from "@/lib/supabase/profile";
+import { VocabLevel } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
 import RankBadge from "@/components/RankBadge";
 import ThemeToggle from "@/components/ThemeToggle";
+
+const VOCAB_LEVELS: { value: VocabLevel; label: string }[] = [
+  { value: 3, label: "Grade 3" },
+  { value: 4, label: "Grade 4" },
+  { value: 5, label: "Grade 5" },
+  { value: 6, label: "Grade 6" },
+  { value: 7, label: "Grade 7" },
+  { value: 8, label: "Grade 8" },
+  { value: "psat", label: "PSAT" },
+  { value: "sat", label: "SAT" },
+];
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -24,6 +36,7 @@ export default function ProfilePage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [profile, setProfile] = useState(createGuestProfile());
   const [loading, setLoading] = useState(true);
+  const [savingGrade, setSavingGrade] = useState(false);
 
   const showToast = useCallback((type: "success" | "error", msg: string) => {
     setToast({ type, msg });
@@ -67,6 +80,18 @@ export default function ProfilePage() {
       showToast("error", result.error ?? "Failed to update username.");
     }
     setSavingUsername(false);
+  }
+
+  async function handleVocabGradeChange(level: VocabLevel) {
+    const next = { ...profile, vocab_grade: level };
+    setProfile(next);
+    saveProfile(next);
+    if (user) {
+      setSavingGrade(true);
+      await upsertProfile(user.id, next);
+      setSavingGrade(false);
+      showToast("success", "Vocabulary level saved!");
+    }
   }
 
   async function handlePasswordChange(e: React.FormEvent) {
@@ -167,6 +192,33 @@ export default function ProfilePage() {
               <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
             </svg>
           </Link>
+        </div>
+
+        {/* Vocabulary level preference */}
+        <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} shadow-lg`}>
+          <h2 className={`${text} font-bold text-base mb-2`}>Vocabulary level</h2>
+          <p className={`${textMuted} text-xs mb-4`}>
+            Default level for casual vocabulary games (grades 3–8, PSAT, SAT).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {VOCAB_LEVELS.map(({ value, label }) => (
+              <button
+                key={String(value)}
+                onClick={() => handleVocabGradeChange(value)}
+                disabled={savingGrade}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  profile.vocab_grade === value
+                    ? "text-white"
+                    : light
+                      ? "bg-[#E2E8F0] text-[#64748B] hover:bg-[#CBD5E1]"
+                      : "bg-white/10 text-white/70 hover:bg-white/20"
+                }`}
+                style={profile.vocab_grade === value ? { backgroundColor: "#3B82F6" } : undefined}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {user && (

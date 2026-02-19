@@ -1,5 +1,100 @@
-import { Question } from "@/types";
+import { Question, VocabGrade, VocabLevel } from "@/types";
 import { seededShuffle } from "./matchmaking";
+
+// Grade 3 vocabulary (simple tier 2 words)
+const GRADE3_VOCAB: Question[] = [
+  { id: "g3_01", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'consider' mean?", choices: ["To ignore", "To think about carefully", "To forget", "To run away"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_02", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'purpose' mean?", choices: ["A mistake", "The reason for something", "A type of food", "A loud noise"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_03", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'several' mean?", choices: ["Only one", "More than a few", "None", "Too many"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_04", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'similar' mean?", choices: ["Very different", "Almost the same", "Completely opposite", "Strange"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_05", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'explain' mean?", choices: ["To hide", "To make clear or describe", "To confuse", "To forget"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_06", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'perhaps' mean?", choices: ["Never", "Maybe or possibly", "Always", "Definitely not"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_07", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'result' mean?", choices: ["The beginning", "What happens because of something", "A question", "A guess"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_08", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'usually' mean?", choices: ["Never", "Most of the time", "Rarely", "Only once"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_09", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'character' mean?", choices: ["A number", "A person in a story", "A color", "A place"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_10", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'setting' mean?", choices: ["A character", "Where and when a story happens", "The ending", "A problem"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_11", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'plot' mean?", choices: ["A character", "The main events of a story", "The setting", "A single scene"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_12", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'inference' mean?", choices: ["A fact stated directly", "A conclusion from clues", "A guess with no evidence", "A question"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_13", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'decide' mean?", choices: ["To wonder", "To make a choice", "To forget", "To ask"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_14", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'describe' mean?", choices: ["To hide", "To tell what something is like", "To guess", "To forget"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_15", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'different' mean?", choices: ["The same", "Not the same", "Similar", "Boring"], answer_index: 1, gradeLevel: 3 },
+];
+
+// Grade 4 vocabulary
+const GRADE4_VOCAB: Question[] = [
+  { id: "g4_01", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'compare' mean?", choices: ["To ignore", "To show how things are alike", "To destroy", "To forget"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_02", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'contrast' mean?", choices: ["To show similarities", "To show differences", "To agree", "To copy"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_03", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'evidence' mean?", choices: ["A guess", "Proof or facts that support something", "A story", "An opinion"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_04", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'conclude' mean?", choices: ["To begin", "To reach a decision or end", "To ignore", "To ask"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_05", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'summarize' mean?", choices: ["To add details", "To give a brief overview", "To confuse", "To lengthen"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_06", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'predict' mean?", choices: ["To forget", "To guess what will happen", "To describe the past", "To ignore"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_07", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'organize' mean?", choices: ["To scatter", "To arrange in order", "To lose", "To mix up"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_08", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'sequence' mean?", choices: ["Random order", "The order of events", "A single event", "The end"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_09", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'main idea' mean?", choices: ["A small detail", "The most important point", "The title", "A character"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_10", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'detail' mean?", choices: ["The main idea", "A small piece of information", "The whole story", "A guess"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_11", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'passage' mean?", choices: ["A door", "A short section of text", "A long book", "A picture"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_12", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'opinion' mean?", choices: ["A proven fact", "A personal view or belief", "A question", "A summary"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_13", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'persuade' mean?", choices: ["To confuse", "To convince someone", "To forget", "To ask"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_14", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'inform' mean?", choices: ["To hide", "To give information", "To guess", "To entertain"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_15", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'entertain' mean?", choices: ["To bore", "To amuse or interest", "To teach", "To confuse"], answer_index: 1, gradeLevel: 4 },
+];
+
+// Grade 5 vocabulary
+const GRADE5_VOCAB: Question[] = [
+  { id: "g5_01", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'analyze' mean?", choices: ["To ignore", "To examine closely", "To guess", "To summarize"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_02", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'determine' mean?", choices: ["To wonder", "To figure out or decide", "To forget", "To ask"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_03", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'develop' mean?", choices: ["To shrink", "To grow or expand", "To destroy", "To ignore"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_04", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'identify' mean?", choices: ["To lose", "To recognize or name", "To forget", "To hide"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_05", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'influence' mean?", choices: ["To ignore", "To affect or have an impact on", "To copy", "To forget"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_06", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'structure' mean?", choices: ["Chaos", "How something is organized", "A random order", "The end"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_07", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'theme' mean?", choices: ["A character", "The main message of a story", "The setting", "A detail"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_08", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'conflict' mean?", choices: ["Agreement", "A struggle or problem", "The solution", "The beginning"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_09", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'resolution' mean?", choices: ["The problem", "How a conflict is solved", "The beginning", "A character"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_10", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'context' mean?", choices: ["The answer", "The surrounding information", "A guess", "The title"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_11", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'evaluate' mean?", choices: ["To ignore", "To judge or assess", "To create", "To forget"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_12", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'interpret' mean?", choices: ["To copy", "To explain the meaning of", "To ignore", "To forget"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_13", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'support' mean?", choices: ["To oppose", "To back up with evidence", "To ignore", "To guess"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_14", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'convey' mean?", choices: ["To hide", "To communicate or express", "To forget", "To confuse"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_15", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'demonstrate' mean?", choices: ["To hide", "To show or prove", "To guess", "To forget"], answer_index: 1, gradeLevel: 5 },
+];
+
+// Grade 6 vocabulary
+const GRADE6_VOCAB: Question[] = [
+  { id: "g6_01", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'cite' mean?", choices: ["To ignore", "To quote or reference", "To forget", "To guess"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_02", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'paraphrase' mean?", choices: ["To copy exactly", "To restate in your own words", "To forget", "To shorten"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_03", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'claim' mean?", choices: ["A fact", "A statement that needs support", "A question", "An answer"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_04", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'argument' mean?", choices: ["A fight", "A reasoned case for a position", "A question", "A story"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_05", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'relevant' mean?", choices: ["Unrelated", "Connected to the topic", "Random", "Old"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_06", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'coherent' mean?", choices: ["Confusing", "Logical and clear", "Random", "Short"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_07", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'imply' mean?", choices: ["To state directly", "To suggest without saying", "To shout", "To ask"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_08", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'explicit' mean?", choices: ["Hidden", "Clearly stated", "Confusing", "Long"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_09", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'implicit' mean?", choices: ["Obvious", "Suggested but not stated", "Clear", "Direct"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_10", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'perspective' mean?", choices: ["A fact", "A point of view", "The truth", "A lie"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_11", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'tone' mean?", choices: ["Volume", "The attitude or feeling", "The plot", "A character"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_12", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'mood' mean?", choices: ["The weather", "The feeling a text creates", "The setting", "The author"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_13", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'analyze' mean?", choices: ["To summarize", "To examine in detail", "To ignore", "To copy"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_14", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'synthesize' mean?", choices: ["To separate", "To combine into a whole", "To forget", "To copy"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_15", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'credible' mean?", choices: ["Unbelievable", "Trustworthy", "Fake", "Confusing"], answer_index: 1, gradeLevel: 6 },
+];
+
+// Grade 7 vocabulary
+const GRADE7_VOCAB: Question[] = [
+  { id: "g7_01", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'rhetoric' mean?", choices: ["Lies", "Persuasive speaking or writing", "Poetry", "Facts"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_02", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'bias' mean?", choices: ["Fairness", "Preference that affects judgment", "Truth", "Evidence"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_03", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'fallacy' mean?", choices: ["A fact", "A false or flawed argument", "Logic", "Proof"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_04", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'connotation' mean?", choices: ["Dictionary meaning", "Emotional association of a word", "Spelling", "Length"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_05", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'denotation' mean?", choices: ["Emotional meaning", "Literal dictionary meaning", "Tone", "Style"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_06", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'analogy' mean?", choices: ["A fact", "A comparison of similar things", "A contrast", "A definition"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_07", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'allusion' mean?", choices: ["A lie", "An indirect reference", "A direct quote", "A summary"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_08", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'irony' mean?", choices: ["Literal meaning", "When the opposite of expected happens", "Humor", "Sadness"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_09", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'symbolism' mean?", choices: ["Literal description", "Using symbols to represent ideas", "Facts", "Dialogue"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_10", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'figurative' mean?", choices: ["Literal", "Using figures of speech", "Boring", "Short"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_11", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'literal' mean?", choices: ["Figurative", "Exact or actual meaning", "Metaphorical", "Creative"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_12", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'nuance' mean?", choices: ["Obvious difference", "A subtle distinction", "A big change", "A mistake"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_13", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'paradox' mean?", choices: ["A simple truth", "A seeming contradiction", "A fact", "A question"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_14", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'diction' mean?", choices: ["Plot", "Word choice in writing", "Setting", "Character"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_15", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'syntax' mean?", choices: ["Word meaning", "Sentence structure", "Plot", "Theme"], answer_index: 1, gradeLevel: 7 },
+];
 
 // Florida Grade 8 / English 1 / Pre-AP English 1 vocabulary (primary curriculum)
 const FLORIDA_GRADE8_VOCAB: Question[] = [
@@ -138,10 +233,79 @@ const FLORIDA_GRADE8_VOCAB: Question[] = [
   { id: "fl128", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "Choose the best word: He was _____ to learn new languages.", choices: ["uninterested", "avid", "bored", "tired"], answer_index: 1 },
   { id: "fl129", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "Choose the best word: The storm caused _____ damage to the town.", choices: ["minor", "dire", "mild", "harmless"], answer_index: 1 },
   { id: "fl130", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "Choose the best word: She handled the crisis with _____ composure.", choices: ["chaotic", "serene", "noisy", "aggressive"], answer_index: 1 },
+].map((q) => ({ ...q, gradeLevel: 8 } as Question));
+
+// PSAT-level vocabulary — challenging words for college-bound students
+const PSAT_VOCAB: Question[] = [
+  { id: "psat_01", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'ubiquitous' mean?", choices: ["Rare and scarce", "Present everywhere", "Invisible", "Temporary"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_02", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'ameliorate' mean?", choices: ["To worsen", "To make better", "To ignore", "To destroy"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_03", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'taciturn' mean?", choices: ["Very talkative", "Reserved and quiet", "Angry", "Cheerful"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_04", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'sagacious' mean?", choices: ["Foolish", "Wise and shrewd", "Lazy", "Rude"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_05", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'gregarious' mean?", choices: ["Shy and solitary", "Sociable and outgoing", "Hostile", "Boring"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_06", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'laconic' mean?", choices: ["Wordy", "Using few words", "Loud", "Confusing"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_07", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'abate' mean?", choices: ["To increase", "To lessen or decrease", "To begin", "To celebrate"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_08", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'transcend' mean?", choices: ["To fall short", "To go beyond limits", "To copy", "To ignore"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_09", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'intermingle' mean?", choices: ["To separate", "To mix or blend together", "To destroy", "To hide"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_10", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'desiccated' mean?", choices: ["Fresh and moist", "Completely dried out", "Frozen", "Rotten"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_11", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'perspicacious' mean?", choices: ["Dull-witted", "Having keen insight", "Blind", "Confused"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_12", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'equivocate' mean?", choices: ["To speak clearly", "To be deliberately vague", "To agree", "To shout"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_13", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'pragmatic' mean?", choices: ["Idealistic and impractical", "Practical and focused on results", "Lazy", "Stubborn"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_14", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'reticent' mean?", choices: ["Eager to share", "Unwilling to speak", "Angry", "Generous"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_15", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'mitigate' mean?", choices: ["To worsen", "To make less severe", "To ignore", "To cause"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_16", subject: "vocabulary", difficulty: 4, skill_tag: "context-clues", prompt: "The senator's equivocal response left reporters unsure of his position. What does 'equivocal' mean?", choices: ["Clear and direct", "Ambiguous and unclear", "Honest", "Brief"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_17", subject: "vocabulary", difficulty: 4, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'ubiquitous'?", choices: ["Rare", "Omnipresent", "Hidden", "Temporary"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_18", subject: "vocabulary", difficulty: 4, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'gregarious'?", choices: ["Sociable", "Reclusive", "Friendly", "Outgoing"], answer_index: 1, gradeLevel: "psat" },
 ];
 
+// SAT-level vocabulary — especially hard, expert-tier words
+const SAT_VOCAB: Question[] = [
+  { id: "sat_01", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'obsequious' mean?", choices: ["Defiant and rebellious", "Excessively eager to please", "Indifferent", "Hostile"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_02", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'perspicuous' mean?", choices: ["Confusing", "Clear and easy to understand", "Lengthy", "Obscure"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_03", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'supercilious' mean?", choices: ["Humble", "Arrogantly superior", "Kind", "Shy"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_04", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'trenchant' mean?", choices: ["Mild and vague", "Sharp and incisive", "Boring", "Long-winded"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_05", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'recalcitrant' mean?", choices: ["Obedient", "Stubbornly resistant", "Eager", "Cooperative"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_06", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'sanguine' mean?", choices: ["Pessimistic", "Optimistic and cheerful", "Angry", "Neutral"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_07", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'profligate' mean?", choices: ["Frugal", "Recklessly wasteful", "Careful", "Generous"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_08", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'magnanimous' mean?", choices: ["Petty", "Generous and forgiving", "Stingy", "Resentful"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_09", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'tacit' mean?", choices: ["Explicitly stated", "Implied without being said", "Loud", "Written"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_10", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'pulchritude' mean?", choices: ["Ugliness", "Physical beauty", "Strength", "Intelligence"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_11", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'surreptitious' mean?", choices: ["Open and obvious", "Secret and stealthy", "Honest", "Loud"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_12", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'obdurate' mean?", choices: ["Flexible", "Stubbornly refusing to change", "Kind", "Weak"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_13", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'salubrious' mean?", choices: ["Unhealthy", "Promoting health", "Dangerous", "Boring"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_14", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'verisimilitude' mean?", choices: ["Falseness", "Appearance of being true", "Obvious lie", "Confusion"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_15", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'perfunctory' mean?", choices: ["Thorough and careful", "Done without real interest", "Enthusiastic", "Creative"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_16", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'sycophant' mean?", choices: ["Independent critic", "A flatterer who seeks favor", "Enemy", "Leader"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_17", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'lugubrious' mean?", choices: ["Cheerful", "Mournful and gloomy", "Exciting", "Calm"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_18", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'propitious' mean?", choices: ["Unfavorable", "Favorable and advantageous", "Neutral", "Dangerous"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_19", subject: "vocabulary", difficulty: 5, skill_tag: "context-clues", prompt: "His obsequious manner toward the CEO made his colleagues uncomfortable. What does 'obsequious' mean?", choices: ["Defiant", "Excessively submissive", "Confident", "Honest"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_20", subject: "vocabulary", difficulty: 5, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'magnanimous'?", choices: ["Generous", "Petty", "Kind", "Forgiving"], answer_index: 1, gradeLevel: "sat" },
+];
+
+export const VOCAB_BY_GRADE: Record<VocabGrade, Question[]> = {
+  3: GRADE3_VOCAB,
+  4: GRADE4_VOCAB,
+  5: GRADE5_VOCAB,
+  6: GRADE6_VOCAB,
+  7: GRADE7_VOCAB,
+  8: FLORIDA_GRADE8_VOCAB,
+};
+
+/** Extended mapping including PSAT and SAT levels. */
+export const VOCAB_BY_LEVEL: Record<VocabLevel, Question[]> = {
+  ...VOCAB_BY_GRADE,
+  psat: PSAT_VOCAB,
+  sat: SAT_VOCAB,
+};
+
 export const VOCAB_QUESTIONS: Question[] = [
+  ...GRADE3_VOCAB,
+  ...GRADE4_VOCAB,
+  ...GRADE5_VOCAB,
+  ...GRADE6_VOCAB,
+  ...GRADE7_VOCAB,
   ...FLORIDA_GRADE8_VOCAB,
+  ...PSAT_VOCAB,
+  ...SAT_VOCAB,
   {
     id: "v001",
     subject: "vocabulary",
@@ -471,11 +635,35 @@ export function shuffleQuestionChoices(question: Question, seed?: string): Quest
   return { ...question, choices: newChoices, answer_index: newAnswerIndex };
 }
 
+/** Get vocabulary questions for a specific grade (3-8) or level (psat, sat). Used in casual mode. */
+export function getVocabQuestionsByGrade(grade: VocabGrade, count: number = 30): Question[] {
+  const pool = VOCAB_BY_GRADE[grade] ?? VOCAB_QUESTIONS;
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+  const sessionSeed = Math.random().toString(36).slice(2, 12);
+  return selected.map((q, i) => shuffleQuestionChoices(q, `${sessionSeed}_${q.id}_${i}`));
+}
+
+/** Get vocabulary questions for any level (grades 3-8, psat, sat). */
+export function getVocabQuestionsByLevel(level: VocabLevel, count: number = 30): Question[] {
+  const pool = VOCAB_BY_LEVEL[level] ?? VOCAB_QUESTIONS;
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+  const sessionSeed = Math.random().toString(36).slice(2, 12);
+  return selected.map((q, i) => shuffleQuestionChoices(q, `${sessionSeed}_${q.id}_${i}`));
+}
+
 export function getQuestionsForMode(
   subject: "vocabulary" | "punctuation",
-  count: number = 20
+  count: number = 20,
+  vocabGrade?: VocabGrade | "psat" | "sat"
 ): Question[] {
-  const pool = subject === "vocabulary" ? VOCAB_QUESTIONS : PUNCTUATION_QUESTIONS;
+  const pool =
+    subject === "vocabulary"
+      ? vocabGrade
+        ? (VOCAB_BY_LEVEL[vocabGrade as VocabLevel] ?? VOCAB_QUESTIONS)
+        : VOCAB_QUESTIONS
+      : PUNCTUATION_QUESTIONS;
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   const selected = shuffled.slice(0, Math.min(count, shuffled.length));
   const sessionSeed = Math.random().toString(36).slice(2, 12);
