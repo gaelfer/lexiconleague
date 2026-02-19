@@ -344,33 +344,38 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Daily reward claimed popup — with 7-day cycle */}
+      {/* Daily reward claimed popup — spacious, mobile-first */}
       {claimedReward && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-6 overscroll-contain"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)", paddingTop: "env(safe-area-inset-top)" }}
           onClick={() => setClaimedReward(null)}
         >
           <div
-            className={`rounded-3xl overflow-hidden border-[3px] max-w-sm w-full max-h-[90vh] overflow-y-auto ${
+            className={`rounded-t-3xl sm:rounded-3xl overflow-hidden border-t-[3px] sm:border-[3px] w-full sm:max-w-lg sm:max-h-[90vh] overflow-y-auto flex flex-col ${
               light ? "bg-white border-[#34D399]/50" : "bg-[#1E293B] border-[#34D399]/50"
             }`}
-            style={{ boxShadow: "0 8px 32px rgba(52,211,153,0.25)" }}
+            style={{ boxShadow: "0 8px 32px rgba(52,211,153,0.25)", maxHeight: "min(90vh, 640px)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${MINT}25` }}>
-                <InkDropIcon className="w-10 h-10" color={MINT} />
+            <div className="p-6 sm:p-8 text-center flex flex-col min-h-0 gap-6">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${MINT}25` }}>
+                  <InkDropIcon className="w-10 h-10 sm:w-12 sm:h-12" color={MINT} />
+                </div>
+                <div>
+                  <p className={`text-xs sm:text-sm font-bold uppercase tracking-wider ${textMuted} mb-1`}>Daily reward</p>
+                  <p className={`text-2xl sm:text-4xl font-extrabold ${claimedReward.bonus ? "mb-1" : ""}`} style={{ color: MINT }}>+{claimedReward.drops} Ink Drops</p>
+                  {claimedReward.bonus && (
+                    <p className="text-sm font-bold mt-1" style={{ color: MINT }}>{claimedReward.bonus}</p>
+                  )}
+                </div>
               </div>
-              <p className={`text-sm font-bold uppercase tracking-wider ${textMuted} mb-1`}>Daily reward</p>
-              <p className={`text-2xl sm:text-3xl font-extrabold ${claimedReward.bonus ? "mb-1" : "mb-3"}`} style={{ color: MINT }}>+{claimedReward.drops} Ink Drops</p>
-              {claimedReward.bonus && (
-                <p className="text-sm font-bold mb-3" style={{ color: MINT }}>{claimedReward.bonus}</p>
-              )}
 
-              {/* 7-day cycle — prominent, easy to read */}
-              <div className="mb-4 p-3 rounded-2xl" style={{ backgroundColor: light ? "rgba(52,211,153,0.08)" : "rgba(52,211,153,0.12)", border: "2px solid rgba(52,211,153,0.3)" }}>
-                <p className={`text-xs font-extrabold uppercase tracking-wider ${textMuted} mb-2.5 text-center`}>7-day cycle</p>
-                <div className="grid grid-cols-7 gap-2">
+              {/* 7-day cycle — more breathing room */}
+              <div className="p-4 sm:p-5 rounded-2xl shrink-0" style={{ backgroundColor: light ? "rgba(52,211,153,0.08)" : "rgba(52,211,153,0.12)", border: "2px solid rgba(52,211,153,0.3)" }}>
+                <p className={`text-xs font-extrabold uppercase tracking-wider ${textMuted} mb-4 text-center`}>7-day cycle</p>
+                <div className="flex sm:grid sm:grid-cols-7 gap-3 overflow-x-auto pb-2 -mx-1 px-1 sm:overflow-visible sm:mx-0 sm:px-0 scrollbar-hide">
                   {DAILY_REWARDS.map((r, i) => {
                     const dayNum = i + 1;
                     const isPast = dayNum < claimedReward.day;
@@ -378,7 +383,7 @@ export default function ShopPage() {
                     return (
                       <div
                         key={dayNum}
-                        className={`flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl border-2 transition-all min-h-[56px] sm:min-h-[64px] ${
+                        className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all shrink-0 w-[76px] sm:w-auto sm:min-h-[72px] ${
                           isJustClaimed
                             ? light ? "border-[#34D399] bg-[#ECFDF5] shadow-[0_0_12px_rgba(52,211,153,0.4)]" : "border-[#34D399] bg-[#34D399]/25 shadow-[0_0_12px_rgba(52,211,153,0.3)]"
                             : isPast
@@ -386,18 +391,18 @@ export default function ShopPage() {
                             : light ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-60" : "border-white/15 bg-[#0F172A]/40 opacity-60"
                         }`}
                       >
-                        <span className="text-[10px] sm:text-xs font-extrabold truncate w-full text-center">{r.label}</span>
-                        <div className="flex items-center gap-0.5 mt-1">
-                          <InkDropIcon className="w-3.5 h-3.5 shrink-0" color={MINT} />
-                          <span className="text-[11px] sm:text-xs font-extrabold" style={{ color: MINT }}>{r.drops}</span>
+                        <span className="text-xs font-extrabold truncate w-full text-center">{r.label}</span>
+                        <div className="flex items-center gap-0.5 mt-1.5">
+                          <InkDropIcon className="w-4 h-4 shrink-0" color={MINT} />
+                          <span className="text-xs font-extrabold" style={{ color: MINT }}>{r.drops}</span>
                         </div>
                         {isPast && (
-                          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mt-1 shrink-0" style={{ color: MINT }}>
+                          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mt-1.5 shrink-0" style={{ color: MINT }}>
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         )}
                         {isJustClaimed && (
-                          <span className="text-[10px] font-extrabold mt-1 animate-pulse" style={{ color: MINT }}>✓ Today</span>
+                          <span className="text-[10px] font-extrabold mt-1.5 animate-pulse" style={{ color: MINT }}>✓ Today</span>
                         )}
                       </div>
                     );
@@ -407,8 +412,8 @@ export default function ShopPage() {
 
               <button
                 onClick={() => setClaimedReward(null)}
-                className="w-full py-3.5 rounded-2xl font-extrabold text-white transition-all active:scale-95"
-                style={{ backgroundColor: MINT, boxShadow: "0 4px 12px rgba(52,211,153,0.4)" }}
+                className="w-full py-4 sm:py-4 rounded-2xl font-extrabold text-white transition-all active:scale-95 shrink-0 touch-manipulation"
+                style={{ backgroundColor: MINT, boxShadow: "0 4px 12px rgba(52,211,153,0.4)", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
               >
                 Nice!
               </button>

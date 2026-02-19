@@ -494,10 +494,10 @@ export default function Home() {
                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-white/40" />
               </div>
               <div className="flex-1 min-w-0 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                <div className="inline-flex items-center gap-2 flex-wrap justify-center sm:justify-start">
                   <h3 className="font-extrabold text-base sm:text-lg" style={{ color: "#BE123C" }}>Story Mode</h3>
                   <span
-                    className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white"
+                    className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white whitespace-nowrap"
                     style={{ backgroundColor: "#9F1239", boxShadow: "0 2px 6px rgba(159, 18, 57, 0.4)" }}
                   >
                     Coming Soon
