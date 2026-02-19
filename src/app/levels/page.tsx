@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTheme } from "@/context/ThemeContext";
-import { getProfile, createGuestProfile } from "@/lib/user/storage";
+import { getProfile, createGuestProfile, claimLevelReward, isLevelRewardClaimed } from "@/lib/user/storage";
 import { getLevelProgress, LEVEL_REWARDS } from "@/lib/user/levels";
 import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
@@ -62,9 +63,13 @@ function LockIcon({ className = "w-4 h-4", color = "currentColor" }: { className
 
 export default function LevelsPage() {
   const { light } = useTheme();
-  const profile = getProfile() ?? createGuestProfile();
+  const [profile, setProfile] = useState(() => getProfile() ?? createGuestProfile());
   const levelProgress = getLevelProgress(profile.xp);
   const currentLevel = levelProgress.level;
+
+  useEffect(() => {
+    setProfile(getProfile() ?? createGuestProfile());
+  }, []);
 
   const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
   const text = light ? "text-[#0F172A]" : "text-white";
@@ -134,11 +139,49 @@ export default function LevelsPage() {
               />
 
               {LEVEL_REWARDS.map((reward, i) => {
-                const unlocked = currentLevel >= reward.level;
-                const isNext = !unlocked && reward.level === LEVEL_REWARDS.find(r => r.level > currentLevel)?.level;
+                const levelReached = currentLevel >= reward.level;
+                const claimed = isLevelRewardClaimed(reward.level, profile);
+                const claimable = levelReached && !claimed;
+                const isNext = !levelReached && reward.level === LEVEL_REWARDS.find(r => r.level > currentLevel)?.level;
                 const RewardVisual = reward.type === "ink_drops" ? InkDropIcon : reward.type === "cosmetic" ? PaletteIcon : reward.type === "title" ? CrownIcon : StarIcon;
                 const rewardColor = reward.type === "ink_drops" ? MINT : reward.type === "cosmetic" ? "#8B5CF6" : reward.type === "title" ? "#D4AF37" : BLUE;
                 const above = i % 2 === 0;
+
+                function handleClaim() {
+                  const result = claimLevelReward(reward.level);
+                  if (result.success) setProfile(getProfile() ?? profile);
+                }
+
+                const RewardBox = () => (
+                  <div
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex flex-col items-center justify-center border-2 transition-all ${
+                      claimed ? "border-transparent" : claimable ? "" : isNext ? "" : light ? "border-[#E2E8F0] bg-[#F8FAFC]" : "border-white/10 bg-[#0F172A]"
+                    }`}
+                    style={{
+                      backgroundColor: claimed ? BLUE : claimable ? `${BLUE}15` : isNext ? `${BLUE}15` : undefined,
+                      borderColor: claimable || isNext ? BLUE : undefined,
+                      boxShadow: claimed ? `0 4px 12px ${BLUE}40` : claimable || isNext ? `0 4px 12px ${BLUE}25` : undefined,
+                    }}
+                  >
+                    {claimed ? (
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : claimable ? (
+                      <button
+                        onClick={handleClaim}
+                        className="w-full h-full flex flex-col items-center justify-center rounded-lg font-bold text-[10px] active:scale-95 transition-transform"
+                        style={{ color: BLUE }}
+                      >
+                        Claim
+                      </button>
+                    ) : isNext ? (
+                      <RewardVisual className="w-5 h-5 sm:w-6 sm:h-6" color={rewardColor} />
+                    ) : (
+                      <LockIcon className="w-4 h-4" color={light ? "#94A3B8" : "rgba(255,255,255,0.3)"} />
+                    )}
+                  </div>
+                );
 
                 return (
                   <div
@@ -149,27 +192,8 @@ export default function LevelsPage() {
                     <div className="h-16 sm:h-20 flex flex-col items-center justify-end pb-2">
                       {above ? (
                         <>
-                          <div
-                            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center border-2 transition-all ${
-                              unlocked ? "border-transparent" : isNext ? "" : light ? "border-[#E2E8F0] bg-[#F8FAFC]" : "border-white/10 bg-[#0F172A]"
-                            }`}
-                            style={{
-                              backgroundColor: unlocked ? BLUE : isNext ? `${BLUE}15` : undefined,
-                              borderColor: isNext ? BLUE : undefined,
-                              boxShadow: unlocked ? `0 4px 12px ${BLUE}40` : isNext ? `0 4px 12px ${BLUE}25` : undefined,
-                            }}
-                          >
-                            {unlocked ? (
-                              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            ) : isNext ? (
-                              <RewardVisual className="w-5 h-5 sm:w-6 sm:h-6" color={rewardColor} />
-                            ) : (
-                              <LockIcon className="w-4 h-4" color={light ? "#94A3B8" : "rgba(255,255,255,0.3)"} />
-                            )}
-                          </div>
-                          <p className={`text-[10px] sm:text-xs font-bold mt-1 text-center leading-tight ${unlocked ? text : isNext ? text : textFaint}`}>{reward.label}</p>
+                          <RewardBox />
+                          <p className={`text-[10px] sm:text-xs font-bold mt-1 text-center leading-tight ${claimed ? text : claimable ? text : isNext ? text : textFaint}`}>{reward.label}</p>
                           <p className={`text-[9px] font-semibold ${textFaint}`}>Lvl {reward.level}</p>
                         </>
                       ) : null}
@@ -178,11 +202,11 @@ export default function LevelsPage() {
                     {/* Center: point on the line */}
                     <div
                       className={`w-5 h-5 rounded-full border-2 shrink-0 z-10 flex items-center justify-center ${
-                        unlocked ? "border-transparent" : isNext ? "" : light ? "border-[#CBD5E1] bg-white" : "border-white/20 bg-[#1E293B]"
+                        claimed ? "border-transparent" : claimable || isNext ? "" : light ? "border-[#CBD5E1] bg-white" : "border-white/20 bg-[#1E293B]"
                       }`}
                       style={{
-                        backgroundColor: unlocked ? BLUE : isNext ? BLUE : undefined,
-                        borderColor: isNext ? BLUE : undefined,
+                        backgroundColor: claimed ? BLUE : claimable || isNext ? BLUE : undefined,
+                        borderColor: claimable || isNext ? BLUE : undefined,
                       }}
                     />
 
@@ -191,26 +215,9 @@ export default function LevelsPage() {
                       {!above ? (
                         <>
                           <p className={`text-[9px] font-semibold ${textFaint}`}>Lvl {reward.level}</p>
-                          <p className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${unlocked ? text : isNext ? text : textFaint}`}>{reward.label}</p>
-                          <div
-                            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center border-2 transition-all mt-1 ${
-                              unlocked ? "border-transparent" : isNext ? "" : light ? "border-[#E2E8F0] bg-[#F8FAFC]" : "border-white/10 bg-[#0F172A]"
-                            }`}
-                            style={{
-                              backgroundColor: unlocked ? BLUE : isNext ? `${BLUE}15` : undefined,
-                              borderColor: isNext ? BLUE : undefined,
-                              boxShadow: unlocked ? `0 4px 12px ${BLUE}40` : isNext ? `0 4px 12px ${BLUE}25` : undefined,
-                            }}
-                          >
-                            {unlocked ? (
-                              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            ) : isNext ? (
-                              <RewardVisual className="w-5 h-5 sm:w-6 sm:h-6" color={rewardColor} />
-                            ) : (
-                              <LockIcon className="w-4 h-4" color={light ? "#94A3B8" : "rgba(255,255,255,0.3)"} />
-                            )}
+                          <p className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${claimed ? text : claimable ? text : isNext ? text : textFaint}`}>{reward.label}</p>
+                          <div className="mt-1">
+                            <RewardBox />
                           </div>
                         </>
                       ) : null}

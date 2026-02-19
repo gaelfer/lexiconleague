@@ -92,6 +92,8 @@ export interface UserProfile {
   avatar_config: InkAvatarConfig;
   /** Preferred vocab level for casual mode (grades 3-8, psat, sat). */
   vocab_grade?: VocabLevel;
+  /** Level numbers for which rewards have been claimed (Level & Rewards screen). */
+  claimed_level_rewards?: number[];
   created_at: string;
 }
 

@@ -30,7 +30,6 @@ export const COLORS: ColorItem[] = [
   { id: "color_#EC4899", hex: "#EC4899", label: "Pink", price: 80, category: "color" },
   { id: "color_#EF4444", hex: "#EF4444", label: "Red", price: 80, category: "color" },
   { id: "color_#F97316", hex: "#F97316", label: "Orange", price: 80, category: "color" },
-  { id: "color_#EAB308", hex: "#EAB308", label: "Gold", price: 150, category: "color" },
   { id: "color_#22C55E", hex: "#22C55E", label: "Green", price: 80, category: "color" },
   { id: "color_#06B6D4", hex: "#06B6D4", label: "Cyan", price: 80, category: "color" },
   { id: "color_#F8FAFC", hex: "#F8FAFC", label: "Ghost White", price: 250, category: "color" },

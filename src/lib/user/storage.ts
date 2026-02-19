@@ -1,6 +1,7 @@
 import { UserProfile, MatchHistory, GameResult, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_THRESHOLDS } from "@/types";
 import { getTierFromTrophies, RANK_REWARD_ITEM_IDS } from "@/lib/game/rank";
 import { FREE_ITEM_IDS } from "@/lib/cosmetics/catalog";
+import { getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
 
 const STORAGE_KEYS = {
   PROFILE: "ll_profile",
@@ -94,6 +95,39 @@ export function unlockItem(itemId: string): void {
     profile.unlocked_items.push(itemId);
   }
   saveProfile(profile);
+}
+
+/** Claim a level reward. Returns true if claimed successfully. */
+export function claimLevelReward(level: number): { success: boolean; error?: string } {
+  const profile = getProfile() ?? createGuestProfile();
+  const claimed = profile.claimed_level_rewards ?? [];
+  if (claimed.includes(level)) {
+    return { success: false, error: "Already claimed" };
+  }
+  const currentLevel = getLevel(profile.xp);
+  if (currentLevel < level) {
+    return { success: false, error: "Level not reached" };
+  }
+  const reward = LEVEL_REWARDS.find((r: { level: number }) => r.level === level);
+  if (!reward) return { success: false, error: "Unknown reward" };
+
+  if (reward.type === "ink_drops" && reward.amount) {
+    profile.ink_drops = (profile.ink_drops ?? 0) + reward.amount;
+  } else if (reward.type === "cosmetic" && reward.itemId) {
+    if (!profile.unlocked_items) profile.unlocked_items = [...FREE_ITEM_IDS];
+    if (!profile.unlocked_items.includes(reward.itemId)) {
+      profile.unlocked_items.push(reward.itemId);
+    }
+  }
+  // title and badge: just mark as claimed (cosmetic display only for now)
+  profile.claimed_level_rewards = [...claimed, level];
+  saveProfile(profile);
+  return { success: true };
+}
+
+export function isLevelRewardClaimed(level: number, profile: UserProfile | null): boolean {
+  if (!profile) return false;
+  return (profile.claimed_level_rewards ?? []).includes(level);
 }
 
 export function isItemUnlocked(itemId: string, profile: UserProfile | null): boolean {
