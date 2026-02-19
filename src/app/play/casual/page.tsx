@@ -65,6 +65,7 @@ export default function CasualPage() {
   const [resultMetadata, setResultMetadata] = useState<import("@/types").GameResultMetadata | undefined>(undefined);
   const [prematchSeconds, setPrematchSeconds] = useState(PREMATCH_SECONDS);
   const [searchDots, setSearchDots] = useState("");
+  const [playersFound, setPlayersFound] = useState(1);
   const [opponents, setOpponents] = useState<OpponentInfo[]>([]);
   const [teamMembers, setTeamMembers] = useState<{ username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]>([]);
   const [opponentScores, setOpponentScores] = useState<number[]>([]);
@@ -111,6 +112,17 @@ export default function CasualPage() {
     }, 500);
     return () => clearInterval(interval);
   }, [phase]);
+
+  // 3v3 player count ticker during search
+  useEffect(() => {
+    if (phase !== "searching" || mode !== "3v3") return;
+    setPlayersFound(1);
+    const delays = [800, 1400, 1900, 2600, 3300];
+    const timers = delays.map((ms, i) =>
+      setTimeout(() => setPlayersFound(i + 2), ms)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [phase, mode]);
 
   // Prematch countdown (after match is found)
   useEffect(() => {
@@ -198,10 +210,12 @@ export default function CasualPage() {
     setPhase("vocab-grade");
   }
 
-  function matchWithBots(): { opps: OpponentInfo[]; tms: { username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]; seed: string; botResults: typeof botResultsRef.current } {
+  function matchWithBots(queueSubject: Subject, queueGrade: VocabLevel | undefined): { opps: OpponentInfo[]; tms: { username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]; seed: string; botResults: typeof botResultsRef.current } {
     const tier = profile?.rank_tier ?? "Bronze";
     const seed = generateMatchSeed();
     setMatchSeed(seed);
+    setSubject(queueSubject);
+    setVocabGrade(queueGrade);
 
     let opps: OpponentInfo[];
     let tms: { username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[];
@@ -247,131 +261,131 @@ export default function CasualPage() {
     return { opps, tms, seed, botResults: botResultsRef.current };
   }
 
-  async function startSearch() {
+  async function startSearch(queueSubject: Subject, queueGrade: VocabLevel | undefined) {
     if (!canQueue) return;
     matchedRef.current = false;
+    setSubject(queueSubject);
+    setVocabGrade(queueGrade);
     setPhase("searching");
 
     // 3v3 skips real matchmaking — too many players needed, go straight to bots after a brief search
     if (mode === "3v3") {
-      searchTimerRef.current = setTimeout(() => matchWithBots(), 4000);
+      searchTimerRef.current = setTimeout(() => matchWithBots(queueSubject, queueGrade), 4000);
       return;
     }
 
     // 1v1: try real matchmaking via Supabase presence
     if (!isSupabaseConfigured || !user) {
-      searchTimerRef.current = setTimeout(() => matchWithBots(), 3000);
+      searchTimerRef.current = setTimeout(() => matchWithBots(queueSubject, queueGrade), 3000);
       return;
     }
 
-    try {
-      const supabase = createClient();
-      const channel = supabase.channel("casual-matchmaking", {
-        config: { presence: { key: user.id } },
-      });
-      channelRef.current = channel;
+    const supabase = createClient();
+    const channel = supabase.channel("casual-matchmaking", {
+      config: { presence: { key: user.id } },
+    });
+    channelRef.current = channel;
 
-      channel.on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState();
-        const players = Object.entries(state).filter(([key]) => key !== user.id);
+    channel.on("presence", { event: "sync" }, () => {
+      const state = channel.presenceState();
+      const players = Object.entries(state).filter(([key]) => key !== user.id);
 
-        if (players.length > 0 && !matchedRef.current) {
-          matchedRef.current = true;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const [opId, opData] = players[0] as [string, any[]];
-          const opInfo = opData[0];
+      if (players.length > 0 && !matchedRef.current) {
+        matchedRef.current = true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const [opId, opData] = players[0] as [string, any[]];
+        const opInfo = opData[0];
 
-          const seed = generateMatchSeed();
-          channel.send({
-            type: "broadcast",
-            event: "match-found",
-            payload: {
-              from: user.id,
-              to: opId,
-              seed,
-              player: {
-                id: user.id,
-                username: profile.username,
-                rank_tier: profile.rank_tier,
-                avatar_config: profile.avatar_config,
-              },
+        const seed = generateMatchSeed();
+        channel.send({
+          type: "broadcast",
+          event: "match-found",
+          payload: {
+            from: user.id,
+            to: opId,
+            seed,
+            player: {
+              id: user.id,
+              username: profile.username,
+              rank_tier: profile.rank_tier,
+              avatar_config: profile.avatar_config,
             },
-          });
+          },
+        });
 
-          const opp: OpponentInfo = {
-            id: opId,
-            username: opInfo?.username ?? "Opponent",
-            rank_tier: opInfo?.rank_tier ?? profile.rank_tier,
-            avatar_config: opInfo?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
-            isBot: false,
-          };
-          const botResult = generateBotScore(profile.rank_tier);
-          botResultsRef.current = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
-          setMatchSeed(seed);
-          setOpponents([opp]);
-          setTeamMembers([]);
-          setOpponentScores([]);
-          setOpponentAnswered([]);
-          setTeammateScores([]);
-          setTeammateAnswered([]);
-          if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-          setPhase("matchmaking");
-        }
-      });
+        const opp: OpponentInfo = {
+          id: opId,
+          username: opInfo?.username ?? "Opponent",
+          rank_tier: opInfo?.rank_tier ?? profile.rank_tier,
+          avatar_config: opInfo?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+          isBot: false,
+        };
+        const botResult = generateBotScore(profile.rank_tier);
+        botResultsRef.current = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
+        setMatchSeed(seed);
+        setOpponents([opp]);
+        setTeamMembers([]);
+        setOpponentScores([]);
+        setOpponentAnswered([]);
+        setTeammateScores([]);
+        setTeammateAnswered([]);
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        setPhase("matchmaking");
+      }
+    });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      channel.on("broadcast", { event: "match-found" }, (msg: any) => {
-        const payload = msg.payload;
-        if (payload.to === user.id && !matchedRef.current) {
-          matchedRef.current = true;
-          const opp: OpponentInfo = {
-            id: payload.from,
-            username: payload.player?.username ?? "Opponent",
-            rank_tier: payload.player?.rank_tier ?? profile.rank_tier,
-            avatar_config: payload.player?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
-            isBot: false,
-          };
-          const botResult = generateBotScore(profile.rank_tier);
-          botResultsRef.current = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
-          setMatchSeed(payload.seed);
-          setOpponents([opp]);
-          setTeamMembers([]);
-          setOpponentScores([]);
-          setOpponentAnswered([]);
-          setTeammateScores([]);
-          setTeammateAnswered([]);
-          if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-          setPhase("matchmaking");
-        }
-      });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    channel.on("broadcast", { event: "match-found" }, (msg: any) => {
+      const payload = msg.payload;
+      if (payload.to === user.id && !matchedRef.current) {
+        matchedRef.current = true;
+        const opp: OpponentInfo = {
+          id: payload.from,
+          username: payload.player?.username ?? "Opponent",
+          rank_tier: payload.player?.rank_tier ?? profile.rank_tier,
+          avatar_config: payload.player?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+          isBot: false,
+        };
+        const botResult = generateBotScore(profile.rank_tier);
+        botResultsRef.current = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
+        setMatchSeed(payload.seed);
+        setOpponents([opp]);
+        setTeamMembers([]);
+        setOpponentScores([]);
+        setOpponentAnswered([]);
+        setTeammateScores([]);
+        setTeammateAnswered([]);
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        setPhase("matchmaking");
+      }
+    });
 
-      channel.subscribe(async (status: string) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({
-            username: profile.username,
-            rank_tier: profile.rank_tier,
-            avatar_config: profile.avatar_config,
-            mode,
-            subject,
-          });
-        }
-      });
+    channel.subscribe(async (status: string) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({
+          username: profile.username,
+          rank_tier: profile.rank_tier,
+          avatar_config: profile.avatar_config,
+          mode,
+          subject: queueSubject,
+        });
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        matchWithBots(queueSubject, queueGrade);
+      }
+    });
 
-      searchTimerRef.current = setTimeout(() => matchWithBots(), MATCHMAKING_TIMEOUT_MS);
-    } catch {
-      searchTimerRef.current = setTimeout(() => matchWithBots(), 3000);
-    }
+    searchTimerRef.current = setTimeout(() => matchWithBots(queueSubject, queueGrade), MATCHMAKING_TIMEOUT_MS);
   }
 
-  async function doQueue() {
+  async function doQueue(queueSubject: Subject, queueGrade: VocabLevel | undefined) {
     if (!canQueue) return;
     // For parties, the leader broadcasts the match details to members (skip real search)
     if (members.length > 0 && user) {
-      const { opps, tms, seed, botResults } = matchWithBots();
+      const { opps, tms, seed, botResults } = matchWithBots(queueSubject, queueGrade);
       await broadcastPartyQueue(user.id, {
         mode,
-        subject,
-        vocabGrade,
+        subject: queueSubject,
+        vocabGrade: queueGrade,
         seed,
         startedAt: Date.now(),
         opponents: opps,
@@ -380,24 +394,20 @@ export default function CasualPage() {
       });
       return;
     }
-    startSearch();
+    startSearch(queueSubject, queueGrade);
   }
 
   function handleStartPunctuation() {
-    setSubject("punctuation");
-    setVocabGrade(undefined);
-    doQueue();
+    doQueue("punctuation", undefined);
   }
 
   function handleStartWithGrade(level: VocabLevel) {
-    setVocabGrade(level);
-    doQueue();
+    doQueue("vocabulary", level);
   }
 
   function handleUseDefault() {
     const defaultLevel = profile?.vocab_grade ?? 8;
-    setVocabGrade(defaultLevel);
-    doQueue();
+    doQueue("vocabulary", defaultLevel);
   }
 
   async function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
@@ -498,11 +508,26 @@ export default function CasualPage() {
             <h2 className={`text-2xl font-extrabold ${text}`}>
               Searching for {mode === "3v3" ? "players" : "opponent"}{searchDots}
             </h2>
-            <p className={`${textMuted} font-medium mt-2`}>
-              {mode === "3v3"
-                ? "Looking for a 3v3 team match"
-                : "Finding a player to challenge"}
-            </p>
+            {mode === "3v3" ? (
+              <div className="mt-3 space-y-2">
+                <p className={`text-3xl font-extrabold tabular-nums ${playersFound >= 6 ? "text-[#22C55E]" : "text-[#3B82F6]"}`}>
+                  {playersFound}/6
+                </p>
+                <p className={`${textMuted} font-medium text-sm`}>players found</p>
+                <div className="flex justify-center gap-1.5 mt-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        i < playersFound ? "bg-[#3B82F6] scale-100" : light ? "bg-[#E2E8F0] scale-75" : "bg-[#334155] scale-75"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className={`${textMuted} font-medium mt-2`}>Finding a player to challenge</p>
+            )}
           </div>
           <button
             onClick={() => { cleanupChannel(); setPhase("select"); }}
