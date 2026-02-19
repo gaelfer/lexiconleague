@@ -50,7 +50,7 @@ export default function RankedPage() {
   const [searchDots, setSearchDots] = useState("");
   const [opponentScore, setOpponentScore] = useState<number | null>(null);
   const [opponentAnswered, setOpponentAnswered] = useState<number | null>(null);
-  const botFinalCorrectRef = useRef<number | null>(null);
+  const botResultRef = useRef<{ correct: number; total: number } | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef = useRef<any>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -93,20 +93,23 @@ export default function RankedPage() {
     }
   }, [phase]);
 
-  // Simulate bot progress during ranked match — progress toward pre-computed final score
+  // Simulate bot progress during ranked match — questions answered over time toward pre-computed final
   useEffect(() => {
     if (phase !== "playing" || !opponent?.isBot) return;
-    const finalCorrect = botFinalCorrectRef.current ?? 10;
+    const bot = botResultRef.current;
+    if (!bot) return;
+    const { correct: finalCorrect, total: finalTotal } = bot;
     const totalTime = 60_000;
-    const intervalMs = totalTime / finalCorrect;
+    const tickMs = 1400;
     let elapsed = 0;
     const interval = setInterval(() => {
-      elapsed += 1500 + Math.random() * 500;
+      elapsed += tickMs;
       const progress = Math.min(1, elapsed / totalTime);
-      const answered = Math.round(progress * finalCorrect);
-      setOpponentAnswered(Math.min(answered, finalCorrect));
-      setOpponentScore(answered * 10);
-    }, 1500 + Math.random() * 500);
+      const answered = Math.round(progress * finalTotal);
+      const correctSoFar = finalTotal > 0 ? Math.round((answered / finalTotal) * finalCorrect) : 0;
+      setOpponentAnswered(Math.min(answered, finalTotal));
+      setOpponentScore(Math.min(correctSoFar, finalCorrect) * 10);
+    }, tickMs);
     return () => clearInterval(interval);
   }, [phase, opponent?.isBot]);
 
@@ -263,7 +266,7 @@ export default function RankedPage() {
   function matchWithBot() {
     const bot = generateBotOpponent(profile.rank_tier);
     const botResult = generateBotScore(profile.rank_tier);
-    botFinalCorrectRef.current = botResult.correct;
+    botResultRef.current = { correct: botResult.correct, total: botResult.total };
     const seed = generateMatchSeed();
     setOpponent(bot);
     setMatchSeed(seed);
@@ -290,10 +293,10 @@ export default function RankedPage() {
       } catch {}
     }
 
-    if (opponent?.isBot && botFinalCorrectRef.current !== null) {
-      const finalScore = calculateScore(botFinalCorrectRef.current);
-      setOpponentScore(finalScore);
-      setOpponentAnswered(botFinalCorrectRef.current);
+    if (opponent?.isBot && botResultRef.current) {
+      const { correct, total } = botResultRef.current;
+      setOpponentScore(calculateScore(correct));
+      setOpponentAnswered(total);
     }
 
     setPhase("results");
@@ -302,7 +305,7 @@ export default function RankedPage() {
   function handlePlayAgain() {
     cleanupChannel();
     matchedRef.current = false;
-    botFinalCorrectRef.current = null;
+    botResultRef.current = null;
     const fresh = getProfile() ?? createGuestProfile();
     setProfile(fresh);
     setResult(null);
@@ -351,12 +354,17 @@ export default function RankedPage() {
         opponentAnswered={opponentAnswered}
         opponentScore={opponentScore}
         opponent={opponent}
+        playerAvatarConfig={profile.avatar_config}
       />
     );
   }
 
   // ── Results ─────────────────────────────────────────────────────────────────
   if (phase === "results" && result) {
+    const finalOpponentScore =
+      opponent?.isBot && botResultRef.current
+        ? calculateScore(botResultRef.current.correct)
+        : opponentScore;
     return (
       <div>
         {/* Opponent comparison banner */}
@@ -372,17 +380,17 @@ export default function RankedPage() {
               </div>
               <div className="text-center">
                 <p className={`text-xs font-bold ${textMuted} uppercase`}>vs</p>
-                {opponentScore !== null ? (
+                {finalOpponentScore !== null && finalOpponentScore !== undefined ? (
                   <p className={`text-sm font-extrabold ${
-                    result.score > opponentScore
+                    result.score > finalOpponentScore
                       ? "text-[#22C55E]"
-                      : result.score < opponentScore
+                      : result.score < finalOpponentScore
                       ? "text-[#EF4444]"
                       : "text-[#64748B]"
                   }`}>
-                    {result.score > opponentScore
+                    {result.score > finalOpponentScore
                       ? "You win!"
-                      : result.score < opponentScore
+                      : result.score < finalOpponentScore
                       ? "You lose!"
                       : "Tie!"}
                   </p>
@@ -397,10 +405,10 @@ export default function RankedPage() {
                     {opponent.isBot && <span className="text-[10px] ml-1 opacity-70">BOT</span>}
                   </p>
                   <p className={`text-lg font-extrabold ${text}`}>
-                    {opponentScore !== null ? opponentScore : "..."}
+                    {finalOpponentScore !== null && finalOpponentScore !== undefined ? finalOpponentScore : "..."}
                   </p>
                 </div>
-                <InkAvatar config={opponent.avatar_config} size="sm" />
+                <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...opponent.avatar_config }} size="sm" />
               </div>
             </div>
           </div>

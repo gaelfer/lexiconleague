@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useEffect } from "react";
-import { Subject, GameMode, GameResult, DEFAULT_AVATAR_CONFIG } from "@/types";
+import { Subject, GameMode, GameResult, DEFAULT_AVATAR_CONFIG, InkAvatarConfig } from "@/types";
 import type { OpponentInfo } from "@/lib/game/matchmaking";
 import { getQuestionsForMode } from "@/lib/game/questions";
 import { useGame } from "@/hooks/useGame";
@@ -22,9 +22,11 @@ interface GameScreenProps {
   opponentScore?: number | null;
   /** Opponent info for ranked VS bar */
   opponent?: OpponentInfo | null;
+  /** Player's avatar config for ranked VS bar (shows on "You" side) */
+  playerAvatarConfig?: InkAvatarConfig;
 }
 
-export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent }: GameScreenProps) {
+export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, playerAvatarConfig }: GameScreenProps) {
   const questions = useMemo(() => getQuestionsForMode(subject, 30), [subject]);
 
   const {
@@ -66,6 +68,9 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 100;
   const isRanked = mode === "ranked" && opponent;
+  const questionCount = totalQuestions || 30;
+  const playerDotsFilled = Math.min(10, Math.floor((totalAnswered / questionCount) * 10));
+  const opponentDotsFilled = Math.min(10, Math.floor(((opponentAnswered ?? 0) / questionCount) * 10));
 
   return (
     <main className="min-h-[100dvh] min-h-screen bg-white flex flex-col overflow-x-hidden">
@@ -73,14 +78,15 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
       {isRanked && (
         <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] border-b border-[#334155] min-w-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <InkAvatar config={opponent.avatar_config ? { ...DEFAULT_AVATAR_CONFIG, ...opponent.avatar_config } : undefined} size="sm" className="shrink-0" />
+            <InkAvatar config={playerAvatarConfig ? { ...DEFAULT_AVATAR_CONFIG, ...playerAvatarConfig } : undefined} size="sm" className="shrink-0" />
             <div className="min-w-0">
               <p className="text-[10px] font-bold text-[#94A3B8] uppercase">You</p>
               <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">{correctCount * 10}</p>
+              <p className="text-[10px] text-[#94A3B8] tabular-nums">{totalAnswered}/{questionCount} q</p>
             </div>
             <div className="flex gap-0.5 sm:gap-1 shrink-0">
               {[...Array(10)].map((_, i) => (
-                <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${i < totalAnswered ? "bg-[#3B82F6]" : "bg-[#334155]"}`} />
+                <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${i < playerDotsFilled ? "bg-[#3B82F6]" : "bg-[#334155]"}`} />
               ))}
             </div>
           </div>
@@ -91,7 +97,7 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 justify-end">
             <div className="flex gap-0.5 sm:gap-1 shrink-0">
               {[...Array(10)].map((_, i) => (
-                <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${i < (opponentAnswered ?? 0) ? "bg-[#34D399]" : "bg-[#334155]"}`} />
+                <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${i < opponentDotsFilled ? "bg-[#34D399]" : "bg-[#334155]"}`} />
               ))}
             </div>
             <div className="text-right min-w-0">
@@ -100,7 +106,10 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
                 {opponent.isBot && " BOT"}
               </p>
               <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">
-                {opponentScore != null ? opponentScore : opponentAnswered != null ? opponentAnswered * 10 : "—"}
+                {opponentScore != null ? opponentScore : "—"}
+              </p>
+              <p className="text-[10px] text-[#94A3B8] tabular-nums">
+                {opponentAnswered != null ? `${opponentAnswered}/${questionCount} q` : "—"}
               </p>
             </div>
             <InkAvatar config={opponent.avatar_config ? { ...DEFAULT_AVATAR_CONFIG, ...opponent.avatar_config } : undefined} size="sm" className="shrink-0" />

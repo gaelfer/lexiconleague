@@ -43,17 +43,26 @@ export function generateBotOpponent(playerTier: RankTier): OpponentInfo {
 }
 
 export function generateBotScore(playerTier: RankTier): { correct: number; incorrect: number; total: number } {
-  const ranges: Record<string, [number, number]> = {
-    Bronze: [3, 8],
-    Silver: [5, 11],
-    Gold: [7, 13],
-    Platinum: [9, 15],
-    Diamond: [11, 17],
-    Emerald: [13, 19],
+  const correctRanges: Record<string, [number, number]> = {
+    Bronze: [4, 10],
+    Silver: [7, 13],
+    Gold: [10, 16],
+    Platinum: [13, 19],
+    Diamond: [16, 22],
+    Emerald: [19, 26],
   };
-  const [min, max] = ranges[playerTier] ?? [4, 10];
-  const correct = min + Math.floor(Math.random() * (max - min + 1));
-  const incorrect = Math.floor(Math.random() * 5) + 1;
+  const incorrectRanges: Record<string, [number, number]> = {
+    Bronze: [3, 6],
+    Silver: [2, 5],
+    Gold: [1, 4],
+    Platinum: [1, 3],
+    Diamond: [0, 2],
+    Emerald: [0, 2],
+  };
+  const [cMin, cMax] = correctRanges[playerTier] ?? [5, 12];
+  const [iMin, iMax] = incorrectRanges[playerTier] ?? [2, 4];
+  const correct = cMin + Math.floor(Math.random() * (cMax - cMin + 1));
+  const incorrect = iMin + Math.floor(Math.random() * (iMax - iMin + 1));
   return { correct, incorrect, total: correct + incorrect };
 }
 

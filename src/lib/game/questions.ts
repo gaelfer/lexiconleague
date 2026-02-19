@@ -107,6 +107,37 @@ const FLORIDA_GRADE8_VOCAB: Question[] = [
   { id: "fl101", subject: "vocabulary", difficulty: 3, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'profound'?", choices: ["Shallow", "Deep", "Simple", "Boring"], answer_index: 1 },
   { id: "fl102", subject: "vocabulary", difficulty: 3, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'lucrative'?", choices: ["Profitable", "Unprofitable", "Risky", "Easy"], answer_index: 1 },
   { id: "fl103", subject: "vocabulary", difficulty: 3, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'spontaneous'?", choices: ["Impulsive", "Planned", "Random", "Fun"], answer_index: 1 },
+  // More context-clues variants
+  { id: "fl104", subject: "vocabulary", difficulty: 3, skill_tag: "context-clues", prompt: "The bazaar was teeming with vendors selling spices and crafts. What does 'teeming' mean?", choices: ["Empty", "Full of", "Quiet", "Expensive"], answer_index: 1 },
+  { id: "fl105", subject: "vocabulary", difficulty: 3, skill_tag: "context-clues", prompt: "His meticulous notes made it easy to study for the exam. What does 'meticulous' mean?", choices: ["Sloppy", "Very careful", "Brief", "Confusing"], answer_index: 1 },
+  { id: "fl106", subject: "vocabulary", difficulty: 3, skill_tag: "context-clues", prompt: "The fortress was fortified with thick walls and guards. What does 'fortified' mean?", choices: ["Weakened", "Strengthened", "Abandoned", "Decorated"], answer_index: 1 },
+  { id: "fl107", subject: "vocabulary", difficulty: 3, skill_tag: "context-clues", prompt: "She had a voracious appetite and finished three plates. What does 'voracious' mean?", choices: ["Small", "Extremely eager", "Picky", "Strange"], answer_index: 1 },
+  { id: "fl108", subject: "vocabulary", difficulty: 3, skill_tag: "context-clues", prompt: "The judge's rebuke made the lawyer apologize. What does 'rebuke' mean?", choices: ["Praise", "Sharp criticism", "Question", "Advice"], answer_index: 1 },
+  { id: "fl109", subject: "vocabulary", difficulty: 3, skill_tag: "context-clues", prompt: "His prodigious memory allowed him to recall every detail. What does 'prodigious' mean?", choices: ["Poor", "Remarkably great", "Average", "Fading"], answer_index: 1 },
+  // More synonym variants
+  { id: "fl110", subject: "vocabulary", difficulty: 2, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'ardent'?", choices: ["Cold", "Passionate", "Boring", "Quiet"], answer_index: 1 },
+  { id: "fl111", subject: "vocabulary", difficulty: 2, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'bizarre'?", choices: ["Normal", "Strange", "Beautiful", "Small"], answer_index: 1 },
+  { id: "fl112", subject: "vocabulary", difficulty: 2, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'crucial'?", choices: ["Optional", "Critical", "Rare", "Minor"], answer_index: 1 },
+  { id: "fl113", subject: "vocabulary", difficulty: 2, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'deceptive'?", choices: ["Honest", "Misleading", "Helpful", "Clear"], answer_index: 1 },
+  { id: "fl114", subject: "vocabulary", difficulty: 2, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'feasible'?", choices: ["Impossible", "Achievable", "Ridiculous", "Rare"], answer_index: 1 },
+  { id: "fl115", subject: "vocabulary", difficulty: 2, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'intricate'?", choices: ["Simple", "Complex", "Large", "Boring"], answer_index: 1 },
+  { id: "fl116", subject: "vocabulary", difficulty: 2, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'lucrative'?", choices: ["Unprofitable", "Profitable", "Risky", "Small"], answer_index: 1 },
+  { id: "fl117", subject: "vocabulary", difficulty: 2, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'serene'?", choices: ["Chaotic", "Calm", "Loud", "Busy"], answer_index: 1 },
+  { id: "fl118", subject: "vocabulary", difficulty: 2, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'tedious'?", choices: ["Exciting", "Tiresome", "Quick", "Easy"], answer_index: 1 },
+  // More antonym variants
+  { id: "fl119", subject: "vocabulary", difficulty: 2, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'ardent'?", choices: ["Passionate", "Indifferent", "Warm", "Eager"], answer_index: 1 },
+  { id: "fl120", subject: "vocabulary", difficulty: 2, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'crucial'?", choices: ["Important", "Trivial", "Central", "Key"], answer_index: 1 },
+  { id: "fl121", subject: "vocabulary", difficulty: 2, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'feasible'?", choices: ["Possible", "Impossible", "Practical", "Reasonable"], answer_index: 1 },
+  { id: "fl122", subject: "vocabulary", difficulty: 2, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'proficient'?", choices: ["Skilled", "Inept", "Expert", "Capable"], answer_index: 1 },
+  { id: "fl123", subject: "vocabulary", difficulty: 2, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'serene'?", choices: ["Calm", "Turbulent", "Peaceful", "Quiet"], answer_index: 1 },
+  { id: "fl124", subject: "vocabulary", difficulty: 2, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'voracious'?", choices: ["Hungry", "Satisfied", "Eager", "Ravenous"], answer_index: 1 },
+  // Fill-in / usage style
+  { id: "fl125", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "Choose the best word to complete: The athlete showed great _____ in the marathon.", choices: ["stamina", "confusion", "laziness", "weakness"], answer_index: 0 },
+  { id: "fl126", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "Choose the best word: Her _____ smile made everyone feel welcome.", choices: ["hostile", "serene", "chaotic", "angry"], answer_index: 1 },
+  { id: "fl127", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "Choose the best word: The _____ task took hours to complete.", choices: ["quick", "tedious", "exciting", "simple"], answer_index: 1 },
+  { id: "fl128", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "Choose the best word: He was _____ to learn new languages.", choices: ["uninterested", "avid", "bored", "tired"], answer_index: 1 },
+  { id: "fl129", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "Choose the best word: The storm caused _____ damage to the town.", choices: ["minor", "dire", "mild", "harmless"], answer_index: 1 },
+  { id: "fl130", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "Choose the best word: She handled the crisis with _____ composure.", choices: ["chaotic", "serene", "noisy", "aggressive"], answer_index: 1 },
 ];
 
 export const VOCAB_QUESTIONS: Question[] = [
@@ -429,19 +460,34 @@ export const PUNCTUATION_QUESTIONS: Question[] = [
   },
 ];
 
+/** Shuffle answer choices and update answer_index. Uses seed for deterministic shuffle (e.g. ranked). */
+export function shuffleQuestionChoices(question: Question, seed?: string): Question {
+  const { choices, answer_index } = question;
+  const correct = choices[answer_index];
+  const indices = choices.map((_, i) => i);
+  const shuffledIndices = seed ? seededShuffle(indices, seed) : [...indices].sort(() => Math.random() - 0.5);
+  const newChoices = shuffledIndices.map((i) => choices[i]);
+  const newAnswerIndex = newChoices.indexOf(correct);
+  return { ...question, choices: newChoices, answer_index: newAnswerIndex };
+}
+
 export function getQuestionsForMode(
   subject: "vocabulary" | "punctuation",
   count: number = 20
 ): Question[] {
   const pool = subject === "vocabulary" ? VOCAB_QUESTIONS : PUNCTUATION_QUESTIONS;
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, shuffled.length));
+  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+  const sessionSeed = Math.random().toString(36).slice(2, 12);
+  return selected.map((q, i) => shuffleQuestionChoices(q, `${sessionSeed}_${q.id}_${i}`));
 }
 
 export function getMixedQuestions(count: number = 20): Question[] {
   const all = [...VOCAB_QUESTIONS, ...PUNCTUATION_QUESTIONS];
   const shuffled = all.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, shuffled.length));
+  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+  const sessionSeed = Math.random().toString(36).slice(2, 12);
+  return selected.map((q, i) => shuffleQuestionChoices(q, `${sessionSeed}_${q.id}_${i}`));
 }
 
 export function getSeededQuestions(
@@ -451,5 +497,6 @@ export function getSeededQuestions(
 ): Question[] {
   const pool = subject === "vocabulary" ? VOCAB_QUESTIONS : PUNCTUATION_QUESTIONS;
   const shuffled = seededShuffle(pool, seed);
-  return shuffled.slice(0, Math.min(count, pool.length));
+  const selected = shuffled.slice(0, Math.min(count, pool.length));
+  return selected.map((q, i) => shuffleQuestionChoices(q, `${seed}_${q.id}_${i}`));
 }
