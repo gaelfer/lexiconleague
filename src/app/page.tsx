@@ -242,8 +242,8 @@ function Home() {
         </Link>
 
         <div className="flex items-center gap-2">
-          {user && <GlobalNotificationBar />}
           <ThemeToggle />
+          <GlobalNotificationBar />
           {!loading && (
             <>
               {user ? (

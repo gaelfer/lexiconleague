@@ -154,8 +154,8 @@ export default function ProfilePage() {
         </Link>
         <h1 className={`text-lg font-bold ${text}`}>Profile</h1>
         <div className="flex items-center gap-2">
-          <GlobalNotificationBar />
           <ThemeToggle />
+          <GlobalNotificationBar />
         </div>
       </header>
 

@@ -153,8 +153,8 @@ export default function RankedScreenPage() {
           Leaderboard
         </h1>
         <div className="flex items-center gap-2">
-          <GlobalNotificationBar />
           <ThemeToggle />
+          <GlobalNotificationBar />
           <Link
             href="/play/ranked"
             className="px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-colors"

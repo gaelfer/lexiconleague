@@ -99,8 +99,8 @@ export default function LevelsPage() {
           Level & Rewards
         </h1>
         <div className="flex items-center gap-2">
-          <GlobalNotificationBar />
           <ThemeToggle />
+          <GlobalNotificationBar />
         </div>
       </header>
 

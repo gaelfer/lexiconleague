@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { PartyProvider } from "@/context/PartyContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import PartyBar from "@/components/PartyBar";
+import PartyRealtimeSync from "@/components/PartyRealtimeSync";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -33,6 +34,7 @@ export default function RootLayout({
           <AuthProvider>
             <PartyProvider>
               <NotificationProvider>
+                <PartyRealtimeSync />
                 {children}
                 <PartyBar />
               </NotificationProvider>

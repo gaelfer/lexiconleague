@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useEffect } from "react";
-import { Subject, GameMode, GameResult, DEFAULT_AVATAR_CONFIG, InkAvatarConfig, VocabLevel } from "@/types";
+import { Subject, GameMode, GameResult, DEFAULT_AVATAR_CONFIG, InkAvatarConfig, VocabLevel, Question } from "@/types";
 import type { OpponentInfo } from "@/lib/game/matchmaking";
 import { getQuestionsForMode } from "@/lib/game/questions";
 import { useGame } from "@/hooks/useGame";
@@ -41,10 +41,15 @@ interface GameScreenProps {
   getOpponentScore?: () => number | null;
   /** For casual vocabulary: grade level (3-8) or psat/sat to filter questions */
   vocabGrade?: VocabLevel;
+  /** Pre-computed questions (e.g. for party sync - same match for all) */
+  questionsOverride?: Question[];
 }
 
-export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, opponents, teamMembers, teammateScores, playerAvatarConfig, getOpponentScore, vocabGrade }: GameScreenProps) {
-  const questions = useMemo(() => getQuestionsForMode(subject, 30, vocabGrade), [subject, vocabGrade]);
+export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, opponents, teamMembers, teammateScores, playerAvatarConfig, getOpponentScore, vocabGrade, questionsOverride }: GameScreenProps) {
+  const questions = useMemo(
+    () => questionsOverride ?? getQuestionsForMode(subject, 30, vocabGrade),
+    [subject, vocabGrade, questionsOverride]
+  );
 
   const {
     currentQuestion,

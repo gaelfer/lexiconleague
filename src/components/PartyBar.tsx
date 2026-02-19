@@ -10,7 +10,7 @@ import { DEFAULT_AVATAR_CONFIG } from "@/types";
 /** Persistent party bar — visible when party has members */
 export default function PartyBar() {
   const { user } = useAuth();
-  const { members, removeMember, clearParty, canQueue1v1, canQueue3v3 } = useParty();
+  const { members, removeMember, clearParty, isLeader, canQueue1v1, canQueue3v3 } = useParty();
   const { light } = useTheme();
 
   if (!user || members.length === 0) return null;
@@ -39,7 +39,9 @@ export default function PartyBar() {
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-bold ${text}`}>Party ({members.length}/6)</p>
           <p className={`text-xs ${textMuted}`}>
-            {canQueue1v1 ? "1v1 ready" : ""} {canQueue1v1 && canQueue3v3 ? "· " : ""} {canQueue3v3 ? "3v3 ready" : ""}
+            {isLeader
+              ? `${canQueue1v1 ? "1v1 ready" : ""} ${canQueue1v1 && canQueue3v3 ? "· " : ""} ${canQueue3v3 ? "3v3 ready" : ""}`
+              : "Leader queues for you"}
           </p>
         </div>
         <div className="flex items-center gap-2">

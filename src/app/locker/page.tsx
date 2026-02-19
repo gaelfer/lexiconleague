@@ -186,8 +186,8 @@ export default function LockerPage() {
           Ink Locker
         </h1>
         <div className="flex items-center gap-3">
-          <GlobalNotificationBar />
           <ThemeToggle />
+          <GlobalNotificationBar />
           <Link
             href="/shop"
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors ${light ? "bg-[#DBEAFE] border border-[#3B82F6]/20 hover:bg-[#BFDBFE]" : "bg-[#3B82F6]/20 border border-[#3B82F6]/30 hover:bg-[#3B82F6]/30"}`}

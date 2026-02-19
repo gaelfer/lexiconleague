@@ -27,7 +27,7 @@ import { DEFAULT_AVATAR_CONFIG } from "@/types";
 export default function FriendsPage() {
   const { user } = useAuth();
   const { light } = useTheme();
-  const { members, addMember, removeMember, canQueue1v1, canQueue3v3 } = useParty();
+  const { members, removeMember, setPartyLeader } = useParty();
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequestEntry[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendRequestEntry[]>([]);
@@ -156,6 +156,7 @@ export default function FriendsPage() {
     setInviting(true);
     const result = await sendPartyInvitation(user.id, username.trim());
     if (result.success) {
+      setPartyLeader(user.id); // You become the party leader when you invite
       setInviteInput("");
       showToast("success", "Party invitation sent!");
     } else {
@@ -203,8 +204,8 @@ export default function FriendsPage() {
         </Link>
         <h1 className={`text-lg font-bold ${text}`}>Friends</h1>
         <div className="flex items-center gap-2">
-          <GlobalNotificationBar />
           <ThemeToggle />
+          <GlobalNotificationBar />
         </div>
       </header>
 
@@ -332,7 +333,6 @@ export default function FriendsPage() {
             <div className="divide-y divide-white/10">
               {friends.map((f) => {
                 const inParty = members.some((m) => m.id === f.id);
-                const canAddToParty = !inParty && members.length < 6;
                 return (
                   <div key={f.id} className={`flex items-center gap-3 px-4 py-3 ${cardBg}`}>
                     <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...f.avatar_config }} size="sm" />
@@ -345,14 +345,15 @@ export default function FriendsPage() {
                         >
                           In party
                         </button>
-                      ) : canAddToParty ? (
+                      ) : (
                         <button
-                          onClick={() => addMember({ id: f.id, username: f.username, avatar_config: f.avatar_config })}
-                          className="text-xs font-bold px-3 py-1.5 rounded-lg text-[#3B82F6] hover:bg-[#3B82F6]/10"
+                          onClick={() => handleInviteToParty(f.username)}
+                          disabled={inviting}
+                          className="text-xs font-bold px-3 py-1.5 rounded-lg text-[#3B82F6] hover:bg-[#3B82F6]/10 disabled:opacity-50"
                         >
-                          Add to party
+                          Invite to party
                         </button>
-                      ) : null}
+                      )}
                       <button
                         onClick={() => handleRemove(f.id)}
                         className="text-xs font-bold px-3 py-1.5 rounded-lg text-red-500 hover:bg-red-500/10"

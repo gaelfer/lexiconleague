@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { useAuth } from "@/context/AuthContext";
+import type { PartyQueuePayload } from "@/lib/supabase/party-realtime";
 
 export interface PartyMember {
   id: string;
@@ -10,9 +12,14 @@ export interface PartyMember {
 
 interface PartyContextValue {
   members: PartyMember[];
+  partyLeaderId: string | null;
+  isLeader: boolean;
+  partyQueuePayload: PartyQueuePayload | null;
+  setPartyQueuePayload: (p: PartyQueuePayload | null) => void;
   addMember: (m: PartyMember) => void;
   removeMember: (id: string) => void;
   clearParty: () => void;
+  setPartyLeader: (leaderId: string | null) => void;
   canQueue1v1: boolean;
   canQueue3v3: boolean;
   canPlayRanked: boolean;
@@ -23,7 +30,10 @@ const MAX_PARTY_SIZE = 6;
 const PartyContext = createContext<PartyContextValue | null>(null);
 
 export function PartyProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [members, setMembers] = useState<PartyMember[]>([]);
+  const [partyLeaderId, setPartyLeaderId] = useState<string | null>(null);
+  const [partyQueuePayload, setPartyQueuePayload] = useState<PartyQueuePayload | null>(null);
 
   const addMember = useCallback((m: PartyMember) => {
     setMembers((prev) => {
@@ -37,19 +47,33 @@ export function PartyProvider({ children }: { children: ReactNode }) {
     setMembers((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
-  const clearParty = useCallback(() => setMembers([]), []);
+  const clearParty = useCallback(() => {
+    setMembers([]);
+    setPartyLeaderId(null);
+    setPartyQueuePayload(null);
+  }, []);
 
-  const canQueue1v1 = members.length <= 2;
-  const canQueue3v3 = true; // 3v3: you + party (or bots fill empty slots)
+  const setPartyLeader = useCallback((leaderId: string | null) => {
+    setPartyLeaderId(leaderId);
+  }, []);
+
+  const isLeader = !partyLeaderId || partyLeaderId === user?.id;
+  const canQueue1v1 = members.length <= 2 && isLeader;
+  const canQueue3v3 = isLeader;
   const canPlayRanked = members.length === 0;
 
   return (
     <PartyContext.Provider
       value={{
         members,
+        partyLeaderId,
+        isLeader,
+        partyQueuePayload,
+        setPartyQueuePayload,
         addMember,
         removeMember,
         clearParty,
+        setPartyLeader,
         canQueue1v1,
         canQueue3v3,
         canPlayRanked,

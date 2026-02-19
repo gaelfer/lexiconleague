@@ -741,3 +741,21 @@ export function getSeededQuestions(
   const selected = shuffled.slice(0, Math.min(count, pool.length));
   return selected.map((q, i) => shuffleQuestionChoices(q, `${seed}_${q.id}_${i}`));
 }
+
+/** Same as getQuestionsForMode but with a seed for deterministic party sync (same match for all). */
+export function getSeededQuestionsForMode(
+  subject: "vocabulary" | "punctuation",
+  seed: string,
+  count: number = 30,
+  vocabGrade?: VocabGrade | "psat" | "sat"
+): Question[] {
+  const pool =
+    subject === "vocabulary"
+      ? vocabGrade
+        ? (VOCAB_BY_LEVEL[vocabGrade as VocabLevel] ?? VOCAB_QUESTIONS)
+        : VOCAB_QUESTIONS
+      : PUNCTUATION_QUESTIONS;
+  const shuffled = seededShuffle([...pool], seed);
+  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+  return selected.map((q, i) => shuffleQuestionChoices(q, `${seed}_${q.id}_${i}`));
+}

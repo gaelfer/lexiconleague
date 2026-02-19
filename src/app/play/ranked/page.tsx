@@ -25,6 +25,7 @@ import TrophyIcon from "@/components/icons/TrophyIcon";
 import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
+import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, calculateScore, TROPHY_WIN, TROPHY_LOSS } from "@/lib/game/rank";
 import { getVocabGradeForRanked, PLACEMENT_VOCAB_GRADE } from "@/lib/game/questions";
 
@@ -552,7 +553,10 @@ export default function RankedPage() {
         </svg>
         Back
       </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <GlobalNotificationBar />
+        </div>
       </div>
 
       <div className="w-full max-w-md space-y-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { Subject, GameResult, VocabLevel, DEFAULT_AVATAR_CONFIG, InkAvatarConfig } from "@/types";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +14,10 @@ import InkAvatar from "@/components/InkAvatar";
 import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
-import { generateBotOpponent, generateBotOpponents, generateBotScore } from "@/lib/game/matchmaking";
+import GlobalNotificationBar from "@/components/GlobalNotificationBar";
+import { generateBotOpponent, generateBotOpponents, generateBotScore, generateMatchSeed } from "@/lib/game/matchmaking";
+import { getSeededQuestionsForMode } from "@/lib/game/questions";
+import { broadcastPartyQueue } from "@/lib/supabase/party-realtime";
 import { calculateScore } from "@/lib/game/rank";
 import type { OpponentInfo } from "@/lib/game/matchmaking";
 
@@ -40,7 +43,7 @@ const MATCHMAKING_SECONDS = 10;
 export default function CasualPage() {
   const { user } = useAuth();
   const { light } = useTheme();
-  const { members, canQueue1v1, canQueue3v3 } = useParty();
+  const { members, isLeader, canQueue1v1, canQueue3v3, partyQueuePayload, setPartyQueuePayload } = useParty();
   const [phase, setPhase] = useState<Phase>("select");
   const [mode, setMode] = useState<CasualMode>("1v1");
   const [subject, setSubject] = useState<Subject>("vocabulary");
@@ -54,6 +57,8 @@ export default function CasualPage() {
   const [opponentAnswered, setOpponentAnswered] = useState<number[]>([]);
   const [teammateScores, setTeammateScores] = useState<number[]>([]);
   const [teammateAnswered, setTeammateAnswered] = useState<number[]>([]);
+  const [matchSeed, setMatchSeed] = useState<string | null>(null);
+  const partyQueueAppliedRef = useRef(false);
   const botResultsRef = useRef<{
     opponents: { correct: number; total: number }[];
     teammates: { correct: number; total: number }[];
@@ -62,9 +67,30 @@ export default function CasualPage() {
 
   const canQueue = mode === "1v1" ? canQueue1v1 : canQueue3v3;
 
+  // Apply party queue payload when member receives broadcast (navigated here)
+  useEffect(() => {
+    if (!partyQueuePayload || phase !== "select") return;
+    partyQueueAppliedRef.current = true;
+    setMode(partyQueuePayload.mode);
+    setSubject(partyQueuePayload.subject);
+    setVocabGrade(partyQueuePayload.vocabGrade);
+    setOpponents(partyQueuePayload.opponents);
+    setTeamMembers(partyQueuePayload.teamMembers);
+    botResultsRef.current = partyQueuePayload.botResults;
+    setMatchSeed(partyQueuePayload.seed);
+    const elapsed = Math.floor((Date.now() - partyQueuePayload.startedAt) / 1000);
+    const syncedSeconds = Math.max(0, MATCHMAKING_SECONDS - elapsed);
+    setMatchmakingSeconds(syncedSeconds);
+    setPhase("matchmaking");
+    setPartyQueuePayload(null);
+  }, [partyQueuePayload, setPartyQueuePayload]);
+
   useEffect(() => {
     if (phase !== "matchmaking") return;
-    setMatchmakingSeconds(MATCHMAKING_SECONDS);
+    if (!partyQueueAppliedRef.current) {
+      setMatchmakingSeconds(MATCHMAKING_SECONDS);
+    }
+    partyQueueAppliedRef.current = false;
     const interval = setInterval(() => {
       setMatchmakingSeconds((s) => {
         if (s <= 1) {
@@ -126,18 +152,20 @@ export default function CasualPage() {
     setPhase("vocab-grade");
   }
 
-  function assignOpponents() {
+  function assignOpponents(): { opponents: OpponentInfo[]; teamMembers: { username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]; botResults: { opponents: { correct: number; total: number }[]; teammates: { correct: number; total: number }[] } } {
     const tier = profile?.rank_tier ?? "Bronze";
     if (mode === "1v1") {
       const bot = generateBotOpponent(tier);
       const botResult = generateBotScore(tier);
-      botResultsRef.current = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
+      const botResults = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
+      botResultsRef.current = botResults;
       setOpponents([bot]);
       setTeamMembers([]);
       setOpponentScores([]);
       setOpponentAnswered([]);
       setTeammateScores([]);
       setTeammateAnswered([]);
+      return { opponents: [bot], teamMembers: [], botResults };
     } else {
       const bots = generateBotOpponents(tier, 3);
       const oppResults = bots.map(() => generateBotScore(tier));
@@ -153,43 +181,56 @@ export default function CasualPage() {
       });
       const allTeammates = [...partyTeammates, ...botTeammates];
       const teammateResults = allTeammates.map(() => generateBotScore(tier));
-      botResultsRef.current = {
+      const botResults = {
         opponents: oppResults.map((r) => ({ correct: r.correct, total: r.total })),
         teammates: teammateResults.map((r) => ({ correct: r.correct, total: r.total })),
       };
+      botResultsRef.current = botResults;
       setOpponents(bots);
       setTeamMembers(allTeammates.map((t) => ({ username: t.username, avatar_config: t.avatar_config, isBot: t.isBot })));
       setOpponentScores([]);
       setOpponentAnswered([]);
       setTeammateScores([]);
       setTeammateAnswered([]);
+      return { opponents: bots, teamMembers: allTeammates.map((t) => ({ username: t.username, avatar_config: t.avatar_config, isBot: t.isBot })), botResults };
     }
+  }
+
+  async function doQueue() {
+    if (!canQueue) return;
+    const { opponents: opps, teamMembers: tms, botResults } = assignOpponents();
+    const seed = generateMatchSeed();
+    setMatchSeed(seed);
+    if (members.length > 0 && user) {
+      await broadcastPartyQueue(user.id, {
+        mode,
+        subject,
+        vocabGrade,
+        seed,
+        startedAt: Date.now(),
+        opponents: opps,
+        teamMembers: tms,
+        botResults,
+      });
+    }
+    setPhase("matchmaking");
   }
 
   function handleStartPunctuation() {
     setSubject("punctuation");
     setVocabGrade(undefined);
-    if (canQueue) {
-      assignOpponents();
-      setPhase("matchmaking");
-    }
+    doQueue();
   }
 
   function handleStartWithGrade(level: VocabLevel) {
     setVocabGrade(level);
-    if (canQueue) {
-      assignOpponents();
-      setPhase("matchmaking");
-    }
+    doQueue();
   }
 
   function handleUseDefault() {
     const defaultLevel = profile?.vocab_grade ?? 8;
     setVocabGrade(defaultLevel);
-    if (canQueue) {
-      assignOpponents();
-      setPhase("matchmaking");
-    }
+    doQueue();
   }
 
   function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
@@ -215,6 +256,7 @@ export default function CasualPage() {
     setResult(null);
     setResultMetadata(undefined);
     setVocabGrade(undefined);
+    setMatchSeed(null);
     setOpponents([]);
     setTeamMembers([]);
     setOpponentScores([]);
@@ -230,6 +272,11 @@ export default function CasualPage() {
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
   const cardBg = light ? "bg-white" : "bg-[#1E293B]";
   const cardBorder = light ? "border-[#E2E8F0]" : "border-white/10";
+
+  const seededQuestions = useMemo(
+    () => (matchSeed ? getSeededQuestionsForMode(subject, matchSeed, 30, vocabGrade) : undefined),
+    [matchSeed, subject, vocabGrade]
+  );
 
   if (phase === "playing" && opponents.length > 0) {
     const getOpponentScore = () => {
@@ -258,6 +305,7 @@ export default function CasualPage() {
         playerAvatarConfig={profile?.avatar_config}
         getOpponentScore={getOpponentScore}
         vocabGrade={subject === "vocabulary" ? vocabGrade : undefined}
+        questionsOverride={seededQuestions}
       />
     );
   }
@@ -275,8 +323,9 @@ export default function CasualPage() {
 
     return (
       <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden`}>
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 flex items-center gap-2">
           <ThemeToggle />
+          <GlobalNotificationBar />
         </div>
         <div className="w-full max-w-2xl space-y-6">
           <div className="flex items-center justify-between gap-2 sm:gap-4">
@@ -341,7 +390,10 @@ export default function CasualPage() {
           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#3B82F6]"}`}>
             {mode} · Vocabulary
           </span>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <GlobalNotificationBar />
+          </div>
         </header>
         <div className="flex-1 max-w-md mx-auto w-full px-4 sm:px-5 py-8 flex flex-col items-center justify-center">
           <div className="text-center space-y-2 mb-6">
@@ -448,7 +500,10 @@ export default function CasualPage() {
         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#3B82F6]"}`}>
           Casual
         </span>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <GlobalNotificationBar />
+        </div>
       </header>
 
       <div className="flex-1 max-w-md mx-auto w-full px-4 sm:px-5 py-8">
@@ -460,7 +515,8 @@ export default function CasualPage() {
         {members.length > 0 && (
           <div className={`rounded-xl p-3 mb-4 ${cardBg} border ${cardBorder}`}>
             <p className={`text-xs font-bold ${textMuted}`}>Party ({members.length}/6)</p>
-            {!canQueue1v1 && <p className="text-xs text-amber-600 mt-1">Party too large for 1v1</p>}
+            {!isLeader && <p className="text-xs text-amber-600 mt-1">Only the party leader can queue</p>}
+            {isLeader && !canQueue1v1 && mode === "1v1" && <p className="text-xs text-amber-600 mt-1">Party too large for 1v1</p>}
           </div>
         )}
 
@@ -509,7 +565,11 @@ export default function CasualPage() {
 
         {!canQueue && (
           <p className={`text-center text-sm ${textMuted} mt-4`}>
-            {mode === "1v1" ? "Leave party or reduce to 2 to queue 1v1" : "Add friends to party — bots fill empty slots"}
+            {!isLeader && members.length > 0
+              ? "Only the party leader can queue"
+              : mode === "1v1"
+                ? "Leave party or reduce to 2 to queue 1v1"
+                : "Invite friends to party — bots fill empty slots"}
           </p>
         )}
       </div>

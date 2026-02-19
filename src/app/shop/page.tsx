@@ -241,8 +241,8 @@ export default function ShopPage() {
           Ink Shop
         </h1>
         <div className="flex items-center gap-2">
-          <GlobalNotificationBar />
           <ThemeToggle />
+          <GlobalNotificationBar />
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 ${
               light ? "bg-[#ECFDF5] border-[#34D399]/40 shadow-[0_2px_8px_rgba(52,211,153,0.2)]" : "bg-[#1E293B] border-[#34D399]/40 shadow-[0_2px_8px_rgba(52,211,153,0.15)]"

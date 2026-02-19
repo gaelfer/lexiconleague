@@ -134,6 +134,37 @@ export async function addFriendByUsername(
   return sendFriendRequest(userId, username);
 }
 
+/** Accepted friend requests where current user was the sender (someone accepted your request) */
+export interface AcceptedFriendRequestEntry {
+  id: string;
+  to_user_id: string;
+  to_username?: string;
+  to_avatar_config?: Record<string, unknown>;
+  created_at: string;
+}
+
+export async function getAcceptedFriendRequestsAsSender(userId: string): Promise<AcceptedFriendRequestEntry[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("friend_requests")
+    .select("id, to_user_id, created_at")
+    .eq("from_user_id", userId)
+    .eq("status", "accepted")
+    .order("created_at", { ascending: false });
+
+  if (error || !data?.length) return [];
+  const ids = data.map((r) => r.to_user_id);
+  const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_config").in("id", ids);
+  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+  return data.map((r) => ({
+    id: r.id,
+    to_user_id: r.to_user_id,
+    created_at: r.created_at,
+    to_username: byId.get(r.to_user_id)?.username ?? "Challenger",
+    to_avatar_config: (byId.get(r.to_user_id)?.avatar_config as Record<string, unknown>) ?? {},
+  }));
+}
+
 /** Get incoming friend requests (pending, for current user) */
 export async function getIncomingFriendRequests(userId: string): Promise<FriendRequestEntry[]> {
   const supabase = createClient();
