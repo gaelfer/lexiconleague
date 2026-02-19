@@ -24,8 +24,8 @@ export default function RootLayout({
     <html lang="en">
       <body className="font-sans antialiased min-h-screen bg-white text-[#0F172A]">
         <ThemeProvider>
-        <AuthProvider>{children}</ThemeProvider>
-      </ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

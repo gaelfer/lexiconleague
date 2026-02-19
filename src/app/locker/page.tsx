@@ -110,6 +110,9 @@ export default function LockerPage() {
   const cardBg = light ? "bg-white" : "bg-[#1E293B]";
   const cardBorder = light ? "border-[#E2E8F0]" : "border-white/10";
   const text = light ? "text-[#0F172A]" : "text-white";
+  const previewSurface = light
+    ? "bg-[#F8FAFC] border-[#E2E8F0]"
+    : "bg-[#0B1220] border-white/20";
 
   function renderLockerItem(
     item: CosmeticItem | ColorItem,
@@ -144,7 +147,11 @@ export default function LockerPage() {
             </Link>
           </div>
         )}
-        {preview}
+        <div
+          className={`w-14 h-14 rounded-full border flex items-center justify-center shadow-inner ${previewSurface}`}
+        >
+          {preview}
+        </div>
         <span className={`text-xs font-bold ${text}`}>{item.label}</span>
       </button>
     );
@@ -193,8 +200,31 @@ export default function LockerPage() {
 
       <div className="flex-1 flex flex-col lg:flex-row max-w-5xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 gap-4 sm:gap-6 min-w-0">
         <div className="flex flex-col items-center gap-4 lg:w-1/3 lg:sticky lg:top-6 lg:self-start">
-          <div className={`rounded-2xl p-8 flex items-center justify-center w-full max-w-[280px] ${cardBg} border ${cardBorder}`}>
-            <InkAvatar config={config} size="xl" />
+          <div
+            className={`relative overflow-hidden rounded-2xl p-8 flex flex-col items-center justify-center w-full max-w-[300px] ${cardBg} border ${cardBorder}`}
+          >
+            <div
+              className={`absolute -top-16 -left-16 w-44 h-44 rounded-full blur-3xl ${
+                light ? "bg-[#DBEAFE]/80" : "bg-[#3B82F6]/25"
+              }`}
+            />
+            <div
+              className={`absolute -bottom-16 -right-16 w-44 h-44 rounded-full blur-3xl ${
+                light ? "bg-[#D1FAE5]/80" : "bg-[#34D399]/20"
+              }`}
+            />
+            <div
+              className={`relative w-[220px] h-[220px] rounded-full border flex items-center justify-center ${
+                light
+                  ? "bg-white border-[#E2E8F0] shadow-lg"
+                  : "bg-[#111827] border-white/20 shadow-lg shadow-black/40"
+              }`}
+            >
+              <InkAvatar config={config} size="xl" />
+            </div>
+            <p className={`relative mt-4 text-xs font-semibold ${textMuted}`}>
+              Cozy corner preview
+            </p>
           </div>
           <button
             onClick={handleSave}
@@ -208,6 +238,9 @@ export default function LockerPage() {
           >
             {saving ? "Saving..." : hasChanges ? "Save Avatar" : "No Changes"}
           </button>
+          <p className={`text-xs ${textMuted} text-center max-w-[280px]`}>
+            Tip: darker inks get a light contrast ring so they stay readable on every theme.
+          </p>
           {/* Auth required — user is always logged in on this page */}
         </div>
 
