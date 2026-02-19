@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Subject, GameResult, VocabLevel, DEFAULT_AVATAR_CONFIG, InkAvatarConfig } from "@/types";
 import { useAuth } from "@/context/AuthContext";
@@ -8,6 +8,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useParty, type PartyMember } from "@/context/PartyContext";
 import { getProfile, createGuestProfile } from "@/lib/user/storage";
 import { upsertProfile } from "@/lib/supabase/profile";
+import { createClient } from "@/lib/supabase/client";
 import GameScreen from "@/components/GameScreen";
 import ResultsScreen from "@/components/ResultsScreen";
 import InkAvatar from "@/components/InkAvatar";
@@ -15,7 +16,13 @@ import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
-import { generateBotOpponent, generateBotOpponents, generateBotScore, generateMatchSeed } from "@/lib/game/matchmaking";
+import {
+  generateBotOpponent,
+  generateBotOpponents,
+  generateBotScore,
+  generateMatchSeed,
+  MATCHMAKING_TIMEOUT_MS,
+} from "@/lib/game/matchmaking";
 import { getSeededQuestionsForMode } from "@/lib/game/questions";
 import { broadcastPartyQueue } from "@/lib/supabase/party-realtime";
 import { calculateScore } from "@/lib/game/rank";
@@ -24,8 +31,14 @@ import type { OpponentInfo } from "@/lib/game/matchmaking";
 const BLUE = "#3B82F6";
 const MINT = "#34D399";
 
+const isSupabaseConfigured =
+  typeof process.env.NEXT_PUBLIC_SUPABASE_URL === "string" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL.length > 0 &&
+  typeof process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === "string" &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 0;
+
 type CasualMode = "1v1" | "3v3";
-type Phase = "select" | "vocab-grade" | "matchmaking" | "playing" | "results";
+type Phase = "select" | "vocab-grade" | "searching" | "matchmaking" | "playing" | "results";
 
 const VOCAB_LEVELS: { level: VocabLevel; label: string }[] = [
   { level: 3, label: "Grade 3" },
@@ -38,7 +51,7 @@ const VOCAB_LEVELS: { level: VocabLevel; label: string }[] = [
   { level: "sat", label: "SAT" },
 ];
 
-const MATCHMAKING_SECONDS = 10;
+const PREMATCH_SECONDS = 5;
 
 export default function CasualPage() {
   const { user } = useAuth();
@@ -50,7 +63,8 @@ export default function CasualPage() {
   const [vocabGrade, setVocabGrade] = useState<VocabLevel | undefined>(undefined);
   const [result, setResult] = useState<GameResult | null>(null);
   const [resultMetadata, setResultMetadata] = useState<import("@/types").GameResultMetadata | undefined>(undefined);
-  const [matchmakingSeconds, setMatchmakingSeconds] = useState(MATCHMAKING_SECONDS);
+  const [prematchSeconds, setPrematchSeconds] = useState(PREMATCH_SECONDS);
+  const [searchDots, setSearchDots] = useState("");
   const [opponents, setOpponents] = useState<OpponentInfo[]>([]);
   const [teamMembers, setTeamMembers] = useState<{ username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]>([]);
   const [opponentScores, setOpponentScores] = useState<number[]>([]);
@@ -59,6 +73,10 @@ export default function CasualPage() {
   const [teammateAnswered, setTeammateAnswered] = useState<number[]>([]);
   const [matchSeed, setMatchSeed] = useState<string | null>(null);
   const partyQueueAppliedRef = useRef(false);
+  const matchedRef = useRef(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const channelRef = useRef<any>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const botResultsRef = useRef<{
     opponents: { correct: number; total: number }[];
     teammates: { correct: number; total: number }[];
@@ -79,20 +97,30 @@ export default function CasualPage() {
     botResultsRef.current = partyQueuePayload.botResults;
     setMatchSeed(partyQueuePayload.seed);
     const elapsed = Math.floor((Date.now() - partyQueuePayload.startedAt) / 1000);
-    const syncedSeconds = Math.max(0, MATCHMAKING_SECONDS - elapsed);
-    setMatchmakingSeconds(syncedSeconds);
+    const syncedSeconds = Math.max(0, PREMATCH_SECONDS - elapsed);
+    setPrematchSeconds(syncedSeconds);
     setPhase("matchmaking");
     setPartyQueuePayload(null);
   }, [partyQueuePayload, setPartyQueuePayload]);
 
+  // Search dots animation
+  useEffect(() => {
+    if (phase !== "searching") return;
+    const interval = setInterval(() => {
+      setSearchDots((prev) => (prev.length >= 3 ? "" : prev + "."));
+    }, 500);
+    return () => clearInterval(interval);
+  }, [phase]);
+
+  // Prematch countdown (after match is found)
   useEffect(() => {
     if (phase !== "matchmaking") return;
     if (!partyQueueAppliedRef.current) {
-      setMatchmakingSeconds(MATCHMAKING_SECONDS);
+      setPrematchSeconds(PREMATCH_SECONDS);
     }
     partyQueueAppliedRef.current = false;
     const interval = setInterval(() => {
-      setMatchmakingSeconds((s) => {
+      setPrematchSeconds((s) => {
         if (s <= 1) {
           clearInterval(interval);
           setPhase("playing");
@@ -147,25 +175,45 @@ export default function CasualPage() {
     return () => clearInterval(interval);
   }, [phase, opponents.length, teamMembers.length]);
 
+  const cleanupChannel = useCallback(() => {
+    if (channelRef.current) {
+      try {
+        const supabase = createClient();
+        supabase.removeChannel(channelRef.current);
+      } catch {}
+      channelRef.current = null;
+    }
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => cleanupChannel();
+  }, [cleanupChannel]);
+
   function handleStartVocab() {
     setSubject("vocabulary");
     setPhase("vocab-grade");
   }
 
-  function assignOpponents(): { opponents: OpponentInfo[]; teamMembers: { username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]; botResults: { opponents: { correct: number; total: number }[]; teammates: { correct: number; total: number }[] } } {
+  function matchWithBots(): { opps: OpponentInfo[]; tms: { username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]; seed: string; botResults: typeof botResultsRef.current } {
     const tier = profile?.rank_tier ?? "Bronze";
+    const seed = generateMatchSeed();
+    setMatchSeed(seed);
+
+    let opps: OpponentInfo[];
+    let tms: { username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[];
+
     if (mode === "1v1") {
       const bot = generateBotOpponent(tier);
       const botResult = generateBotScore(tier);
-      const botResults = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
-      botResultsRef.current = botResults;
-      setOpponents([bot]);
-      setTeamMembers([]);
-      setOpponentScores([]);
-      setOpponentAnswered([]);
-      setTeammateScores([]);
-      setTeammateAnswered([]);
-      return { opponents: [bot], teamMembers: [], botResults };
+      botResultsRef.current = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
+      opps = [bot];
+      tms = [];
+      setOpponents(opps);
+      setTeamMembers(tms);
     } else {
       const bots = generateBotOpponents(tier, 3);
       const oppResults = bots.map(() => generateBotScore(tier));
@@ -174,34 +222,152 @@ export default function CasualPage() {
         avatar_config: { ...DEFAULT_AVATAR_CONFIG, ...(m.avatar_config as Partial<InkAvatarConfig>) } as InkAvatarConfig,
         isBot: false,
       }));
-      const slotsNeeded = 2;
-      const botTeammates = Array.from({ length: slotsNeeded - partyTeammates.length }, () => {
+      const botTeammates = Array.from({ length: 2 - partyTeammates.length }, () => {
         const bot = generateBotOpponent(tier);
         return { username: bot.username, avatar_config: bot.avatar_config, isBot: true };
       });
       const allTeammates = [...partyTeammates, ...botTeammates];
       const teammateResults = allTeammates.map(() => generateBotScore(tier));
-      const botResults = {
+      botResultsRef.current = {
         opponents: oppResults.map((r) => ({ correct: r.correct, total: r.total })),
         teammates: teammateResults.map((r) => ({ correct: r.correct, total: r.total })),
       };
-      botResultsRef.current = botResults;
-      setOpponents(bots);
-      setTeamMembers(allTeammates.map((t) => ({ username: t.username, avatar_config: t.avatar_config, isBot: t.isBot })));
-      setOpponentScores([]);
-      setOpponentAnswered([]);
-      setTeammateScores([]);
-      setTeammateAnswered([]);
-      return { opponents: bots, teamMembers: allTeammates.map((t) => ({ username: t.username, avatar_config: t.avatar_config, isBot: t.isBot })), botResults };
+      opps = bots;
+      tms = allTeammates.map((t) => ({ username: t.username, avatar_config: t.avatar_config, isBot: t.isBot }));
+      setOpponents(opps);
+      setTeamMembers(tms);
+    }
+
+    setOpponentScores([]);
+    setOpponentAnswered([]);
+    setTeammateScores([]);
+    setTeammateAnswered([]);
+    cleanupChannel();
+    setPhase("matchmaking");
+    return { opps, tms, seed, botResults: botResultsRef.current };
+  }
+
+  async function startSearch() {
+    if (!canQueue) return;
+    matchedRef.current = false;
+    setPhase("searching");
+
+    // 3v3 skips real matchmaking — too many players needed, go straight to bots after a brief search
+    if (mode === "3v3") {
+      searchTimerRef.current = setTimeout(() => matchWithBots(), 4000);
+      return;
+    }
+
+    // 1v1: try real matchmaking via Supabase presence
+    if (!isSupabaseConfigured || !user) {
+      searchTimerRef.current = setTimeout(() => matchWithBots(), 3000);
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const channel = supabase.channel("casual-matchmaking", {
+        config: { presence: { key: user.id } },
+      });
+      channelRef.current = channel;
+
+      channel.on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        const players = Object.entries(state).filter(([key]) => key !== user.id);
+
+        if (players.length > 0 && !matchedRef.current) {
+          matchedRef.current = true;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const [opId, opData] = players[0] as [string, any[]];
+          const opInfo = opData[0];
+
+          const seed = generateMatchSeed();
+          channel.send({
+            type: "broadcast",
+            event: "match-found",
+            payload: {
+              from: user.id,
+              to: opId,
+              seed,
+              player: {
+                id: user.id,
+                username: profile.username,
+                rank_tier: profile.rank_tier,
+                avatar_config: profile.avatar_config,
+              },
+            },
+          });
+
+          const opp: OpponentInfo = {
+            id: opId,
+            username: opInfo?.username ?? "Opponent",
+            rank_tier: opInfo?.rank_tier ?? profile.rank_tier,
+            avatar_config: opInfo?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+            isBot: false,
+          };
+          const botResult = generateBotScore(profile.rank_tier);
+          botResultsRef.current = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
+          setMatchSeed(seed);
+          setOpponents([opp]);
+          setTeamMembers([]);
+          setOpponentScores([]);
+          setOpponentAnswered([]);
+          setTeammateScores([]);
+          setTeammateAnswered([]);
+          if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+          setPhase("matchmaking");
+        }
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      channel.on("broadcast", { event: "match-found" }, (msg: any) => {
+        const payload = msg.payload;
+        if (payload.to === user.id && !matchedRef.current) {
+          matchedRef.current = true;
+          const opp: OpponentInfo = {
+            id: payload.from,
+            username: payload.player?.username ?? "Opponent",
+            rank_tier: payload.player?.rank_tier ?? profile.rank_tier,
+            avatar_config: payload.player?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+            isBot: false,
+          };
+          const botResult = generateBotScore(profile.rank_tier);
+          botResultsRef.current = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
+          setMatchSeed(payload.seed);
+          setOpponents([opp]);
+          setTeamMembers([]);
+          setOpponentScores([]);
+          setOpponentAnswered([]);
+          setTeammateScores([]);
+          setTeammateAnswered([]);
+          if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+          setPhase("matchmaking");
+        }
+      });
+
+      channel.subscribe(async (status: string) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({
+            username: profile.username,
+            rank_tier: profile.rank_tier,
+            avatar_config: profile.avatar_config,
+            mode,
+            subject,
+          });
+        }
+      });
+
+      searchTimerRef.current = setTimeout(() => matchWithBots(), MATCHMAKING_TIMEOUT_MS);
+    } catch {
+      searchTimerRef.current = setTimeout(() => matchWithBots(), 3000);
     }
   }
 
   async function doQueue() {
     if (!canQueue) return;
-    const { opponents: opps, teamMembers: tms, botResults } = assignOpponents();
-    const seed = generateMatchSeed();
-    setMatchSeed(seed);
+    // For parties, the leader broadcasts the match details to members (skip real search)
     if (members.length > 0 && user) {
+      const { opps, tms, seed, botResults } = matchWithBots();
       await broadcastPartyQueue(user.id, {
         mode,
         subject,
@@ -210,10 +376,11 @@ export default function CasualPage() {
         startedAt: Date.now(),
         opponents: opps,
         teamMembers: tms,
-        botResults,
+        botResults: botResults!,
       });
+      return;
     }
-    setPhase("matchmaking");
+    startSearch();
   }
 
   function handleStartPunctuation() {
@@ -233,7 +400,7 @@ export default function CasualPage() {
     doQueue();
   }
 
-  function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
+  async function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
     setResult(r);
     setResultMetadata(metadata);
     if (botResultsRef.current) {
@@ -248,11 +415,13 @@ export default function CasualPage() {
     setPhase("results");
     if (user) {
       const updated = getProfile();
-      if (updated) upsertProfile(user.id, updated);
+      if (updated) await upsertProfile(user.id, updated);
     }
   }
 
   function handlePlayAgain() {
+    cleanupChannel();
+    matchedRef.current = false;
     setResult(null);
     setResultMetadata(undefined);
     setVocabGrade(undefined);
@@ -310,16 +479,53 @@ export default function CasualPage() {
     );
   }
 
+  // ── Searching for opponent ──────────────────────────────────────────────────
+  if (phase === "searching") {
+    return (
+      <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-6 overflow-x-hidden`}>
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          <ThemeToggle />
+          <GlobalNotificationBar />
+        </div>
+        <div className="w-full max-w-sm text-center space-y-8">
+          <div className="relative">
+            <div className={`w-32 h-32 mx-auto rounded-full border-4 ${light ? "border-[#E2E8F0]" : "border-white/20"} border-t-[#3B82F6] animate-spin`} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="lg" />
+            </div>
+          </div>
+          <div>
+            <h2 className={`text-2xl font-extrabold ${text}`}>
+              Searching for {mode === "3v3" ? "players" : "opponent"}{searchDots}
+            </h2>
+            <p className={`${textMuted} font-medium mt-2`}>
+              {mode === "3v3"
+                ? "Looking for a 3v3 team match"
+                : "Finding a player to challenge"}
+            </p>
+          </div>
+          <button
+            onClick={() => { cleanupChannel(); setPhase("select"); }}
+            className={`px-6 py-3 rounded-2xl font-bold border transition-colors ${light ? "text-[#64748B] border-[#E2E8F0] hover:bg-[#F8FAFC]" : "text-white/60 border-white/20 hover:bg-white/5"}`}
+          >
+            Cancel
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Prematch (opponent found, countdown to start) ─────────────────────────
   if (phase === "matchmaking" && opponents.length > 0) {
     const cardBg = light ? "bg-white" : "bg-[#1E293B]";
     const cardBorder = light ? "border-[#E2E8F0]" : "border-white/10";
+    const avatarSize = mode === "3v3" ? "sm" as const : "lg" as const;
     const yourTeam = mode === "3v3"
       ? [
           { config: (profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig, name: profile?.username ?? "You", isBot: false },
           ...teamMembers.map((m) => ({ config: m.avatar_config, name: m.username, isBot: m.isBot ?? false })),
         ]
       : [{ config: (profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig, name: profile?.username ?? "You", isBot: false }];
-    const theirTeam = opponents;
 
     return (
       <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden`}>
@@ -328,13 +534,17 @@ export default function CasualPage() {
           <GlobalNotificationBar />
         </div>
         <div className="w-full max-w-2xl space-y-6">
+          <div className="text-center">
+            <p className="text-lg font-bold text-[#22C55E]">Match found!</p>
+          </div>
           <div className="flex items-center justify-between gap-2 sm:gap-4">
-            <div className={`flex-1 flex flex-col items-center gap-2 rounded-2xl ${cardBg} border ${cardBorder} p-3 sm:p-4 min-w-0`}>
-              <p className={`text-xs font-bold ${textMuted} mb-1`}>Your team</p>
-              <div className={`flex ${mode === "3v3" ? "gap-1 sm:gap-2 justify-center" : "-space-x-3 sm:-space-x-2"}`}>
+            {/* Your team */}
+            <div className={`flex-1 flex flex-col items-center gap-2 rounded-2xl ${cardBg} border ${cardBorder} p-3 sm:p-4 min-w-0 animate-slide-in-left`}>
+              <p className={`text-xs font-bold ${textMuted} mb-1`}>{mode === "3v3" ? "Your team" : "You"}</p>
+              <div className={`flex ${mode === "3v3" ? "gap-1 sm:gap-2 justify-center" : "justify-center"}`}>
                 {yourTeam.map((p, i) => (
                   <div key={i} className="flex flex-col items-center">
-                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...p.config }} size={mode === "3v3" ? "sm" : "lg"} className={mode === "3v3" ? "ring-2 ring-[#1E293B] rounded-full shrink-0" : "ring-2 ring-[#1E293B] rounded-full"} />
+                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...p.config }} size={avatarSize} className="ring-2 ring-[#1E293B] rounded-full shrink-0" />
                     <p className={`text-[10px] sm:text-xs font-extrabold truncate max-w-[50px] mt-1 ${text}`}>
                       {p.name}{p.isBot && " BOT"}
                     </p>
@@ -342,18 +552,20 @@ export default function CasualPage() {
                 ))}
               </div>
             </div>
+            {/* VS + countdown */}
             <div className="flex flex-col items-center gap-2 shrink-0">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: mode === "3v3" ? MINT : BLUE }}>
                 <span className="text-white font-extrabold text-sm sm:text-base">VS</span>
               </div>
-              <p className={`text-2xl sm:text-3xl font-extrabold tabular-nums ${text}`}>{matchmakingSeconds}s</p>
+              <p className={`text-2xl sm:text-3xl font-extrabold tabular-nums ${text}`}>{prematchSeconds}s</p>
             </div>
-            <div className={`flex-1 flex flex-col items-center gap-2 rounded-2xl ${cardBg} border ${cardBorder} p-3 sm:p-4 min-w-0`}>
-              <p className={`text-xs font-bold ${textMuted} mb-1`}>Their team</p>
-              <div className={`flex ${mode === "3v3" ? "gap-1 sm:gap-2 justify-center" : "-space-x-3 sm:-space-x-2"}`}>
-                {theirTeam.map((o, i) => (
+            {/* Opponents */}
+            <div className={`flex-1 flex flex-col items-center gap-2 rounded-2xl ${cardBg} border ${cardBorder} p-3 sm:p-4 min-w-0 animate-slide-in-right`}>
+              <p className={`text-xs font-bold ${textMuted} mb-1`}>{mode === "3v3" ? "Their team" : "Opponent"}</p>
+              <div className={`flex ${mode === "3v3" ? "gap-1 sm:gap-2 justify-center" : "justify-center"}`}>
+                {opponents.map((o, i) => (
                   <div key={i} className="flex flex-col items-center">
-                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...o.avatar_config }} size={mode === "3v3" ? "sm" : "lg"} className="ring-2 ring-[#1E293B] rounded-full shrink-0" />
+                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...o.avatar_config }} size={avatarSize} className="ring-2 ring-[#1E293B] rounded-full shrink-0" />
                     <p className={`text-[10px] sm:text-xs font-extrabold truncate max-w-[50px] mt-1 ${text}`}>
                       {o.username}
                       {o.isBot && " BOT"}
@@ -364,9 +576,11 @@ export default function CasualPage() {
             </div>
           </div>
           <div className="text-center">
-            <p className={`text-lg font-bold ${text}`}>Finding opponent{mode === "3v3" ? "s" : ""}...</p>
-            <p className={`text-sm ${textMuted} mt-1`}>
-              {matchmakingSeconds > 0 ? (mode === "3v3" ? "3v3 team match · bot fallback" : "Match with another player or bot fallback") : "Starting match..."}
+            <p className={`${textMuted} font-bold text-sm uppercase tracking-wider`}>
+              Match starting in {prematchSeconds}...
+            </p>
+            <p className={`${text} font-medium text-sm mt-1`}>
+              {subject === "vocabulary" ? "Vocabulary" : "Punctuation"} Sprint · 60 seconds
             </p>
           </div>
         </div>
@@ -427,63 +641,156 @@ export default function CasualPage() {
 
   if (phase === "results" && result) {
     const br = botResultsRef.current;
-    const yourTeamTotal = mode === "3v3" && br?.teammates.length === 2
-      ? result.score + calculateScore(br.teammates[0].correct) + calculateScore(br.teammates[1].correct)
-      : result.score;
-    const theirTeamTotal = br
-      ? br.opponents.reduce((sum, o) => sum + calculateScore(o.correct), 0)
-      : opponentScores.reduce((a, b) => a + b, 0);
-    const youWin = yourTeamTotal > theirTeamTotal;
-    const youLose = yourTeamTotal < theirTeamTotal;
+    const is3v3 = mode === "3v3" && br?.teammates.length === 2 && opponents.length === 3;
+
+    // 3v3: individual matchups (best of 3)
+    const matchups = is3v3
+      ? [
+          {
+            allyName: profile?.username ?? "You",
+            allyAvatar: (profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig,
+            allyScore: result.score,
+            allyIsPlayer: true,
+            oppName: opponents[0].username,
+            oppAvatar: opponents[0].avatar_config,
+            oppIsBot: opponents[0].isBot,
+            oppScore: calculateScore(br!.opponents[0].correct),
+          },
+          {
+            allyName: teamMembers[0]?.username ?? "Teammate 1",
+            allyAvatar: teamMembers[0]?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+            allyScore: calculateScore(br!.teammates[0].correct),
+            allyIsPlayer: false,
+            oppName: opponents[1].username,
+            oppAvatar: opponents[1].avatar_config,
+            oppIsBot: opponents[1].isBot,
+            oppScore: calculateScore(br!.opponents[1].correct),
+          },
+          {
+            allyName: teamMembers[1]?.username ?? "Teammate 2",
+            allyAvatar: teamMembers[1]?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+            allyScore: calculateScore(br!.teammates[1].correct),
+            allyIsPlayer: false,
+            oppName: opponents[2].username,
+            oppAvatar: opponents[2].avatar_config,
+            oppIsBot: opponents[2].isBot,
+            oppScore: calculateScore(br!.opponents[2].correct),
+          },
+        ]
+      : [];
+
+    const matchupsWon = matchups.filter((m) => m.allyScore > m.oppScore).length;
+    const matchupsLost = matchups.filter((m) => m.allyScore < m.oppScore).length;
+
+    // 1v1 uses simple score comparison; 3v3 uses best-of-3 matchups
+    let youWin: boolean;
+    let youLose: boolean;
+    if (is3v3) {
+      youWin = matchupsWon >= 2;
+      youLose = matchupsLost >= 2;
+    } else {
+      const yourScore = result.score;
+      const theirScore = br
+        ? calculateScore(br.opponents[0].correct)
+        : opponentScores[0] ?? 0;
+      youWin = yourScore > theirScore;
+      youLose = yourScore < theirScore;
+    }
 
     return (
       <div>
-        {(opponents.length > 0) && (
+        {opponents.length > 0 && (
           <div className={`${light ? "bg-[#F8FAFC] border-[#E2E8F0]" : "bg-[#1E293B] border-white/10"} border-b px-3 sm:px-4 py-3 sm:py-4 overflow-x-hidden`}>
-            <div className="max-w-lg mx-auto flex items-center justify-between gap-2 sm:gap-4 min-w-0">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                {mode === "3v3" ? (
-                  <div className="flex -space-x-2">
-                    <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="sm" className="ring-2 ring-[#1E293B]" />
-                    {teamMembers.map((m, i) => (
-                      <InkAvatar key={i} config={{ ...DEFAULT_AVATAR_CONFIG, ...m.avatar_config }} size="sm" className="ring-2 ring-[#1E293B]" />
-                    ))}
-                  </div>
-                ) : (
-                  <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="sm" />
-                )}
-                <div>
-                  <p className={`text-xs font-bold ${textMuted}`}>{mode === "3v3" ? "Your team" : "You"}</p>
-                  <p className={`text-lg font-extrabold ${text}`}>{yourTeamTotal}</p>
-                </div>
-              </div>
-              <div className="text-center shrink-0">
-                <p className={`text-xs font-bold ${textMuted} uppercase`}>vs</p>
-                <p className={`text-sm font-extrabold ${youWin ? "text-[#22C55E]" : youLose ? "text-[#EF4444]" : "text-[#64748B]"}`}>
-                  {youWin ? "You win!" : youLose ? "You lose!" : "Tie!"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 justify-end">
-                <div className="text-right">
-                  <p className={`text-xs font-bold ${textMuted}`}>
-                    {mode === "3v3" ? "Their team" : `${opponents[0].username}${opponents[0].isBot ? " BOT" : ""}`}
+            {is3v3 ? (
+              <div className="max-w-lg mx-auto space-y-3">
+                <div className="text-center">
+                  <p className={`text-sm font-extrabold ${youWin ? "text-[#22C55E]" : youLose ? "text-[#EF4444]" : "text-[#64748B]"}`}>
+                    {youWin ? "Team Wins!" : youLose ? "Team Loses!" : "Tie!"}
                   </p>
-                  <p className={`text-lg font-extrabold ${text}`}>{theirTeamTotal}</p>
+                  <p className={`text-xs ${textMuted}`}>Best of 3 — {matchupsWon} won, {matchupsLost} lost</p>
                 </div>
-                {mode === "3v3" ? (
-                  <div className="flex -space-x-2">
-                    {opponents.map((o, i) => (
-                      <InkAvatar key={i} config={{ ...DEFAULT_AVATAR_CONFIG, ...o.avatar_config }} size="sm" className="ring-2 ring-[#1E293B]" />
-                    ))}
-                  </div>
-                ) : (
-                  <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...opponents[0].avatar_config }} size="sm" />
-                )}
+                <div className="space-y-2">
+                  {matchups.map((m, i) => {
+                    const allyWon = m.allyScore > m.oppScore;
+                    const oppWon = m.allyScore < m.oppScore;
+                    const tied = m.allyScore === m.oppScore;
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 border ${
+                          allyWon
+                            ? light ? "bg-[#ECFDF5] border-[#22C55E]/30" : "bg-[#22C55E]/10 border-[#22C55E]/30"
+                            : oppWon
+                            ? light ? "bg-red-50 border-red-200" : "bg-red-500/10 border-red-500/30"
+                            : light ? "bg-[#F8FAFC] border-[#E2E8F0]" : "bg-[#1E293B] border-white/10"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...m.allyAvatar }} size="xs" className="shrink-0" />
+                          <div className="min-w-0">
+                            <p className={`text-xs font-bold truncate ${text}`}>
+                              {m.allyIsPlayer ? "You" : m.allyName}
+                            </p>
+                            <p className={`text-sm font-extrabold ${allyWon ? "text-[#22C55E]" : text}`}>{m.allyScore}</p>
+                          </div>
+                        </div>
+                        <div className="shrink-0 px-1">
+                          <span className={`text-[10px] font-extrabold uppercase ${
+                            allyWon ? "text-[#22C55E]" : oppWon ? "text-[#EF4444]" : textMuted
+                          }`}>
+                            {allyWon ? "W" : oppWon ? "L" : tied ? "T" : "vs"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                          <div className="text-right min-w-0">
+                            <p className={`text-xs font-bold truncate ${text}`}>
+                              {m.oppName}{m.oppIsBot ? " BOT" : ""}
+                            </p>
+                            <p className={`text-sm font-extrabold ${oppWon ? "text-[#EF4444]" : text}`}>{m.oppScore}</p>
+                          </div>
+                          <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...m.oppAvatar }} size="xs" className="shrink-0" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="max-w-lg mx-auto flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="sm" />
+                  <div>
+                    <p className={`text-xs font-bold ${textMuted}`}>You</p>
+                    <p className={`text-lg font-extrabold ${text}`}>{result.score}</p>
+                  </div>
+                </div>
+                <div className="text-center shrink-0">
+                  <p className={`text-xs font-bold ${textMuted} uppercase`}>vs</p>
+                  <p className={`text-sm font-extrabold ${youWin ? "text-[#22C55E]" : youLose ? "text-[#EF4444]" : "text-[#64748B]"}`}>
+                    {youWin ? "You win!" : youLose ? "You lose!" : "Tie!"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 justify-end">
+                  <div className="text-right">
+                    <p className={`text-xs font-bold ${textMuted}`}>
+                      {opponents[0].username}{opponents[0].isBot ? " BOT" : ""}
+                    </p>
+                    <p className={`text-lg font-extrabold ${text}`}>
+                      {br ? calculateScore(br.opponents[0].correct) : opponentScores[0] ?? 0}
+                    </p>
+                  </div>
+                  <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...opponents[0].avatar_config }} size="sm" />
+                </div>
+              </div>
+            )}
           </div>
         )}
-        <ResultsScreen result={result} onPlayAgain={handlePlayAgain} metadata={resultMetadata} />
+        <ResultsScreen
+          result={result}
+          onPlayAgain={handlePlayAgain}
+          metadata={resultMetadata}
+          casualOutcome={youWin ? "win" : youLose ? "loss" : "draw"}
+        />
       </div>
     );
   }

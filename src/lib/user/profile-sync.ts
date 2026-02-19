@@ -57,6 +57,7 @@ export async function syncProfileForUser(
     id: userId,
     email,
     username: base.username && base.username !== "Challenger" ? base.username : email?.split("@")[0] || "Challenger",
+    onboarding_completed: false,
   };
   saveProfile(newProfile);
   await upsertProfile(userId, newProfile);

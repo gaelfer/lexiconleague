@@ -102,6 +102,8 @@ export interface UserProfile {
   placement_completed?: boolean;
   /** True after completing or skipping the first-time home tutorial. */
   tutorial_completed?: boolean;
+  /** True after completing onboarding (username + default vocab grade). */
+  onboarding_completed?: boolean;
   created_at: string;
 }
 

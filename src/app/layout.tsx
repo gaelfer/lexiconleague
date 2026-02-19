@@ -6,6 +6,8 @@ import { PartyProvider } from "@/context/PartyContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import PartyBar from "@/components/PartyBar";
 import PartyRealtimeSync from "@/components/PartyRealtimeSync";
+import OnboardingGate from "@/components/OnboardingGate";
+import ProfileSyncOnLoad from "@/components/ProfileSyncOnLoad";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -34,9 +36,12 @@ export default function RootLayout({
           <AuthProvider>
             <PartyProvider>
               <NotificationProvider>
-                <PartyRealtimeSync />
-                {children}
+                <OnboardingGate>
+                  <PartyRealtimeSync />
+                  <ProfileSyncOnLoad />
+                  {children}
                 <PartyBar />
+                </OnboardingGate>
               </NotificationProvider>
             </PartyProvider>
           </AuthProvider>

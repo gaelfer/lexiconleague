@@ -30,6 +30,7 @@ export interface DbProfile {
   placement_vocab_grade?: number | null;
   placement_completed?: boolean | null;
   tutorial_completed?: boolean | null;
+  onboarding_completed?: boolean | null;
   username_changed_at: string | null;
   claimed_level_rewards?: number[] | null;
   created_at: string;
@@ -62,6 +63,7 @@ export function dbProfileToUserProfile(row: DbProfile): UserProfile {
     placement_vocab_grade: row.placement_vocab_grade != null ? (row.placement_vocab_grade as 3 | 4 | 5 | 6 | 7 | 8) : undefined,
     placement_completed: row.placement_completed ?? undefined,
     tutorial_completed: row.tutorial_completed ?? undefined,
+    onboarding_completed: row.onboarding_completed ?? true,
     claimed_level_rewards: Array.isArray(row.claimed_level_rewards) ? row.claimed_level_rewards : undefined,
     created_at: row.created_at,
   };
@@ -86,29 +88,56 @@ export async function upsertProfile(
   const supabase = createClient();
   const trophies = profile.trophies;
   const rankTier = trophies != null ? getTierFromTrophies(trophies) : profile.rank_tier;
-  const { error } = await supabase.from("profiles").upsert(
-    {
-      id: userId,
-      username: profile.username,
-      email: profile.email,
-      rank_tier: rankTier ?? profile.rank_tier,
+
+  const payload: Record<string, unknown> = {
+    id: userId,
+    updated_at: new Date().toISOString(),
+  };
+  if (profile.username !== undefined) payload.username = profile.username;
+  if (profile.email !== undefined) payload.email = profile.email;
+  if ((rankTier ?? profile.rank_tier) !== undefined) payload.rank_tier = rankTier ?? profile.rank_tier;
+  if (profile.trophies !== undefined) payload.trophies = profile.trophies;
+  if (profile.xp !== undefined) payload.xp = profile.xp;
+  if (profile.ink_drops !== undefined) payload.ink_drops = profile.ink_drops;
+  if (profile.unlocked_items !== undefined) payload.unlocked_items = profile.unlocked_items;
+  if (profile.daily_reward_claimed_at !== undefined) payload.daily_reward_claimed_at = profile.daily_reward_claimed_at;
+  if (profile.daily_streak !== undefined) payload.daily_streak = profile.daily_streak;
+  if (profile.avatar_config !== undefined) payload.avatar_config = profile.avatar_config;
+  if (profile.vocab_grade !== undefined) payload.vocab_grade = profile.vocab_grade != null ? String(profile.vocab_grade) : null;
+  if (profile.mmr !== undefined) payload.mmr = profile.mmr;
+  if (profile.placement_vocab_grade !== undefined) payload.placement_vocab_grade = profile.placement_vocab_grade;
+  if (profile.placement_completed !== undefined) payload.placement_completed = profile.placement_completed;
+  if (profile.tutorial_completed !== undefined) payload.tutorial_completed = profile.tutorial_completed;
+  if (profile.onboarding_completed !== undefined) payload.onboarding_completed = profile.onboarding_completed;
+  if (profile.claimed_level_rewards !== undefined) payload.claimed_level_rewards = profile.claimed_level_rewards;
+
+  const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+/**
+ * Direct update of game progress (trophies, xp, rank_tier, ink_drops).
+ * Use this after ranked games to ensure Supabase gets the latest values.
+ */
+export async function updateProfileGameProgress(
+  userId: string,
+  profile: Pick<UserProfile, "trophies" | "xp" | "rank_tier" | "ink_drops" | "unlocked_items">
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient();
+  const rankTier = getTierFromTrophies(profile.trophies);
+  const { error } = await supabase
+    .from("profiles")
+    .update({
       trophies: profile.trophies,
       xp: profile.xp,
-      ink_drops: profile.ink_drops,
-      unlocked_items: profile.unlocked_items,
-      daily_reward_claimed_at: profile.daily_reward_claimed_at,
-      daily_streak: profile.daily_streak,
-      avatar_config: profile.avatar_config,
-      vocab_grade: profile.vocab_grade != null ? String(profile.vocab_grade) : null,
-      mmr: profile.mmr ?? undefined,
-      placement_vocab_grade: profile.placement_vocab_grade ?? undefined,
-      placement_completed: profile.placement_completed ?? undefined,
-      tutorial_completed: profile.tutorial_completed ?? undefined,
-      claimed_level_rewards: profile.claimed_level_rewards ?? [],
+      rank_tier: rankTier,
+      ink_drops: profile.ink_drops ?? 0,
+      unlocked_items: profile.unlocked_items ?? [],
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "id" }
-  );
+    })
+    .eq("id", userId);
 
   if (error) return { success: false, error: error.message };
   return { success: true };

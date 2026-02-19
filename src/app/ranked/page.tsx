@@ -352,7 +352,9 @@ export default function RankedScreenPage() {
             <div className="max-h-[50vh] sm:max-h-[420px] overflow-y-auto p-3 sm:p-4 space-y-2 min-h-0">
               {leaderboard.map((entry) => {
                 const isCurrentUser = user && entry.id === user.id;
-                const tier = RANK_TIERS.includes(entry.rank_tier as RankTier)
+                const tier = isCurrentUser
+                  ? getTierFromTrophies(profile.trophies)
+                  : RANK_TIERS.includes(entry.rank_tier as RankTier)
                   ? (entry.rank_tier as RankTier)
                   : "Bronze";
                 return (
@@ -386,7 +388,9 @@ export default function RankedScreenPage() {
                         <span className={`text-[10px] font-medium ${textFaint}`}>Lv {getLevel(entry.xp ?? 0)}</span>
                       </div>
                     </div>
-                    <span className="font-bold tabular-nums shrink-0" style={{ color: MINT }}>{entry.trophies}</span>
+                    <span className="font-bold tabular-nums shrink-0" style={{ color: MINT }}>
+                      {isCurrentUser ? profile.trophies : entry.trophies}
+                    </span>
                   </div>
                 );
               })}

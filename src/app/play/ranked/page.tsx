@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Subject, GameResult, InkAvatarConfig, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS } from "@/types";
 import { getProfile, createGuestProfile } from "@/lib/user/storage";
 import { syncProfileForUser } from "@/lib/user/profile-sync";
-import { upsertProfile } from "@/lib/supabase/profile";
+import { upsertProfile, updateProfileGameProgress } from "@/lib/supabase/profile";
 import { useAuth } from "@/context/AuthContext";
 import { useParty } from "@/context/PartyContext";
 import { createClient } from "@/lib/supabase/client";
@@ -284,12 +284,11 @@ export default function RankedPage() {
     setPhase("prematch");
   }
 
-  function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
+  async function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
     setResult(r);
     setResultMetadata(metadata);
     const updated = getProfile();
     if (updated) setProfile(updated);
-    if (user && updated) upsertProfile(user.id, updated);
 
     if (opponent && !opponent.isBot && channelRef.current && user) {
       try {
@@ -308,6 +307,18 @@ export default function RankedPage() {
     }
 
     setPhase("results");
+    if (user && updated) {
+      const { success, error } = await updateProfileGameProgress(user.id, {
+        trophies: updated.trophies,
+        xp: updated.xp,
+        rank_tier: updated.rank_tier,
+        ink_drops: updated.ink_drops,
+        unlocked_items: updated.unlocked_items,
+      });
+      if (!success) {
+        await upsertProfile(user.id, updated);
+      }
+    }
   }
 
   function handlePlayAgain() {

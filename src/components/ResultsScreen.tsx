@@ -20,9 +20,11 @@ interface ResultsScreenProps {
   placementGrade?: number;
   /** Metadata for rank-up/level-up popups */
   metadata?: GameResultMetadata;
+  /** For casual mode: win/loss against opponent(s) */
+  casualOutcome?: "win" | "loss" | "draw";
 }
 
-export default function ResultsScreen({ result, onPlayAgain, placementGrade, metadata }: ResultsScreenProps) {
+export default function ResultsScreen({ result, onPlayAgain, placementGrade, metadata, casualOutcome }: ResultsScreenProps) {
   const [profile, setProfile] = useState(getProfile());
   const [bests, setBests] = useState(getPersonalBests());
   const [visible, setVisible] = useState(false);
@@ -72,6 +74,10 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
     outcomeLabel = "Placement Complete";
     outcomeColor = "text-[#3B82F6]";
     OutcomeIcon = SparkIcon;
+  } else if (result.mode === "casual" && casualOutcome) {
+    outcomeLabel = casualOutcome === "win" ? "Win" : casualOutcome === "loss" ? "Lose" : "Tie";
+    outcomeColor = casualOutcome === "win" ? "text-[#22C55E]" : casualOutcome === "loss" ? "text-[#EF4444]" : "text-[#64748B]";
+    OutcomeIcon = TrophyIcon;
   } else if (result.mode === "casual") {
     outcomeLabel = "Sprint Complete";
     outcomeColor = "text-[#3B82F6]";
@@ -135,18 +141,20 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
               )}
             </div>
             <div className="mt-6 flex gap-3">
-              <Link
-                href="/levels"
-                onClick={() => setLevelUpPopup(null)}
-                className="flex-1 py-3 rounded-xl font-bold text-white text-center bg-[#8B5CF6] hover:opacity-90"
-              >
-                Claim Rewards
-              </Link>
+              {levelUpPopup.hasUnclaimedRewards ? (
+                <Link
+                  href="/levels"
+                  onClick={() => setLevelUpPopup(null)}
+                  className="flex-1 py-3 rounded-xl font-bold text-white text-center bg-[#8B5CF6] hover:opacity-90"
+                >
+                  Claim Rewards
+                </Link>
+              ) : null}
               <button
                 onClick={dismissLevelUpPopup}
-                className="flex-1 py-3 rounded-xl font-bold text-[#64748B] bg-[#F1F5F9] hover:bg-[#E2E8F0]"
+                className={`flex-1 py-3 rounded-xl font-bold ${levelUpPopup.hasUnclaimedRewards ? "text-[#64748B] bg-[#F1F5F9] hover:bg-[#E2E8F0]" : "text-white bg-[#8B5CF6] hover:opacity-90"}`}
               >
-                Close
+                {levelUpPopup.hasUnclaimedRewards ? "Close" : "Nice!"}
               </button>
             </div>
           </div>

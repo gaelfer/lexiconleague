@@ -52,8 +52,12 @@ export default function InkAvatar({
 
       {/* Base droplet — colored via mask */}
       <div
-        className="absolute inset-[10%] w-[80%] h-[80%]"
+        className="absolute"
         style={{
+          top: "10%",
+          left: "10%",
+          right: "10%",
+          bottom: "10%",
           backgroundColor: c.color,
           WebkitMaskImage: `url(/ink/base/${c.base}.svg)`,
           maskImage: `url(/ink/base/${c.base}.svg)`,
@@ -68,7 +72,7 @@ export default function InkAvatar({
       />
 
       {/* Eyes overlay */}
-      <div className="absolute inset-[10%] w-[80%] h-[80%]">
+      <div className="absolute" style={{ top: "10%", left: "10%", right: "10%", bottom: "10%" }}>
         <img
           src={`/ink/eyes/${c.eyes}.svg`}
           alt=""
@@ -79,7 +83,7 @@ export default function InkAvatar({
 
       {/* Accessory overlay */}
       {c.accessory !== "none" && (
-        <div className="absolute inset-[10%] w-[80%] h-[80%]">
+        <div className="absolute" style={{ top: "10%", left: "10%", right: "10%", bottom: "10%" }}>
           <img
             src={`/ink/accessories/${c.accessory}.svg`}
             alt=""
