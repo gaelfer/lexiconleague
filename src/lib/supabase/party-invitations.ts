@@ -36,14 +36,22 @@ export async function sendPartyInvitation(
 
   const { data: existing } = await supabase
     .from("party_invitations")
-    .select("id")
+    .select("id, status")
     .eq("inviter_id", inviterId)
     .eq("invitee_id", inviteeId)
-    .eq("status", "pending")
     .limit(1)
     .single();
 
-  if (existing) return { success: false, error: "Invitation already sent" };
+  if (existing?.status === "pending") return { success: false, error: "Invitation already sent" };
+
+  if (existing) {
+    const { error } = await supabase
+      .from("party_invitations")
+      .update({ status: "pending", created_at: new Date().toISOString() })
+      .eq("id", existing.id);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  }
 
   const { error } = await supabase.from("party_invitations").insert({
     inviter_id: inviterId,
