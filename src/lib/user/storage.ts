@@ -1,5 +1,5 @@
 import { UserProfile, MatchHistory, GameResult, DEFAULT_AVATAR_CONFIG } from "@/types";
-import { getTierFromTrophies } from "@/lib/game/rank";
+import { getTierFromTrophies, RANK_REWARD_ITEM_IDS, RANK_TIERS, RANK_THRESHOLDS } from "@/lib/game/rank";
 import { FREE_ITEM_IDS } from "@/lib/cosmetics/catalog";
 
 const STORAGE_KEYS = {
@@ -51,6 +51,23 @@ export function applyGameResult(result: GameResult): UserProfile {
   profile.rank_tier = getTierFromTrophies(profile.trophies);
   const dropsEarned = result.correct * 2 + (result.trophiesChange > 0 ? 5 : 0);
   profile.ink_drops = (profile.ink_drops ?? 0) + dropsEarned;
+
+  // Unlock ranked reward skins per tier
+  if (result.mode === "ranked") {
+    if (!profile.unlocked_items) profile.unlocked_items = [...FREE_ITEM_IDS];
+    for (const tier of RANK_TIERS) {
+      const threshold = RANK_THRESHOLDS[tier];
+      const reached = tier === "Bronze" ? true : profile.trophies >= threshold;
+      if (reached) {
+        for (const itemId of RANK_REWARD_ITEM_IDS[tier]) {
+          if (!profile.unlocked_items.includes(itemId)) {
+            profile.unlocked_items.push(itemId);
+          }
+        }
+      }
+    }
+  }
+
   saveProfile(profile);
   return profile;
 }

@@ -184,8 +184,8 @@ export default function Home() {
 
       <header className="relative z-20 flex items-center justify-between gap-3 px-4 sm:px-6 py-4 max-w-6xl mx-auto w-full">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${headerBtn} border`}>
-            <SparkIcon className="w-5 h-5" color={BLUE} />
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${headerBtn} border overflow-hidden`}>
+            <InkAvatar config={{ base: "droplet_01", color: BLUE, eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={36} />
           </div>
           <span className={`text-lg font-bold ${text}`}>
             Lexicon<span style={{ color: BLUE }}>League</span>
@@ -269,18 +269,43 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 pt-10 sm:pt-16 pb-8 gap-4 max-w-2xl mx-auto w-full">
-        <div className="relative inline-block">
-          <div className="absolute -top-2 -right-4 sm:-right-6 opacity-80" style={{ transform: "rotate(-8deg)" }}>
-            <InkAvatar config={{ base: "droplet_01", color: "#3B82F6", eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={56} />
+      <section className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 pt-10 sm:pt-16 pb-8 gap-4 max-w-2xl mx-auto w-full overflow-visible min-h-[200px]">
+        {/* Background inklings — cluster around hero */}
+        <div className="absolute top-8 left-4 opacity-40 pointer-events-none" style={{ transform: "rotate(-12deg)" }}>
+          <InkAvatar config={{ base: "droplet_02", color: "#8B5CF6", eyes: "eyes_01", accessory: "none", aura: "none" }} size={56} />
+        </div>
+        <div className="absolute top-20 right-6 sm:right-12 opacity-35 pointer-events-none" style={{ transform: "rotate(8deg)" }}>
+          <InkAvatar config={{ base: "droplet_01", color: "#22C55E", eyes: "eyes_03", accessory: "bow_01", aura: "none" }} size={52} />
+        </div>
+        <div className="absolute top-32 left-8 sm:left-16 opacity-30 pointer-events-none" style={{ transform: "rotate(5deg)" }}>
+          <InkAvatar config={{ base: "droplet_03", color: "#EC4899", eyes: "eyes_06", accessory: "none", aura: "none" }} size={48} />
+        </div>
+        <div className="flex items-center justify-center gap-2">
+          <p className={`text-sm font-bold tracking-wide ${textMuted} animate-pulse`}>
+            Season
+          </p>
+          <div className="relative shrink-0" style={{ transform: "rotate(-6deg)" }}>
+            <InkAvatar config={{ base: "droplet_01", color: "#3B82F6", eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={72} />
+            <div
+              className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
+              style={{
+                fontFamily: "system-ui, sans-serif",
+                fontWeight: 900,
+                fontSize: "2rem",
+                color: "white",
+                textShadow: "0 1px 2px rgba(0,0,0,0.5), 0 0 0 2px rgba(0,0,0,0.2)",
+                lineHeight: 1,
+              }}
+            >
+              1
+            </div>
           </div>
-          <p className={`text-sm font-semibold ${textMuted}`}>Season 1</p>
         </div>
         <h1 className={`text-3xl sm:text-4xl font-bold ${text} leading-tight`}>
           Vocabulary and punctuation. 60 seconds. Climb the ranks.
         </h1>
         <p className={`${textMuted} text-base max-w-lg`}>
-          Pick Casual for practice or Ranked to earn trophies. Bronze to Diamond.
+          Pick Casual for practice or Ranked to earn trophies. Bronze to Emerald.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 mt-2">
           <Link
@@ -303,6 +328,14 @@ export default function Home() {
 
       {profile && (
         <section className="relative z-10 px-4 sm:px-6 py-6 max-w-4xl mx-auto w-full">
+          <div className="relative">
+            <div className="absolute -top-2 left-8 opacity-40 pointer-events-none" style={{ transform: "rotate(-5deg)" }}>
+              <InkAvatar config={{ base: "droplet_01", color: "#F97316", eyes: "eyes_04", accessory: "scarf_01", aura: "none" }} size={52} />
+            </div>
+            <div className="absolute top-2 right-12 opacity-35 pointer-events-none" style={{ transform: "rotate(10deg)" }}>
+              <InkAvatar config={{ base: "droplet_02", color: "#06B6D4", eyes: "eyes_01", accessory: "none", aura: "none" }} size={48} />
+            </div>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Trophies", value: profile.trophies, Icon: TrophyIcon, color: MINT, format: (v: number) => v.toLocaleString() },
@@ -323,7 +356,13 @@ export default function Home() {
         <>
           {/* Rank card — for ranked mode */}
           <section className="relative z-10 px-4 sm:px-6 pb-3 max-w-lg mx-auto w-full">
-            <div className={`rounded-xl p-5 ${cardBg} border ${cardBorder}`}>
+            <div className={`rounded-xl p-5 ${cardBg} border ${cardBorder} relative overflow-visible`}>
+              <div className="absolute -bottom-1 -left-4 opacity-40 pointer-events-none" style={{ transform: "rotate(-8deg)" }}>
+                <InkAvatar config={{ base: "droplet_04", color: "#C0C0C0", eyes: "eyes_05", accessory: "monocle_01", aura: "none" }} size={56} />
+              </div>
+              <div className="absolute -top-1 -right-2 opacity-35 pointer-events-none" style={{ transform: "rotate(6deg)" }}>
+                <InkAvatar config={{ base: "droplet_01", color: "#D4AF37", eyes: "eyes_02", accessory: "crown_01", aura: "none" }} size={52} />
+              </div>
               <div className="flex items-center justify-between mb-3">
                 <p className={`${textFaint} text-xs font-semibold uppercase mb-1`}>{user ? "Your rank" : "Progress"}</p>
                 <RankBadge tier={profile.rank_tier} trophies={profile.trophies} showTrophies size="md" />
@@ -355,8 +394,11 @@ export default function Home() {
 
           {/* Level & Rewards — compact preview (click to open full roadmap) */}
           <section className="relative z-10 px-4 sm:px-6 pb-3 max-w-lg mx-auto w-full">
-            <Link href="/levels" className="block">
-            <div className={`rounded-xl overflow-hidden border ${cardBorder} transition-all hover:border-[#3B82F6]/40 hover:shadow-md cursor-pointer active:scale-[0.99]`}>
+            <Link href="/levels" className="block relative">
+            <div className={`rounded-xl overflow-visible border ${cardBorder} transition-all hover:border-[#3B82F6]/40 hover:shadow-md cursor-pointer active:scale-[0.99] relative`}>
+              <div className="absolute bottom-2 right-4 opacity-40 pointer-events-none z-10" style={{ transform: "rotate(8deg)" }}>
+                <InkAvatar config={{ base: "droplet_03", color: "#8B5CF6", eyes: "eyes_05", accessory: "wizard_01", aura: "none" }} size={52} />
+              </div>
               <div className={`px-4 py-3 ${cardBg} flex items-center justify-between gap-3`}>
                 <div className="flex items-center gap-2 min-w-0">
                   <GiftIcon className="w-4 h-4 shrink-0" color={BLUE} />
@@ -426,7 +468,10 @@ export default function Home() {
       {profile && canClaimDailyReward(profile) && (
         <section className="relative z-10 px-4 sm:px-6 py-2 max-w-lg mx-auto w-full">
           <Link href="/shop" className="block relative">
-            <div className={`rounded-xl p-4 flex items-center gap-4 ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"} transition-colors hover:opacity-90 overflow-visible`}>
+            <div className={`rounded-xl p-4 flex items-center gap-4 ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"} transition-colors hover:opacity-90 overflow-visible relative`}>
+              <div className="absolute -top-2 -left-2 opacity-40 pointer-events-none" style={{ transform: "rotate(-12deg)" }}>
+                <InkAvatar config={{ base: "droplet_02", color: "#F97316", eyes: "eyes_03", accessory: "scarf_01", aura: "none" }} size={52} />
+              </div>
               <div className="absolute -bottom-1 -right-4 opacity-75 pointer-events-none" style={{ transform: "rotate(8deg)" }}>
                 <InkAvatar config={{ base: "droplet_01", color: MINT, eyes: "eyes_03", accessory: "none", aura: "aura_glow_01" }} size={52} />
               </div>
@@ -446,6 +491,9 @@ export default function Home() {
       <section className="relative z-10 px-4 sm:px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto w-full">
         <Link href="/play/casual" className="block relative">
           <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#3B82F6]/40 h-full relative overflow-visible`}>
+            <div className="absolute -bottom-2 -left-2 opacity-40 pointer-events-none" style={{ transform: "rotate(-10deg)" }}>
+              <InkAvatar config={{ base: "droplet_04", color: "#06B6D4", eyes: "eyes_08", accessory: "none", aura: "none" }} size={56} />
+            </div>
             <div className="absolute -top-3 -right-2 opacity-90 pointer-events-none" style={{ transform: "rotate(12deg)" }}>
               <InkAvatar config={{ base: "droplet_01", color: "#3B82F6", eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={64} />
             </div>
@@ -456,11 +504,14 @@ export default function Home() {
         </Link>
         <Link href={user ? "/ranked" : "/auth/signup?from=ranked"} className="block relative">
           <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#34D399]/40 h-full relative overflow-visible`}>
-            <div className="absolute -top-2 -left-2 opacity-90 pointer-events-none" style={{ transform: "rotate(-15deg)" }}>
+            <div className="absolute -bottom-2 -right-1 opacity-40 pointer-events-none" style={{ transform: "rotate(15deg)" }}>
+              <InkAvatar config={{ base: "droplet_05", color: "#EAB308", eyes: "eyes_01", accessory: "tophat_01", aura: "none" }} size={56} />
+            </div>
+            <div className="absolute -top-3 -right-2 opacity-90 pointer-events-none" style={{ transform: "rotate(12deg)" }}>
               <InkAvatar config={{ base: "droplet_02", color: "#22C55E", eyes: "eyes_02", accessory: "crown_01", aura: "aura_glow_01" }} size={64} />
             </div>
             <h3 className={`${text} font-bold text-lg mb-2`}>Ranked Mode</h3>
-            <p className={`${textMuted} text-sm mb-4`}>Earn trophies. Climb Bronze to Diamond.</p>
+            <p className={`${textMuted} text-sm mb-4`}>Earn trophies. Climb Bronze to Emerald.</p>
             <span className="text-sm font-bold" style={{ color: MINT }}>{user ? "Leaderboard & play →" : "Sign up to play →"}</span>
           </div>
         </Link>

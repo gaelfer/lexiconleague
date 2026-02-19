@@ -24,7 +24,7 @@ export interface Question {
 }
 
 // ── Rank ────────────────────────────────────────────────────────────────────
-export type RankTier = "Bronze" | "Silver" | "Gold" | "Platinum" | "Diamond";
+export type RankTier = "Bronze" | "Silver" | "Gold" | "Platinum" | "Diamond" | "Emerald";
 
 export const RANK_TIERS: RankTier[] = [
   "Bronze",
@@ -32,6 +32,7 @@ export const RANK_TIERS: RankTier[] = [
   "Gold",
   "Platinum",
   "Diamond",
+  "Emerald",
 ];
 
 export const RANK_THRESHOLDS: Record<RankTier, number> = {
@@ -40,6 +41,7 @@ export const RANK_THRESHOLDS: Record<RankTier, number> = {
   Gold: 700,
   Platinum: 1200,
   Diamond: 2000,
+  Emerald: 3000,
 };
 
 export const RANK_COLORS: Record<RankTier, string> = {
@@ -48,6 +50,7 @@ export const RANK_COLORS: Record<RankTier, string> = {
   Gold: "#D4AF37",
   Platinum: "#7DD3FC",
   Diamond: "#A78BFA",
+  Emerald: "#10B981",
 };
 
 export const RANK_BADGE: Record<RankTier, string> = {
@@ -56,6 +59,16 @@ export const RANK_BADGE: Record<RankTier, string> = {
   Gold: "🏆",
   Platinum: "💎",
   Diamond: "✨",
+  Emerald: "💚",
+};
+
+export const RANK_INKLING_CONFIG: Record<RankTier, { base: string; eyes: string; accessory: string; aura: string }> = {
+  Bronze: { base: "droplet_01", eyes: "eyes_01", accessory: "none", aura: "none" },
+  Silver: { base: "droplet_01", eyes: "eyes_02", accessory: "headband_01", aura: "none" },
+  Gold: { base: "droplet_02", eyes: "eyes_02", accessory: "crown_01", aura: "none" },
+  Platinum: { base: "droplet_03", eyes: "eyes_05", accessory: "tophat_01", aura: "aura_glow_01" },
+  Diamond: { base: "droplet_04", eyes: "eyes_05", accessory: "halo_01", aura: "aura_glow_02" },
+  Emerald: { base: "droplet_05", eyes: "eyes_05", accessory: "crown_01", aura: "aura_glow_03" },
 };
 
 // ── User ────────────────────────────────────────────────────────────────────

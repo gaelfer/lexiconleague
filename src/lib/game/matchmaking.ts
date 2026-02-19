@@ -49,6 +49,7 @@ export function generateBotScore(playerTier: RankTier): { correct: number; incor
     Gold: [7, 13],
     Platinum: [9, 15],
     Diamond: [11, 17],
+    Emerald: [13, 19],
   };
   const [min, max] = ranges[playerTier] ?? [4, 10];
   const correct = min + Math.floor(Math.random() * (max - min + 1));

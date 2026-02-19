@@ -8,7 +8,7 @@ import { getProfile, createGuestProfile } from "@/lib/user/storage";
 import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { fetchLeaderboard, LeaderboardEntry } from "@/lib/supabase/profile";
 import { getTierProgress, getTrophiesNeededForNextTier } from "@/lib/game/rank";
-import { RANK_TIERS, RANK_COLORS, RANK_THRESHOLDS, RankTier } from "@/types";
+import { RANK_TIERS, RANK_COLORS, RANK_THRESHOLDS, RANK_INKLING_CONFIG, RankTier } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
 import RankBadge from "@/components/RankBadge";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -24,6 +24,7 @@ const TIER_DESCRIPTIONS: Record<RankTier, string> = {
   Gold: "Proven wordsmith",
   Platinum: "Elite linguist",
   Diamond: "Legendary master",
+  Emerald: "Ultimate champion",
 };
 
 function BigTierIcon({ tier, color }: { tier: RankTier; color: string }) {
@@ -64,6 +65,14 @@ function BigTierIcon({ tier, color }: { tier: RankTier; color: string }) {
         <path d="M32 8L8 20l24 12 24-12L32 8z" {...common} strokeWidth="2.5" />
         <path d="M8 44l24 12 24-12" {...common} strokeWidth="2" />
         <path d="M8 32l24 12 24-12" {...common} strokeWidth="2" />
+      </svg>
+    );
+  }
+  if (tier === "Emerald") {
+    return (
+      <svg className="w-full h-full" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="28" fill={`${color}15`} stroke={color} strokeWidth="2.5" />
+        <path d="M32 12l4 12 12 1.5-9 8 3 12-10-6-10 6 3-12-9-8 12-1.5L32 12z" fill={`${color}30`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -241,32 +250,40 @@ export default function RankedScreenPage() {
               )}
             </div>
 
-            {/* All tiers mini-roadmap */}
-            <div className="flex items-center justify-between mt-5 px-1">
+            {/* All tiers mini-roadmap — icon + inkling per rank */}
+            <div className="flex items-center justify-between mt-5 px-1 gap-1">
               {RANK_TIERS.map((t, i) => {
                 const isActive = i === tierIdx;
                 const isPast = i < tierIdx;
                 const c = RANK_COLORS[t];
+                const inkCfg = RANK_INKLING_CONFIG[t];
                 return (
-                  <div key={t} className="flex flex-col items-center gap-1">
-                    <div
-                      className={`rounded-full flex items-center justify-center transition-all ${
-                        isActive ? "w-8 h-8 ring-2 ring-offset-1" : "w-5 h-5"
-                      }`}
-                      style={{
-                        backgroundColor: isActive || isPast ? c : `${c}30`,
-                        ringColor: isActive ? c : undefined,
-                        opacity: isActive || isPast ? 1 : 0.5,
-                      } as React.CSSProperties}
-                    >
-                      {isActive && (
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
+                  <div key={t} className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <div
+                        className={`rounded-full flex items-center justify-center shrink-0 transition-all ${
+                          isActive ? "w-6 h-6 ring-2 ring-offset-1" : "w-4 h-4"
+                        }`}
+                        style={{
+                          backgroundColor: isActive || isPast ? c : `${c}30`,
+                          ringColor: isActive ? c : undefined,
+                          opacity: isActive || isPast ? 1 : 0.5,
+                        } as React.CSSProperties}
+                      >
+                        {isActive && (
+                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <InkAvatar
+                        config={{ base: inkCfg.base, color: c, eyes: inkCfg.eyes, accessory: inkCfg.accessory, aura: inkCfg.aura }}
+                        size={isActive ? 28 : 22}
+                        className={`shrink-0 transition-all ${isActive || isPast ? "" : "opacity-50"}`}
+                      />
                     </div>
                     <span
-                      className={`text-[10px] font-bold ${isActive ? "" : isPast ? "" : "opacity-50"}`}
+                      className={`text-[9px] font-bold truncate w-full text-center ${isActive ? "" : isPast ? "" : "opacity-50"}`}
                       style={{ color: isActive || isPast ? c : undefined }}
                     >
                       {t}
@@ -274,6 +291,17 @@ export default function RankedScreenPage() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Ranked rewards callout */}
+            <div className={`mt-5 px-4 py-3 rounded-xl border-2 ${light ? "bg-[#F8FAFC] border-[#E2E8F0]" : "bg-[#0F172A]/50 border-[#334155]"}`}>
+              <p className={`text-xs font-extrabold uppercase tracking-wider ${textMuted} mb-2`}>Ranked Rewards</p>
+              <p className={`text-sm font-semibold ${text}`}>
+                Unlock exclusive skins in the Ink Shop by playing ranked and climbing tiers. Bronze → Silver → Gold → Platinum → Diamond → Emerald.
+              </p>
+              <Link href="/shop" className={`inline-flex items-center gap-1.5 mt-2 text-sm font-bold ${light ? "text-[#3B82F6] hover:underline" : "text-[#60A5FA] hover:underline"}`}>
+                View in Ink Shop →
+              </Link>
             </div>
           </div>
 
@@ -288,6 +316,9 @@ export default function RankedScreenPage() {
         </div>
 
         <div className={`rounded-2xl overflow-hidden ${cardBg} border ${cardBorder} shadow-lg relative`}>
+          <div className="absolute -top-2 -left-4 opacity-40 pointer-events-none z-10" style={{ transform: "rotate(-10deg)" }}>
+            <InkAvatar config={{ base: "droplet_02", color: "#C0C0C0", eyes: "eyes_04", accessory: "monocle_01", aura: "none" }} size={60} />
+          </div>
           <div className="absolute -bottom-4 -right-6 opacity-75 pointer-events-none z-10" style={{ transform: "rotate(15deg)" }}>
             <InkAvatar config={{ base: "droplet_01", color: "#D4AF37", eyes: "eyes_02", accessory: "crown_01", aura: "aura_glow_03" }} size={64} />
           </div>
@@ -317,8 +348,8 @@ export default function RankedScreenPage() {
             <div className="max-h-[50vh] sm:max-h-[420px] overflow-y-auto p-3 sm:p-4 space-y-2 min-h-0">
               {leaderboard.map((entry) => {
                 const isCurrentUser = user && entry.id === user.id;
-                const tier = ["Bronze", "Silver", "Gold", "Platinum", "Diamond"].includes(entry.rank_tier)
-                  ? (entry.rank_tier as "Bronze" | "Silver" | "Gold" | "Platinum" | "Diamond")
+                const tier = RANK_TIERS.includes(entry.rank_tier as RankTier)
+                  ? (entry.rank_tier as RankTier)
                   : "Bronze";
                 return (
                   <div

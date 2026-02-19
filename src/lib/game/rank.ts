@@ -1,20 +1,32 @@
 import { RankTier, RANK_TIERS, RANK_THRESHOLDS, GameMode } from "@/types";
 
-// ── Trophy deltas ─────────────────────────────────────────────────────────────
+// ── Rank rewards (skins unlocked per tier) ─────────────────────────────────────
+export const RANK_REWARD_ITEM_IDS: Record<RankTier, string[]> = {
+  Bronze: ["color_#CD7F32"],
+  Silver: ["color_#C0C0C0", "headband_01", "eyes_02"],
+  Gold: ["color_#D4AF37", "crown_01", "droplet_02", "eyes_02"],
+  Platinum: ["color_#7DD3FC", "tophat_01", "droplet_03", "aura_glow_01", "eyes_05"],
+  Diamond: ["color_#A78BFA", "halo_01", "droplet_04", "aura_glow_02", "eyes_05"],
+  Emerald: ["color_#10B981", "droplet_05", "aura_glow_03", "crown_01", "eyes_05"],
+};
+
+// ── Trophy deltas (harder to gain at higher ranks) ─────────────────────────────
 const TROPHY_WIN: Record<RankTier, number> = {
-  Bronze: 20,
-  Silver: 18,
-  Gold: 16,
-  Platinum: 14,
-  Diamond: 12,
+  Bronze: 24,
+  Silver: 16,
+  Gold: 10,
+  Platinum: 6,
+  Diamond: 4,
+  Emerald: 2,
 };
 
 const TROPHY_LOSS: Record<RankTier, number> = {
-  Bronze: -10,
-  Silver: -12,
-  Gold: -14,
-  Platinum: -16,
-  Diamond: -18,
+  Bronze: -8,
+  Silver: -14,
+  Gold: -18,
+  Platinum: -22,
+  Diamond: -26,
+  Emerald: -30,
 };
 
 // Score needed (out of possible) to count as a "win"

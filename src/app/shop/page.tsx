@@ -21,7 +21,10 @@ import {
   CosmeticItem,
   ColorItem,
   FREE_ITEM_IDS,
+  isRankReward,
 } from "@/lib/cosmetics/catalog";
+import { RANK_REWARD_ITEM_IDS, RANK_TIERS } from "@/lib/game/rank";
+import { RANK_COLORS, RankTier } from "@/types";
 import {
   canClaimDailyReward,
   claimDailyReward,
@@ -133,17 +136,26 @@ export default function ShopPage() {
     setConfirmItem(null);
   }
 
+  function getRankForItem(itemId: string): string | null {
+    for (const tier of RANK_TIERS) {
+      if (RANK_REWARD_ITEM_IDS[tier].includes(itemId)) return tier;
+    }
+    return null;
+  }
+
   function renderItemCard(item: CosmeticItem | ColorItem) {
     const owned = isItemUnlocked(item.id, profile);
-    const canAfford = (profile?.ink_drops ?? 0) >= item.price;
+    const canAfford = (profile?.ink_drops ?? 0) >= item.price && item.price > 0;
     const isFree = item.price === 0;
+    const isRankOnly = isRankReward(item);
+    const rankTier = isRankOnly ? getRankForItem(item.id) : null;
     const isColor = "hex" in item;
 
     return (
       <button
         key={item.id}
-        onClick={() => !owned && !isFree && handleBuy(item)}
-        disabled={owned || isFree}
+        onClick={() => !owned && !isFree && !isRankOnly && handleBuy(item)}
+        disabled={owned || isFree || isRankOnly}
         className={`group relative flex flex-col items-center gap-3 p-4 sm:p-5 rounded-2xl border-[3px] transition-all duration-200 active:scale-[0.97] ${
           owned || isFree
             ? light ? "border-[#34D399]/60 bg-[#ECFDF5] shadow-[0_2px_8px_rgba(52,211,153,0.2)]" : "border-[#34D399]/50 bg-[#34D399]/15 shadow-[0_2px_8px_rgba(52,211,153,0.15)]"
@@ -180,6 +192,10 @@ export default function ShopPage() {
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
             Owned
+          </span>
+        ) : isRankOnly && rankTier ? (
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl" style={{ color: RANK_COLORS[rankTier as RankTier], backgroundColor: `${RANK_COLORS[rankTier as RankTier]}30` }}>
+            {rankTier === "Bronze" ? "Play Ranked" : `Reach ${rankTier}`}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 text-sm font-extrabold px-2.5 py-1 rounded-xl" style={{ color: MINT, backgroundColor: `${MINT}20` }}>

@@ -51,6 +51,13 @@ function RankIcon({ tier, className }: { tier: RankTier; className: string }) {
       </svg>
     );
   }
+  if (tier === "Emerald") {
+    return (
+      <svg className={className} viewBox="0 0 24 24">
+        <path d="M12 2l3 9 6 2-6 2-3 9-3-9-6-2 6-2 3-9z" {...common} />
+      </svg>
+    );
+  }
   return (
     <svg className={className} viewBox="0 0 24 24">
       <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" {...common} />

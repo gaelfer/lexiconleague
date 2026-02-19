@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { GameResult } from "@/types";
+import { GameResult, RANK_COLORS } from "@/types";
 import { getProfile, getPersonalBests } from "@/lib/user/storage";
 import RankBadge from "./RankBadge";
 import ProgressBar from "./ProgressBar";
@@ -140,7 +140,7 @@ export default function ResultsScreen({ result, onPlayAgain }: ResultsScreenProp
               <RankBadge tier={profile.rank_tier} size="md" />
               <span className="text-[#0F172A] font-bold">{profile.trophies} trophies</span>
             </div>
-            <ProgressBar value={tierProgress} height="h-2.5" color={profile.rank_tier === "Gold" ? "#D4AF37" : profile.rank_tier === "Silver" ? "#C0C0C0" : "#3B82F6"} />
+            <ProgressBar value={tierProgress} height="h-2.5" color={RANK_COLORS[profile.rank_tier]} />
           </div>
         )}
 

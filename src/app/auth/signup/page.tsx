@@ -138,11 +138,12 @@ function SignupPageInner() {
           </div>
           <div className="space-y-2 mt-6">
             {[
-              { label: "Bronze", color: "#CD7F32", width: "25%", cartoony: true },
-              { label: "Silver", color: "#C0C0C0", width: "45%" },
-              { label: "Gold", color: "#D4AF37", width: "65%" },
-              { label: "Platinum", color: "#7DD3FC", width: "80%" },
-              { label: "Diamond", color: "#A78BFA", width: "100%" },
+              { label: "Bronze", color: "#CD7F32", width: "20%", cartoony: true },
+              { label: "Silver", color: "#C0C0C0", width: "38%" },
+              { label: "Gold", color: "#D4AF37", width: "55%" },
+              { label: "Platinum", color: "#7DD3FC", width: "72%" },
+              { label: "Diamond", color: "#A78BFA", width: "88%" },
+              { label: "Emerald", color: "#10B981", width: "100%" },
             ].map((tier) => (
               <div key={tier.label} className={`flex items-center gap-3 ${tier.cartoony ? "transform hover:scale-[1.02] transition-transform" : ""}`}>
                 <span className={`text-xs font-bold w-16 text-right text-white/90 ${tier.cartoony ? "font-extrabold drop-shadow-sm" : ""}`}>{tier.label}</span>

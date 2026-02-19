@@ -80,7 +80,7 @@ export default function LoginPage() {
           </div>
           <div className="flex flex-col gap-3 text-left">
             {[
-              { text: "Climb from Bronze to Diamond", color: "#34D399" },
+              { text: "Climb from Bronze to Emerald", color: "#34D399" },
               { text: "60-second vocab sprints", color: "#60A5FA" },
               { text: "Beat your personal best", color: "#6EE7B7" },
             ].map((item) => (

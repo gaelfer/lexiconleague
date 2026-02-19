@@ -34,6 +34,13 @@ export const COLORS: ColorItem[] = [
   { id: "color_#22C55E", hex: "#22C55E", label: "Green", price: 80, category: "color" },
   { id: "color_#06B6D4", hex: "#06B6D4", label: "Cyan", price: 80, category: "color" },
   { id: "color_#F8FAFC", hex: "#F8FAFC", label: "Ghost White", price: 250, category: "color" },
+  // Rank rewards (price -1 = unlock via ranked only)
+  { id: "color_#CD7F32", hex: "#CD7F32", label: "Bronze Ink", price: -1, category: "color" },
+  { id: "color_#C0C0C0", hex: "#C0C0C0", label: "Silver Ink", price: -1, category: "color" },
+  { id: "color_#D4AF37", hex: "#D4AF37", label: "Gold Ink", price: -1, category: "color" },
+  { id: "color_#7DD3FC", hex: "#7DD3FC", label: "Platinum Ink", price: -1, category: "color" },
+  { id: "color_#A78BFA", hex: "#A78BFA", label: "Diamond Ink", price: -1, category: "color" },
+  { id: "color_#10B981", hex: "#10B981", label: "Emerald Ink", price: -1, category: "color" },
 ];
 
 // ── Eyes ─────────────────────────────────────────────────────────────────────
@@ -95,4 +102,9 @@ export function colorHexToId(hex: string): string {
 
 export function colorIdToHex(id: string): string {
   return id.replace("color_", "");
+}
+
+/** Rank-exclusive cosmetic rewards. Price -1 = unlock via ranked only. */
+export function isRankReward(item: CosmeticItem | ColorItem): boolean {
+  return item.price < 0;
 }
