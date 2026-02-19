@@ -3,9 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { InkAvatarConfig, DEFAULT_AVATAR_CONFIG, UserProfile } from "@/types";
 import { getProfile, saveProfile, isItemUnlocked } from "@/lib/storage";
 import { fetchAvatarConfig, updateAvatarConfig } from "@/lib/supabase/avatar";
+import { syncProfileForUser } from "@/lib/profile-sync";
 import {
   BASES,
   COLORS,
@@ -20,6 +22,7 @@ import {
 import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type Tab = "base" | "color" | "eyes" | "accessory" | "aura";
 
@@ -33,6 +36,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function LockerPage() {
   const { user, loading: authLoading } = useAuth();
+  const { light } = useTheme();
   const [config, setConfig] = useState<InkAvatarConfig>({ ...DEFAULT_AVATAR_CONFIG });
   const [savedConfig, setSavedConfig] = useState<InkAvatarConfig>({ ...DEFAULT_AVATAR_CONFIG });
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -48,11 +52,19 @@ export default function LockerPage() {
       return;
     }
     async function load() {
-      const p = getProfile();
-      setProfile(p);
-      const remote = await fetchAvatarConfig(user!.id);
-      setConfig(remote);
-      setSavedConfig(remote);
+      try {
+        const synced = await syncProfileForUser(user!.id, user!.email ?? "");
+        setProfile(synced);
+        const remote = await fetchAvatarConfig(user!.id);
+        setConfig(remote);
+        setSavedConfig(remote);
+      } catch {
+        const p = getProfile();
+        setProfile(p);
+        const remote = await fetchAvatarConfig(user!.id);
+        setConfig(remote);
+        setSavedConfig(remote);
+      }
       setLoading(false);
     }
     load();
@@ -95,6 +107,10 @@ export default function LockerPage() {
     return isItemUnlocked(itemId, profile);
   }
 
+  const cardBg = light ? "bg-white" : "bg-[#1E293B]";
+  const cardBorder = light ? "border-[#E2E8F0]" : "border-white/10";
+  const text = light ? "text-[#0F172A]" : "text-white";
+
   function renderLockerItem(
     item: CosmeticItem | ColorItem,
     isSelected: boolean,
@@ -106,12 +122,12 @@ export default function LockerPage() {
       <button
         key={item.id}
         onClick={unlocked ? onClick : undefined}
-        className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+        className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
           !unlocked
-            ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-50 cursor-not-allowed"
+            ? light ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-50 cursor-not-allowed" : "border-white/10 bg-[#0F172A]/50 opacity-50 cursor-not-allowed"
             : isSelected
-            ? "border-[#3B82F6] bg-[#DBEAFE] shadow-md"
-            : "border-[#E2E8F0] bg-white hover:border-[#3B82F6]/50"
+            ? light ? "border-[#3B82F6] bg-[#DBEAFE] shadow-md" : "border-[#3B82F6] bg-[#3B82F6]/20 shadow-md"
+            : light ? "border-[#E2E8F0] bg-white hover:border-[#3B82F6]/50" : "border-white/10 bg-[#0F172A]/50 hover:border-[#3B82F6]/50"
         }`}
       >
         {!unlocked && (
@@ -119,7 +135,7 @@ export default function LockerPage() {
             <Link
               href="/shop"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#0F172A]/80 text-white text-[10px] font-bold hover:bg-[#0F172A] transition-colors"
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${light ? "bg-[#0F172A]/90 text-white hover:bg-[#0F172A]" : "bg-[#0F172A]/80 text-white hover:bg-[#0F172A]"}`}
             >
               <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
                 <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
@@ -129,63 +145,66 @@ export default function LockerPage() {
           </div>
         )}
         {preview}
-        <span className="text-xs font-bold text-[#0F172A]">{item.label}</span>
+        <span className={`text-xs font-bold ${text}`}>{item.label}</span>
       </button>
     );
   }
 
+  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const textMuted = light ? "text-[#64748B]" : "text-white/60";
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-[#64748B] font-semibold animate-pulse">Loading locker...</p>
+      <main className={`min-h-screen flex items-center justify-center ${bg}`}>
+        <p className={`font-semibold animate-pulse ${textMuted}`}>Loading locker...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-5 py-4 border-b border-[#E2E8F0]">
+    <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+      <header className={`flex items-center justify-between px-5 py-4 border-b ${cardBorder}`}>
         <Link
           href="/"
-          className="flex items-center gap-1.5 text-[#64748B] hover:text-[#0F172A] text-sm font-bold transition-colors"
+          className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${textMuted} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
           </svg>
           Back
         </Link>
-        <h1 className="text-lg font-extrabold text-[#0F172A]">
+        <h1 className={`text-lg font-bold ${text}`}>
           <SparkIcon className="w-5 h-5 inline-block mr-1.5 -mt-0.5" color="#3B82F6" />
           Ink Locker
         </h1>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Link
             href="/shop"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#DBEAFE] border border-[#3B82F6]/20 hover:bg-[#BFDBFE] transition-colors"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors ${light ? "bg-[#DBEAFE] border border-[#3B82F6]/20 hover:bg-[#BFDBFE]" : "bg-[#3B82F6]/20 border border-[#3B82F6]/30 hover:bg-[#3B82F6]/30"}`}
           >
-            <InkDropIcon className="w-4 h-4" color="#3B82F6" />
-            <span className="text-sm font-extrabold text-[#3B82F6]">
+            <InkDropIcon className="w-4 h-4" color="#34D399" />
+            <span className="text-sm font-bold" style={{ color: "#34D399" }}>
               {profile?.ink_drops ?? 0}
             </span>
           </Link>
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col lg:flex-row max-w-5xl mx-auto w-full px-4 py-6 gap-6">
-        {/* Preview */}
+      <div className="flex-1 flex flex-col lg:flex-row max-w-5xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 gap-4 sm:gap-6 min-w-0">
         <div className="flex flex-col items-center gap-4 lg:w-1/3 lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] p-8 flex items-center justify-center w-full max-w-[280px]">
+          <div className={`rounded-2xl p-8 flex items-center justify-center w-full max-w-[280px] ${cardBg} border ${cardBorder}`}>
             <InkAvatar config={config} size="xl" />
           </div>
           <button
             onClick={handleSave}
             disabled={!hasChanges || saving}
-            className={`w-full max-w-[280px] py-3.5 rounded-2xl font-extrabold text-base transition-all shadow-lg ${
+            className={`w-full max-w-[280px] py-3.5 rounded-xl font-bold text-base transition-all ${
               hasChanges
-                ? "bg-[#3B82F6] hover:bg-[#2563EB] text-white hover:shadow-xl hover:-translate-y-0.5"
-                : "bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed shadow-none"
+                ? "text-white"
+                : light ? "bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed" : "bg-white/10 text-white/50 cursor-not-allowed"
             }`}
+            style={hasChanges ? { backgroundColor: "#3B82F6" } : {}}
           >
             {saving ? "Saving..." : hasChanges ? "Save Avatar" : "No Changes"}
           </button>
@@ -194,16 +213,15 @@ export default function LockerPage() {
 
         {/* Controls */}
         <div className="flex-1 lg:w-2/3 space-y-4">
-          {/* Tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 min-w-0">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
                   tab === t.id
-                    ? "bg-[#3B82F6] text-white shadow-md"
-                    : "bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0] hover:border-[#3B82F6] hover:text-[#3B82F6]"
+                    ? "bg-[#3B82F6] text-white"
+                    : light ? "bg-[#F8FAFC] text-[#64748B] border border-[#E2E8F0] hover:border-[#3B82F6] hover:text-[#3B82F6]" : "bg-[#0F172A]/50 text-white/60 border border-white/10 hover:border-[#3B82F6] hover:text-white"
                 }`}
               >
                 {t.label}
@@ -211,11 +229,10 @@ export default function LockerPage() {
             ))}
           </div>
 
-          {/* Tab content */}
-          <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] p-5">
+          <div className={`rounded-xl p-5 ${cardBg} border ${cardBorder}`}>
             {tab === "base" && (
               <div className="space-y-3">
-                <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Shape</p>
+                <p className={`text-xs font-bold uppercase tracking-wider ${textMuted}`}>Shape</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {BASES.map((b) =>
                     renderLockerItem(
@@ -231,7 +248,7 @@ export default function LockerPage() {
 
             {tab === "color" && (
               <div className="space-y-3">
-                <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Ink Color</p>
+                <p className={`text-xs font-bold uppercase tracking-wider ${textMuted}`}>Ink Color</p>
                 <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
                   {COLORS.map((c) =>
                     renderLockerItem(
@@ -250,7 +267,7 @@ export default function LockerPage() {
 
             {tab === "eyes" && (
               <div className="space-y-3">
-                <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Expression</p>
+                <p className={`text-xs font-bold uppercase tracking-wider ${textMuted}`}>Expression</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {EYES.map((e) =>
                     renderLockerItem(
@@ -266,7 +283,7 @@ export default function LockerPage() {
 
             {tab === "accessory" && (
               <div className="space-y-3">
-                <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Accessory</p>
+                <p className={`text-xs font-bold uppercase tracking-wider ${textMuted}`}>Accessory</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {ACCESSORIES.map((a) =>
                     renderLockerItem(
@@ -282,7 +299,7 @@ export default function LockerPage() {
 
             {tab === "aura" && (
               <div className="space-y-3">
-                <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider">Aura</p>
+                <p className={`text-xs font-bold uppercase tracking-wider ${textMuted}`}>Aura</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {AURAS.map((a) =>
                     renderLockerItem(
@@ -296,11 +313,11 @@ export default function LockerPage() {
               </div>
             )}
 
-            {/* Link to shop */}
-            <div className="mt-4 pt-4 border-t border-[#E2E8F0]">
+            <div className={`mt-4 pt-4 border-t ${cardBorder}`}>
               <Link
                 href="/shop"
-                className="inline-flex items-center gap-2 text-sm font-bold text-[#3B82F6] hover:text-[#2563EB] transition-colors"
+                className="inline-flex items-center gap-2 text-sm font-bold transition-colors"
+                style={{ color: "#3B82F6" }}
               >
                 <InkDropIcon className="w-4 h-4" />
                 Visit the Ink Shop to unlock more

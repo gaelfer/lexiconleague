@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Subject, GameResult } from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import { getProfile } from "@/lib/storage";
+import { upsertProfile } from "@/lib/supabase/profile";
 import GameScreen from "@/components/GameScreen";
 import ResultsScreen from "@/components/ResultsScreen";
 import BookIcon from "@/components/icons/BookIcon";
@@ -12,6 +15,7 @@ import SparkIcon from "@/components/icons/SparkIcon";
 type Phase = "select" | "playing" | "results";
 
 export default function CasualPage() {
+  const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>("select");
   const [subject, setSubject] = useState<Subject>("vocabulary");
   const [result, setResult] = useState<GameResult | null>(null);
@@ -24,6 +28,10 @@ export default function CasualPage() {
   function handleComplete(r: GameResult) {
     setResult(r);
     setPhase("results");
+    if (user) {
+      const updated = getProfile();
+      if (updated) upsertProfile(user.id, updated);
+    }
   }
 
   function handlePlayAgain() {

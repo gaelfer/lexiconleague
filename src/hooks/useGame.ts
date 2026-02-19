@@ -16,9 +16,10 @@ interface UseGameOptions {
   subject: Subject;
   questions: Question[];
   onComplete: (result: GameResult) => void;
+  onAnswerProgress?: (answered: number, score: number) => void;
 }
 
-export function useGame({ mode, subject, questions, onComplete }: UseGameOptions) {
+export function useGame({ mode, subject, questions, onComplete, onAnswerProgress }: UseGameOptions) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [correctCount, setCorrectCount] = useState(0);
@@ -109,6 +110,10 @@ export function useGame({ mode, subject, questions, onComplete }: UseGameOptions
       if (isCorrect) setCorrectCount(newCorrect);
       else setIncorrectCount(newIncorrect);
 
+      const totalAnswered = newCorrect + newIncorrect;
+      const newScore = calculateScore(newCorrect);
+      onAnswerProgress?.(totalAnswered, newScore);
+
       // Short pause, then advance
       setTimeout(() => {
         const nextIndex = currentIndex + 1;
@@ -130,6 +135,7 @@ export function useGame({ mode, subject, questions, onComplete }: UseGameOptions
       correctCount,
       incorrectCount,
       finishGame,
+      onAnswerProgress,
     ]
   );
 

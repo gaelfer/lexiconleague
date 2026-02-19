@@ -1,6 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
   title: "Lexicon League — Words are your superpower!",
@@ -16,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased min-h-screen bg-white text-[#0F172A]">
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider>
+        <AuthProvider>{children}</ThemeProvider>
+      </ThemeProvider>
       </body>
     </html>
   );

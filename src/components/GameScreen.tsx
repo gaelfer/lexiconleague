@@ -1,20 +1,30 @@
 "use client";
 
 import { useMemo, useEffect } from "react";
-import { Subject, GameMode, GameResult } from "@/types";
+import { Subject, GameMode, GameResult, DEFAULT_AVATAR_CONFIG } from "@/types";
+import type { OpponentInfo } from "@/lib/matchmaking";
 import { getQuestionsForMode } from "@/lib/questions";
 import { useGame } from "@/hooks/useGame";
 import { applyGameResult, updatePersonalBest } from "@/lib/storage";
 import TimerRing from "./TimerRing";
+import InkAvatar from "./InkAvatar";
 import { GAME_DURATION } from "@/lib/rank";
 
 interface GameScreenProps {
   mode: GameMode;
   subject: Subject;
   onComplete: (result: GameResult) => void;
+  /** Called each time the player answers a question (for ranked live opponent sync) */
+  onAnswerProgress?: (answered: number, score: number) => void;
+  /** Opponent's answered count (for ranked live display) */
+  opponentAnswered?: number | null;
+  /** Opponent's score (for ranked live display, when available) */
+  opponentScore?: number | null;
+  /** Opponent info for ranked VS bar */
+  opponent?: OpponentInfo | null;
 }
 
-export default function GameScreen({ mode, subject, onComplete }: GameScreenProps) {
+export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent }: GameScreenProps) {
   const questions = useMemo(() => getQuestionsForMode(subject, 30), [subject]);
 
   const {
@@ -37,6 +47,7 @@ export default function GameScreen({ mode, subject, onComplete }: GameScreenProp
       updatePersonalBest(result);
       onComplete(result);
     },
+    onAnswerProgress,
   });
 
   useEffect(() => {
@@ -54,21 +65,61 @@ export default function GameScreen({ mode, subject, onComplete }: GameScreenProp
 
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 100;
+  const isRanked = mode === "ranked" && opponent;
 
   return (
-    <main className="min-h-screen bg-white flex flex-col">
-      <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-[#E2E8F0] bg-[#F8FAFC]">
-        <div className="text-left min-w-[80px]">
-          <p className="text-[#64748B] text-xs font-bold uppercase tracking-wider">Score</p>
-          <p className="text-[#0F172A] font-extrabold text-2xl tabular-nums">{correctCount * 10}</p>
+    <main className="min-h-[100dvh] min-h-screen bg-white flex flex-col overflow-x-hidden">
+      {/* Ranked VS bar - live opponent progress */}
+      {isRanked && (
+        <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] border-b border-[#334155] min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <InkAvatar config={opponent.avatar_config ? { ...DEFAULT_AVATAR_CONFIG, ...opponent.avatar_config } : undefined} size="sm" className="shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase">You</p>
+              <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">{correctCount * 10}</p>
+            </div>
+            <div className="flex gap-0.5 sm:gap-1 shrink-0">
+              {[...Array(10)].map((_, i) => (
+                <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${i < totalAnswered ? "bg-[#3B82F6]" : "bg-[#334155]"}`} />
+              ))}
+            </div>
+          </div>
+          <div className="text-center shrink-0 px-1">
+            <p className="text-[10px] font-bold text-[#FBBF24] uppercase">VS</p>
+            <p className="text-[10px] sm:text-xs font-semibold text-[#94A3B8]">Live</p>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 justify-end">
+            <div className="flex gap-0.5 sm:gap-1 shrink-0">
+              {[...Array(10)].map((_, i) => (
+                <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${i < (opponentAnswered ?? 0) ? "bg-[#FBBF24]" : "bg-[#334155]"}`} />
+              ))}
+            </div>
+            <div className="text-right min-w-0">
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase truncate max-w-[60px] sm:max-w-[80px]">
+                {opponent.username}
+                {opponent.isBot && " BOT"}
+              </p>
+              <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">
+                {opponentScore !== null && opponentScore !== undefined ? opponentScore : opponentAnswered !== null && opponentAnswered !== undefined ? opponentAnswered * 10 : "—"}
+              </p>
+            </div>
+            <InkAvatar config={opponent.avatar_config ? { ...DEFAULT_AVATAR_CONFIG, ...opponent.avatar_config } : undefined} size="sm" className="shrink-0" />
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2 px-3 sm:px-4 pt-4 pb-2 border-b border-[#E2E8F0] bg-[#F8FAFC] min-w-0">
+        <div className="text-left min-w-0 flex-1">
+          <p className="text-[#64748B] text-[10px] sm:text-xs font-bold uppercase tracking-wider">Score</p>
+          <p className="text-[#0F172A] font-extrabold text-xl sm:text-2xl tabular-nums">{correctCount * 10}</p>
         </div>
 
         <TimerRing timeLeft={timeLeft} totalTime={GAME_DURATION} />
 
-        <div className="text-right min-w-[80px]">
+        <div className="text-right min-w-0 flex-1">
           <p className="text-[#64748B] text-xs font-bold uppercase tracking-wider">Accuracy</p>
           <p
-            className={`font-extrabold text-2xl tabular-nums ${
+            className={`font-extrabold text-xl sm:text-2xl tabular-nums ${
               accuracy >= 70 ? "text-[#22C55E]" : accuracy >= 50 ? "text-[#34D399]" : "text-[#EF4444]"
             }`}
           >
@@ -88,7 +139,7 @@ export default function GameScreen({ mode, subject, onComplete }: GameScreenProp
         ))}
       </div>
 
-      <div className="flex-1 flex flex-col justify-center px-4 py-6 max-w-xl mx-auto w-full gap-6">
+      <div className="flex-1 flex flex-col justify-center px-3 sm:px-4 py-4 sm:py-6 max-w-xl mx-auto w-full gap-4 sm:gap-6 min-w-0">
         <div className="flex items-center gap-2">
           <span className="px-2.5 py-1 rounded-xl bg-[#DBEAFE] text-[#64748B] text-xs font-bold capitalize">
             {currentQuestion.skill_tag.replace("-", " ")}
@@ -146,7 +197,7 @@ export default function GameScreen({ mode, subject, onComplete }: GameScreenProp
         </div>
       </div>
 
-      <div className="px-4 pb-6 flex justify-center gap-8 text-center bg-[#F8FAFC] border-t border-[#E2E8F0]">
+      <div className="px-3 sm:px-4 pb-4 sm:pb-6 flex justify-center gap-4 sm:gap-8 text-center bg-[#F8FAFC] border-t border-[#E2E8F0] flex-wrap">
         <div>
           <p className="text-[#22C55E] font-extrabold text-xl">{correctCount}</p>
           <p className="text-[#64748B] text-xs font-bold">Correct</p>

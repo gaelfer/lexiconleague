@@ -6,6 +6,8 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useTheme } from "@/context/ThemeContext";
+import ThemeToggle from "@/components/ThemeToggle";
 import GoogleIcon from "@/components/icons/GoogleIcon";
 import AppleIcon from "@/components/icons/AppleIcon";
 import MicrosoftIcon from "@/components/icons/MicrosoftIcon";
@@ -16,6 +18,7 @@ type View = "providers" | "email";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { light } = useTheme();
   const [view, setView] = useState<View>("providers");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -93,20 +96,20 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-white">
+      <div className={`flex-1 flex flex-col items-center justify-center px-6 py-12 ${light ? "bg-white" : "bg-[#0F172A]"}`}>
         <div className="w-full max-w-sm">
+          <div className="flex justify-end mb-4"><ThemeToggle /></div>
           <div className="lg:hidden text-center mb-8">
-            <span className="text-2xl font-extrabold text-[#0F172A]">
+            <span className={`text-2xl font-extrabold ${light ? "text-[#0F172A]" : "text-white"}`}>
               Lexicon<span className="text-[#3B82F6]">League</span>
             </span>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl font-extrabold text-[#0F172A] mb-1">
+            <h2 className={`text-3xl font-extrabold mb-1 ${light ? "text-[#0F172A]" : "text-white"}`}>
               Welcome back!
             </h2>
-            <p className="text-[#64748B] text-sm font-medium">
+            <p className={`text-sm font-medium ${light ? "text-[#64748B]" : "text-white/60"}`}>
               Sign in to continue your journey.{" "}
               <Link href="/auth/signup" className="font-bold text-[#3B82F6] hover:underline">
                 New here? Join free

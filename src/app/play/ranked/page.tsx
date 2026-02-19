@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Subject, GameResult, InkAvatarConfig, DEFAULT_AVATAR_CONFIG, RANK_TIERS } from "@/types";
 import { getProfile, createGuestProfile } from "@/lib/storage";
+import { syncProfileForUser } from "@/lib/profile-sync";
+import { upsertProfile } from "@/lib/supabase/profile";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -42,6 +44,7 @@ export default function RankedPage() {
   const [countdown, setCountdown] = useState(3);
   const [searchDots, setSearchDots] = useState("");
   const [opponentScore, setOpponentScore] = useState<number | null>(null);
+  const [opponentAnswered, setOpponentAnswered] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef = useRef<any>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -53,15 +56,18 @@ export default function RankedPage() {
       window.location.href = "/auth/signup?from=ranked";
       return;
     }
-    const p = getProfile() ?? createGuestProfile();
-    setProfile(p);
-    const goldTierIdx = RANK_TIERS.indexOf("Gold");
-    const playerTierIdx = RANK_TIERS.indexOf(p.rank_tier);
-    if (playerTierIdx >= goldTierIdx) {
-      setSubject(Math.random() > 0.5 ? "vocabulary" : "punctuation");
-    } else {
-      setSubject("vocabulary");
+    async function load() {
+      const synced = await syncProfileForUser(user!.id, user!.email ?? "");
+      setProfile(synced);
+      const goldTierIdx = RANK_TIERS.indexOf("Gold");
+      const playerTierIdx = RANK_TIERS.indexOf(synced.rank_tier);
+      if (playerTierIdx >= goldTierIdx) {
+        setSubject(Math.random() > 0.5 ? "vocabulary" : "punctuation");
+      } else {
+        setSubject("vocabulary");
+      }
     }
+    load();
   }, [user, authLoading]);
 
   // Search dots animation
@@ -72,6 +78,23 @@ export default function RankedPage() {
     }, 500);
     return () => clearInterval(interval);
   }, [phase]);
+
+  // Reset opponent progress when starting a new game
+  useEffect(() => {
+    if (phase === "playing") {
+      setOpponentAnswered(null);
+      setOpponentScore(null);
+    }
+  }, [phase]);
+
+  // Simulate bot progress during ranked match (so it feels lively)
+  useEffect(() => {
+    if (phase !== "playing" || !opponent?.isBot) return;
+    const interval = setInterval(() => {
+      setOpponentAnswered((prev) => Math.min((prev ?? 0) + 1, 30));
+    }, 2000 + Math.random() * 1500);
+    return () => clearInterval(interval);
+  }, [phase, opponent?.isBot]);
 
   // Prematch countdown
   useEffect(() => {
@@ -196,6 +219,13 @@ export default function RankedPage() {
         }
       });
 
+      channel.on("broadcast", { event: "game-progress" }, (msg: any) => {
+        if (msg.payload.userId !== user.id) {
+          setOpponentAnswered(msg.payload.answered ?? 0);
+          setOpponentScore(msg.payload.score ?? null);
+        }
+      });
+
       channel.subscribe(async (status: string) => {
         if (status === "SUBSCRIBED") {
           await channel.track({
@@ -228,6 +258,12 @@ export default function RankedPage() {
   function handleComplete(r: GameResult) {
     setResult(r);
 
+    // Persist updated profile to Supabase for auth users
+    if (user) {
+      const updated = getProfile();
+      if (updated) upsertProfile(user.id, updated);
+    }
+
     if (opponent && !opponent.isBot && channelRef.current && user) {
       try {
         channelRef.current.send({
@@ -254,6 +290,7 @@ export default function RankedPage() {
     setResult(null);
     setOpponent(null);
     setOpponentScore(null);
+    setOpponentAnswered(null);
     setMatchSeed("");
     setPhase("lobby");
   }
@@ -270,7 +307,28 @@ export default function RankedPage() {
 
   // ── Playing ─────────────────────────────────────────────────────────────────
   if (phase === "playing") {
-    return <GameScreen mode="ranked" subject={subject} onComplete={handleComplete} />;
+    const handleAnswerProgress = (answered: number, score: number) => {
+      if (opponent && !opponent.isBot && channelRef.current && user) {
+        try {
+          channelRef.current.send({
+            type: "broadcast",
+            event: "game-progress",
+            payload: { userId: user.id, answered, score },
+          });
+        } catch {}
+      }
+    };
+    return (
+      <GameScreen
+        mode="ranked"
+        subject={subject}
+        onComplete={handleComplete}
+        onAnswerProgress={handleAnswerProgress}
+        opponentAnswered={opponentAnswered}
+        opponentScore={opponentScore}
+        opponent={opponent}
+      />
+    );
   }
 
   // ── Results ─────────────────────────────────────────────────────────────────
@@ -279,8 +337,8 @@ export default function RankedPage() {
       <div>
         {/* Opponent comparison banner */}
         {opponent && (
-          <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-4 py-4">
-            <div className="max-w-md mx-auto flex items-center justify-between">
+          <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-3 sm:px-4 py-3 sm:py-4 overflow-x-hidden">
+            <div className="max-w-md mx-auto flex items-center justify-between gap-2 sm:gap-4 min-w-0">
               <div className="flex items-center gap-3">
                 <InkAvatar config={profile.avatar_config} size="sm" />
                 <div>
@@ -361,14 +419,14 @@ export default function RankedPage() {
   // ── Pre-match VS screen ─────────────────────────────────────────────────────
   if (phase === "prematch" && opponent) {
     return (
-      <main className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
-        <div className="w-full max-w-lg space-y-8">
-          <div className="flex items-center justify-between gap-4">
+      <main className="min-h-[100dvh] min-h-screen bg-white flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden">
+        <div className="w-full max-w-lg space-y-6 sm:space-y-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-4">
             {/* Player */}
-            <div className="flex-1 flex flex-col items-center gap-3 animate-slide-in-left">
-              <div className="rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] p-6 shadow-lg w-full flex flex-col items-center">
+            <div className="flex-1 flex flex-col items-center gap-3 animate-slide-in-left w-full sm:min-w-0 min-w-0">
+              <div className="rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] p-4 sm:p-6 shadow-lg w-full flex flex-col items-center min-w-0">
                 <InkAvatar config={profile.avatar_config} size="lg" />
-                <p className="mt-3 text-sm font-extrabold text-[#0F172A] truncate max-w-full">
+                <p className="mt-3 text-sm font-extrabold text-[#0F172A] truncate max-w-full w-full text-center">
                   {profile.username}
                 </p>
                 <RankBadge tier={profile.rank_tier} size="sm" />
@@ -377,19 +435,19 @@ export default function RankedPage() {
 
             {/* VS */}
             <div className="flex flex-col items-center gap-2 shrink-0">
-              <div className="w-16 h-16 rounded-full bg-[#EF4444] flex items-center justify-center shadow-xl">
-                <span className="text-white font-extrabold text-xl">VS</span>
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#EF4444] flex items-center justify-center shadow-xl">
+                <span className="text-white font-extrabold text-lg sm:text-xl">VS</span>
               </div>
-              <div className="w-14 h-14 rounded-full bg-[#0F172A] flex items-center justify-center shadow-lg">
-                <span className="text-white font-extrabold text-2xl">{countdown}</span>
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#0F172A] flex items-center justify-center shadow-lg">
+                <span className="text-white font-extrabold text-xl sm:text-2xl">{countdown}</span>
               </div>
             </div>
 
             {/* Opponent */}
-            <div className="flex-1 flex flex-col items-center gap-3 animate-slide-in-right">
-              <div className="rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] p-6 shadow-lg w-full flex flex-col items-center">
+            <div className="flex-1 flex flex-col items-center gap-3 animate-slide-in-right w-full sm:min-w-0 min-w-0">
+              <div className="rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] p-4 sm:p-6 shadow-lg w-full flex flex-col items-center min-w-0">
                 <InkAvatar config={opponent.avatar_config} size="lg" />
-                <p className="mt-3 text-sm font-extrabold text-[#0F172A] truncate max-w-full">
+                <p className="mt-3 text-sm font-extrabold text-[#0F172A] truncate max-w-full w-full text-center">
                   {opponent.username}
                   {opponent.isBot && (
                     <span className="text-[10px] ml-1 text-[#94A3B8] font-medium">BOT</span>
