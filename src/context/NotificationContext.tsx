@@ -43,6 +43,7 @@ export interface NotificationState {
 
 const NotificationContext = createContext<NotificationState | null>(null);
 const POLL_INTERVAL_MS = 20_000;
+const PROCESSED_PARTY_INVITES_KEY = "ll_processed_party_accept_invites";
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -53,6 +54,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [partyInvitations, setPartyInvitations] = useState<PartyInvitationEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const processedInviteIds = useRef<Set<string>>(new Set());
+
+  // Persist processed accepted-party-invite IDs so old accepted invites don't
+  // auto-recreate a party after reload/leave.
+  useEffect(() => {
+    if (!user || typeof window === "undefined") {
+      processedInviteIds.current = new Set();
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(`${PROCESSED_PARTY_INVITES_KEY}:${user.id}`);
+      const arr = raw ? (JSON.parse(raw) as string[]) : [];
+      processedInviteIds.current = new Set(Array.isArray(arr) ? arr : []);
+    } catch {
+      processedInviteIds.current = new Set();
+    }
+  }, [user?.id]);
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -84,15 +101,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     );
     setPartyInvitations(invs);
 
+    let processedChanged = false;
     for (const inv of acceptedAsInviter) {
+      if (partyDismissed.has(inv.id)) continue;
       if (processedInviteIds.current.has(inv.id)) continue;
       processedInviteIds.current.add(inv.id);
+      processedChanged = true;
       setPartyLeader(user.id); // Inviter is the party leader
       addMember({
         id: inv.invitee_id,
         username: inv.invitee_username ?? "Challenger",
         avatar_config: inv.invitee_avatar_config ?? {},
       });
+    }
+    if (processedChanged && typeof window !== "undefined") {
+      try {
+        localStorage.setItem(
+          `${PROCESSED_PARTY_INVITES_KEY}:${user.id}`,
+          JSON.stringify([...processedInviteIds.current].slice(-200))
+        );
+      } catch {}
     }
     setLoading(false);
   }, [user?.id, addMember, setPartyLeader]);
