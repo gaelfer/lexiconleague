@@ -1,0 +1,9 @@
+export { default as AppleIcon } from "./AppleIcon";
+export { default as BookIcon } from "./BookIcon";
+export { default as GoogleIcon } from "./GoogleIcon";
+export { default as InkDropIcon } from "./InkDropIcon";
+export { default as MailIcon } from "./MailIcon";
+export { default as MicrosoftIcon } from "./MicrosoftIcon";
+export { default as PencilIcon } from "./PencilIcon";
+export { default as SparkIcon } from "./SparkIcon";
+export { default as TrophyIcon } from "./TrophyIcon";

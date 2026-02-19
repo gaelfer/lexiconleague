@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { InkAvatarConfig, DEFAULT_AVATAR_CONFIG, UserProfile } from "@/types";
-import { getProfile, saveProfile, isItemUnlocked } from "@/lib/storage";
+import { getProfile, saveProfile, isItemUnlocked } from "@/lib/user/storage";
 import { fetchAvatarConfig, updateAvatarConfig } from "@/lib/supabase/avatar";
-import { syncProfileForUser } from "@/lib/profile-sync";
+import { syncProfileForUser } from "@/lib/user/profile-sync";
 import {
   BASES,
   COLORS,

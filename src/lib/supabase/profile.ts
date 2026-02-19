@@ -1,7 +1,7 @@
 "use client";
 
 import { UserProfile, DEFAULT_AVATAR_CONFIG, RankTier } from "@/types";
-import { getTierFromTrophies } from "@/lib/rank";
+import { getTierFromTrophies } from "@/lib/game/rank";
 import { createClient } from "./client";
 
 const DEFAULT_UNLOCKED = [

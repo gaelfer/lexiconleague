@@ -1,4 +1,4 @@
-import { getProfile, saveProfile, addInkDrops } from "./storage";
+import { saveProfile } from "./storage";
 import { UserProfile } from "@/types";
 
 export interface DailyReward {
@@ -52,7 +52,9 @@ export function getTodayReward(profile: UserProfile): DailyReward {
 export function claimDailyReward(profile: UserProfile): {
   updatedProfile: UserProfile;
   reward: DailyReward;
-} {
+} | null {
+  if (!canClaimDailyReward(profile)) return null;
+
   const now = new Date();
   let streak = profile.daily_streak ?? 0;
 

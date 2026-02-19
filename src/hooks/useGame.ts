@@ -8,8 +8,8 @@ import {
   determineResult,
   calculateTrophyChange,
   GAME_DURATION,
-} from "@/lib/rank";
-import { getProfile, createGuestProfile } from "@/lib/storage";
+} from "@/lib/game/rank";
+import { getProfile, createGuestProfile } from "@/lib/user/storage";
 
 interface UseGameOptions {
   mode: GameMode;

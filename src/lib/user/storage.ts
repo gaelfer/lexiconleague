@@ -1,6 +1,6 @@
 import { UserProfile, MatchHistory, GameResult, DEFAULT_AVATAR_CONFIG } from "@/types";
-import { getTierFromTrophies } from "./rank";
-import { FREE_ITEM_IDS } from "./cosmetics/catalog";
+import { getTierFromTrophies } from "@/lib/game/rank";
+import { FREE_ITEM_IDS } from "@/lib/cosmetics/catalog";
 
 const STORAGE_KEYS = {
   PROFILE: "ll_profile",

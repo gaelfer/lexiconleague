@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Subject, GameResult, InkAvatarConfig, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS } from "@/types";
-import { getProfile, createGuestProfile } from "@/lib/storage";
-import { syncProfileForUser } from "@/lib/profile-sync";
+import { getProfile, createGuestProfile } from "@/lib/user/storage";
+import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { upsertProfile } from "@/lib/supabase/profile";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
@@ -14,7 +14,7 @@ import {
   generateBotScore,
   generateMatchSeed,
   MATCHMAKING_TIMEOUT_MS,
-} from "@/lib/matchmaking";
+} from "@/lib/game/matchmaking";
 import { useTheme } from "@/context/ThemeContext";
 import GameScreen from "@/components/GameScreen";
 import ResultsScreen from "@/components/ResultsScreen";
@@ -24,7 +24,7 @@ import TrophyIcon from "@/components/icons/TrophyIcon";
 import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
-import { getTierProgress, getTrophiesNeededForNextTier, calculateScore } from "@/lib/rank";
+import { getTierProgress, getTrophiesNeededForNextTier, calculateScore } from "@/lib/game/rank";
 
 type Phase = "lobby" | "searching" | "prematch" | "playing" | "results";
 

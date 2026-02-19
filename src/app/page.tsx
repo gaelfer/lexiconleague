@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { getProfile, createGuestProfile } from "@/lib/storage";
+import { getProfile, createGuestProfile } from "@/lib/user/storage";
 import { UserProfile } from "@/types";
 import RankBadge from "@/components/RankBadge";
 import InkAvatar from "@/components/InkAvatar";
@@ -13,10 +13,10 @@ import BookIcon from "@/components/icons/BookIcon";
 import TrophyIcon from "@/components/icons/TrophyIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
 import ThemeToggle from "@/components/ThemeToggle";
-import { getTierProgress, getTrophiesInTier, getTrophiesNeededForNextTier } from "@/lib/rank";
-import { getLevelProgress, getLevel } from "@/lib/levels";
-import { canClaimDailyReward } from "@/lib/daily-rewards";
-import { syncProfileForUser } from "@/lib/profile-sync";
+import { getTierProgress, getTrophiesInTier, getTrophiesNeededForNextTier } from "@/lib/game/rank";
+import { getLevelProgress, getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
+import { canClaimDailyReward } from "@/lib/user/daily-rewards";
+import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { RANK_TIERS, RANK_COLORS } from "@/types";
 
 const BLUE = "#3B82F6";
@@ -68,6 +68,55 @@ function LeaderboardIcon({ className = "w-6 h-6", color = "currentColor" }: { cl
       <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
       <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
       <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+    </svg>
+  );
+}
+
+function GiftIcon({ className = "w-5 h-5", color = "currentColor" }: { className?: string; color?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="8" width="18" height="4" rx="1" />
+      <path d="M12 8v13" />
+      <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
+      <path d="M7.5 8a2.5 2.5 0 0 1 0-5C9 3 12 8 12 8" />
+      <path d="M16.5 8a2.5 2.5 0 0 0 0-5C15 3 12 8 12 8" />
+    </svg>
+  );
+}
+
+function PaletteIcon({ className = "w-5 h-5", color = "currentColor" }: { className?: string; color?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="13.5" cy="6.5" r="0.5" fill={color} stroke={color} />
+      <circle cx="17.5" cy="10.5" r="0.5" fill={color} stroke={color} />
+      <circle cx="8.5" cy="7.5" r="0.5" fill={color} stroke={color} />
+      <circle cx="6.5" cy="12.5" r="0.5" fill={color} stroke={color} />
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z" />
+    </svg>
+  );
+}
+
+function CrownIcon({ className = "w-5 h-5", color = "currentColor" }: { className?: string; color?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
+    </svg>
+  );
+}
+
+function StarIcon({ className = "w-5 h-5", color = "currentColor" }: { className?: string; color?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill={color} stroke="none">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  );
+}
+
+function LockIcon({ className = "w-4 h-4", color = "currentColor" }: { className?: string; color?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   );
 }
@@ -266,37 +315,94 @@ export default function Home() {
       )}
 
       {profile && (
-        <section className="relative z-10 px-4 sm:px-6 pb-4 max-w-lg mx-auto w-full">
-          <div className={`rounded-xl p-5 ${cardBg} border ${cardBorder}`}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
+        <>
+          {/* Rank card — for ranked mode */}
+          <section className="relative z-10 px-4 sm:px-6 pb-3 max-w-lg mx-auto w-full">
+            <div className={`rounded-xl p-5 ${cardBg} border ${cardBorder}`}>
+              <div className="flex items-center justify-between mb-3">
                 <p className={`${textFaint} text-xs font-semibold uppercase mb-1`}>{user ? "Your rank" : "Progress"}</p>
                 <RankBadge tier={profile.rank_tier} trophies={profile.trophies} showTrophies size="md" />
               </div>
-              <div className="text-right">
-                <p className={`${textFaint} text-xs font-semibold uppercase mb-1`}>Level</p>
-                <p className={`${text} font-bold text-xl`}>{levelProgress?.level ?? 1}</p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-medium">
+                  <span className={textMuted}>{profile.rank_tier} · {trophiesInTier} trophies</span>
+                  {tierIdx < RANK_TIERS.length - 1 && (
+                    <span className={textFaint}>{(getTrophiesNeededForNextTier(profile.rank_tier) ?? 0) - profile.trophies} to {RANK_TIERS[tierIdx + 1]}</span>
+                  )}
+                </div>
+                <div className={`w-full h-2.5 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${tierProgress}%`, backgroundColor: tierColor }}
+                  />
+                </div>
               </div>
+              {!user && (
+                <div className={`mt-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"}`}>
+                  <span className="text-sm font-semibold" style={{ color: MINT }}>Save progress</span>
+                  <Link href="/auth/signup" className="text-xs font-bold px-4 py-2 rounded-lg text-white transition-colors" style={{ backgroundColor: MINT }}>
+                    Join Free
+                  </Link>
+                </div>
+              )}
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-medium">
-                <span className={textMuted}>{profile.rank_tier} · {trophiesInTier} trophies</span>
-                {tierIdx < RANK_TIERS.length - 1 && (
-                  <span className={textFaint}>{(getTrophiesNeededForNextTier(profile.rank_tier) ?? 0) - profile.trophies} to {RANK_TIERS[tierIdx + 1]}</span>
-                )}
-              </div>
-              <div className={`w-full h-2.5 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${tierProgress}%`, backgroundColor: tierColor }}
-                />
+          </section>
+
+          {/* Level & Rewards — compact preview (click to open full roadmap) */}
+          <section className="relative z-10 px-4 sm:px-6 pb-3 max-w-lg mx-auto w-full">
+            <Link href="/levels" className="block">
+            <div className={`rounded-xl overflow-hidden border ${cardBorder} transition-all hover:border-[#3B82F6]/40 hover:shadow-md cursor-pointer active:scale-[0.99]`}>
+              <div className={`px-4 py-3 ${cardBg} flex items-center justify-between gap-3`}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <GiftIcon className="w-4 h-4 shrink-0" color={BLUE} />
+                  <div className="min-w-0">
+                    <p className={`text-sm font-bold ${text}`}>Level & Rewards</p>
+                    {levelProgress && levelProgress.xpNeededForLevel > 0 && (
+                      <p className={`text-[10px] ${textFaint}`}>{levelProgress.xpInLevel}/{levelProgress.xpNeededForLevel} XP</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className={`flex -space-x-1.5`}>
+                    {(() => {
+                      const currentLevel = levelProgress?.level ?? 1;
+                      const visibleRewards = LEVEL_REWARDS.filter(r => r.level <= currentLevel + 12).slice(0, 4);
+                      const nextRewardLevel = LEVEL_REWARDS.find(r => r.level > currentLevel)?.level;
+                      return visibleRewards.map((reward) => {
+                        const unlocked = currentLevel >= reward.level;
+                        const isNext = !unlocked && reward.level === nextRewardLevel;
+                        const RewardVisual = reward.type === "ink_drops" ? InkDropIcon : reward.type === "cosmetic" ? PaletteIcon : reward.type === "title" ? CrownIcon : StarIcon;
+                        const rewardColor = reward.type === "ink_drops" ? MINT : reward.type === "cosmetic" ? "#8B5CF6" : reward.type === "title" ? "#D4AF37" : BLUE;
+                        return (
+                          <div
+                            key={reward.level}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 ${
+                              unlocked ? "border-transparent" : isNext ? "" : light ? "border-[#E2E8F0] bg-[#F8FAFC]" : "border-white/10 bg-[#0F172A]"
+                            }`}
+                            style={{
+                              backgroundColor: unlocked ? BLUE : isNext ? `${BLUE}15` : undefined,
+                              borderColor: isNext ? BLUE : undefined,
+                            }}
+                          >
+                            {unlocked ? (
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            ) : isNext ? (
+                              <RewardVisual className="w-3.5 h-3.5" color={rewardColor} />
+                            ) : (
+                              <LockIcon className="w-3 h-3" color={light ? "#94A3B8" : "rgba(255,255,255,0.3)"} />
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                  <span className={`text-base font-extrabold`} style={{ color: BLUE }}>{levelProgress?.level ?? 1}</span>
+                </div>
               </div>
               {levelProgress && levelProgress.xpNeededForLevel > 0 && (
-                <div className="pt-2">
-                  <div className="flex justify-between text-xs font-medium mb-1">
-                    <span className={textFaint}>Level {levelProgress.level} → {levelProgress.level + 1}</span>
-                    <span className={textFaint}>{levelProgress.xpInLevel} / {levelProgress.xpNeededForLevel} XP</span>
-                  </div>
+                <div className={`px-4 pb-2.5 ${cardBg}`}>
                   <div className={`w-full h-1.5 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
                     <div
                       className="h-full rounded-full transition-all duration-500"
@@ -306,16 +412,10 @@ export default function Home() {
                 </div>
               )}
             </div>
-            {!user && (
-              <div className={`mt-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"}`}>
-                <span className="text-sm font-semibold" style={{ color: MINT }}>Save progress</span>
-                <Link href="/auth/signup" className="text-xs font-bold px-4 py-2 rounded-lg text-white transition-colors" style={{ backgroundColor: MINT }}>
-                  Join Free
-                </Link>
-              </div>
-            )}
-          </div>
-        </section>
+            </Link>
+            <p className={`text-[10px] font-medium ${textFaint} text-center mt-1.5`}>Tap to view full roadmap →</p>
+          </section>
+        </>
       )}
 
       {profile && canClaimDailyReward(profile) && (
@@ -335,7 +435,7 @@ export default function Home() {
         </section>
       )}
 
-      <section className="relative z-10 px-4 sm:px-6 py-8 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto w-full">
+      <section className="relative z-10 px-4 sm:px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto w-full">
         <Link href="/play/casual" className="block">
           <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#3B82F6]/40 h-full`}>
             <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${light ? "bg-[#DBEAFE]" : "bg-[#3B82F6]/20"}`}>
@@ -356,6 +456,77 @@ export default function Home() {
             <span className="text-sm font-bold" style={{ color: MINT }}>{user ? "Leaderboard & play →" : "Sign up to play →"}</span>
           </div>
         </Link>
+
+        {/* Story Mode — Coming Soon (cartoony, red inkling) */}
+        <div
+          className="relative rounded-2xl overflow-hidden border-[3px] cursor-default select-none min-w-0"
+          style={{
+            borderColor: "rgba(190, 18, 60, 0.5)",
+            background: light
+              ? "linear-gradient(135deg, rgba(190, 18, 60, 0.08) 0%, rgba(190, 18, 60, 0.15) 50%, rgba(190, 18, 60, 0.08) 100%)"
+              : "linear-gradient(135deg, rgba(190, 18, 60, 0.2) 0%, rgba(190, 18, 60, 0.1) 50%, rgba(15, 23, 42, 0.6) 100%)",
+            boxShadow: "0 6px 24px rgba(190, 18, 60, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)",
+          }}
+        >
+          <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full blur-3xl opacity-30 pointer-events-none" style={{ background: "#BE123C" }} />
+          <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full blur-2xl opacity-15 pointer-events-none" style={{ background: "#DC2626" }} />
+          <div className="relative z-10 p-4 sm:p-6 h-full flex flex-col min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-2 sm:mb-3">
+              <div
+                className="relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-[18px] sm:rounded-[22px] flex items-center justify-center overflow-visible mx-auto sm:mx-0"
+                style={{
+                  background: "linear-gradient(145deg, #E11D48 0%, #BE123C 40%, #9F1239 100%)",
+                  boxShadow: "0 6px 16px rgba(220, 38, 38, 0.45), inset 0 2px 0 rgba(255,255,255,0.25), 0 0 0 3px rgba(255,255,255,0.15)",
+                  transform: "rotate(-3deg)",
+                }}
+              >
+                <InkAvatar
+                  config={{
+                    base: "droplet_01",
+                    color: "#DC2626",
+                    eyes: "eyes_02",
+                    accessory: "none",
+                    aura: "none",
+                  }}
+                  size={48}
+                  className="drop-shadow-lg"
+                />
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-white/40" />
+              </div>
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                  <h3 className="font-extrabold text-base sm:text-lg" style={{ color: "#BE123C" }}>Story Mode</h3>
+                  <span
+                    className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white"
+                    style={{ backgroundColor: "#9F1239", boxShadow: "0 2px 6px rgba(159, 18, 57, 0.4)" }}
+                  >
+                    Coming Soon
+                  </span>
+                </div>
+                <p className={`text-xs font-medium mt-1 ${textMuted}`}>
+                  Chapters · Boss battles · Exclusive loot
+                </p>
+              </div>
+            </div>
+            <p className={`text-xs sm:text-sm font-medium flex-1 ${textMuted} text-center sm:text-left`}>
+              A narrative adventure through the world of words. Defeat vocab villains!
+            </p>
+            <div className="mt-2 sm:mt-3 flex justify-center sm:justify-start gap-1.5 flex-wrap">
+              {["📖", "⚔️", "🎁"].map((emoji, i) => (
+                <span
+                  key={i}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-sm sm:text-base shrink-0"
+                  style={{
+                    background: "rgba(190, 18, 60, 0.15)",
+                    border: "1px solid rgba(190, 18, 60, 0.25)",
+                  }}
+                >
+                  {emoji}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="relative z-10 px-4 sm:px-6 pb-8 max-w-2xl mx-auto w-full">

@@ -2,13 +2,13 @@
 
 import { useMemo, useEffect } from "react";
 import { Subject, GameMode, GameResult, DEFAULT_AVATAR_CONFIG } from "@/types";
-import type { OpponentInfo } from "@/lib/matchmaking";
-import { getQuestionsForMode } from "@/lib/questions";
+import type { OpponentInfo } from "@/lib/game/matchmaking";
+import { getQuestionsForMode } from "@/lib/game/questions";
 import { useGame } from "@/hooks/useGame";
-import { applyGameResult, updatePersonalBest } from "@/lib/storage";
+import { applyGameResult, updatePersonalBest } from "@/lib/user/storage";
 import TimerRing from "./TimerRing";
 import InkAvatar from "./InkAvatar";
-import { GAME_DURATION } from "@/lib/rank";
+import { GAME_DURATION } from "@/lib/game/rank";
 
 interface GameScreenProps {
   mode: GameMode;

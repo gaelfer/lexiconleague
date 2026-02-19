@@ -4,20 +4,76 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { getProfile, createGuestProfile } from "@/lib/storage";
-import { syncProfileForUser } from "@/lib/profile-sync";
+import { getProfile, createGuestProfile } from "@/lib/user/storage";
+import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { fetchLeaderboard, LeaderboardEntry } from "@/lib/supabase/profile";
-import { getTierProgress, getTrophiesNeededForNextTier } from "@/lib/rank";
-import { RANK_TIERS, RANK_COLORS } from "@/types";
+import { getTierProgress, getTrophiesNeededForNextTier } from "@/lib/game/rank";
+import { RANK_TIERS, RANK_COLORS, RANK_THRESHOLDS, RankTier } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
 import RankBadge from "@/components/RankBadge";
-import ProgressBar from "@/components/ProgressBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import TrophyIcon from "@/components/icons/TrophyIcon";
 import { DEFAULT_AVATAR_CONFIG } from "@/types";
 
 const BLUE = "#3B82F6";
 const MINT = "#34D399";
+
+const TIER_DESCRIPTIONS: Record<RankTier, string> = {
+  Bronze: "The journey begins",
+  Silver: "Rising challenger",
+  Gold: "Proven wordsmith",
+  Platinum: "Elite linguist",
+  Diamond: "Legendary master",
+};
+
+function BigTierIcon({ tier, color }: { tier: RankTier; color: string }) {
+  const common = { stroke: color, strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
+  if (tier === "Bronze") {
+    return (
+      <svg className="w-full h-full" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="28" fill={`${color}20`} stroke={color} strokeWidth="2.5" />
+        <circle cx="32" cy="32" r="22" fill={`${color}15`} stroke={color} strokeWidth="1" strokeDasharray="4 3" />
+        <path d="M22 38c3-3 7-4.5 10.5-4.5s7.5 1.5 10.5 4.5" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="24" cy="27" r="2.5" fill={color} />
+        <circle cx="40" cy="27" r="2.5" fill={color} />
+      </svg>
+    );
+  }
+  if (tier === "Silver") {
+    return (
+      <svg className="w-full h-full" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="28" fill={`${color}15`} stroke={color} strokeWidth="2.5" />
+        <circle cx="32" cy="32" r="20" {...common} strokeDasharray="4 3" />
+        <path d="M32 20v12l6 6" {...common} strokeWidth="2.5" />
+      </svg>
+    );
+  }
+  if (tier === "Gold") {
+    return (
+      <svg className="w-full h-full" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="28" fill={`${color}15`} stroke={color} strokeWidth="2" />
+        <path d="M20 50h24M32 42v8M42 12H22l-5 12c0 9.5 6.7 17 15 17s15-7.5 15-17L42 12z" {...common} strokeWidth="2.5" />
+        <path d="M17 24h-5l-2 8h8M47 24h5l2 8h-8" {...common} strokeWidth="2" />
+      </svg>
+    );
+  }
+  if (tier === "Platinum") {
+    return (
+      <svg className="w-full h-full" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="28" fill={`${color}10`} stroke={color} strokeWidth="2" />
+        <path d="M32 8L8 20l24 12 24-12L32 8z" {...common} strokeWidth="2.5" />
+        <path d="M8 44l24 12 24-12" {...common} strokeWidth="2" />
+        <path d="M8 32l24 12 24-12" {...common} strokeWidth="2" />
+      </svg>
+    );
+  }
+  return (
+    <svg className="w-full h-full" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="28" fill={`${color}10`} stroke={color} strokeWidth="2" />
+      <path d="M32 8l4 12 12 1.5-9 8 3 12-10-6-10 6 3-12-9-8 12-1.5L32 8z" fill={`${color}25`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function TrophyIconSmall({ rank }: { rank: number }) {
   if (rank === 1) return <span className="text-lg font-bold text-[#D4AF37]">1</span>;
@@ -97,37 +153,132 @@ export default function RankedScreenPage() {
       </header>
 
       <div className="flex-1 max-w-2xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0">
-        <div className={`rounded-2xl p-6 ${heroBg} border ${cardBorder} shadow-lg`}>
-          <div className="flex items-center gap-4">
-            <div className={`shrink-0 p-1 rounded-xl ring-2 ${light ? "ring-[#34D399]/40 bg-[#F8FAFC]" : "ring-[#34D399]/50 bg-[#1E293B]/30"}`}>
-              <InkAvatar config={profile.avatar_config} size="lg" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={`${text} font-bold text-xl truncate`}>{profile.username}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <RankBadge tier={profile.rank_tier} trophies={profile.trophies} showTrophies size="sm" />
+        {/* League hero card */}
+        <div
+          className={`relative rounded-2xl overflow-hidden border ${cardBorder} shadow-xl`}
+          style={{ background: light
+            ? `linear-gradient(135deg, ${tierColor}08 0%, ${tierColor}15 40%, ${tierColor}08 100%)`
+            : `linear-gradient(135deg, ${tierColor}15 0%, ${tierColor}08 40%, #0F172A 100%)`
+          }}
+        >
+          {/* Decorative background glow */}
+          <div
+            className="absolute -top-20 -right-20 w-56 h-56 rounded-full blur-3xl opacity-30 pointer-events-none"
+            style={{ background: tierColor }}
+          />
+          <div
+            className="absolute bottom-0 left-0 w-32 h-32 rounded-full blur-2xl opacity-15 pointer-events-none"
+            style={{ background: tierColor }}
+          />
+
+          <div className="relative z-10 p-6 sm:p-8">
+            {/* Top row: avatar + name */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className={`shrink-0 p-0.5 rounded-xl ring-2 ${light ? "ring-black/10" : "ring-white/10"}`}>
+                <InkAvatar config={profile.avatar_config} size="sm" />
               </div>
-              <div className="mt-4">
-                <div className={`flex justify-between text-sm font-bold mb-2 ${text}`}>
-                  <span>{profile.rank_tier} → {tierIdx < RANK_TIERS.length - 1 ? RANK_TIERS[tierIdx + 1] : "Max"}</span>
-                  <span style={{ color: tierColor }}>{tierProgress}%</span>
+              <div className="min-w-0">
+                <p className={`${text} font-bold text-sm truncate`}>{profile.username}</p>
+                <p className={`text-xs font-semibold ${textMuted}`}>Season 1</p>
+              </div>
+            </div>
+
+            {/* Center: giant tier emblem */}
+            <div className="flex flex-col items-center text-center">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 mb-3 relative">
+                <BigTierIcon tier={profile.rank_tier} color={tierColor} />
+                <div
+                  className="absolute inset-0 rounded-full blur-xl opacity-25 pointer-events-none"
+                  style={{ background: tierColor }}
+                />
+              </div>
+              <h2
+                className="text-3xl sm:text-4xl font-extrabold tracking-tight"
+                style={{ color: tierColor }}
+              >
+                {profile.rank_tier}
+              </h2>
+              <p className={`text-sm font-semibold mt-1 ${textMuted}`}>
+                {TIER_DESCRIPTIONS[profile.rank_tier]}
+              </p>
+              <div className="flex items-center gap-2 mt-3">
+                <TrophyIcon className="w-4 h-4" color={MINT} />
+                <span className="text-lg font-bold" style={{ color: MINT }}>{profile.trophies}</span>
+                <span className={`text-sm font-semibold ${textFaint}`}>trophies</span>
+              </div>
+            </div>
+
+            {/* Progress bar: current → next tier */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: tierColor }} />
+                  <span className={`text-xs font-bold ${text}`}>{profile.rank_tier}</span>
                 </div>
-                <div className={`w-full h-4 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${tierProgress}%`, backgroundColor: tierColor, boxShadow: `0 0 12px ${tierColor}80` }}
-                  />
-                </div>
-                {nextTier != null && (
-                  <p className={`text-xs font-semibold mt-2 ${textMuted}`}>
-                    {nextTier - profile.trophies} trophies to {RANK_TIERS[tierIdx + 1]}
-                  </p>
+                {tierIdx < RANK_TIERS.length - 1 ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-xs font-bold ${text}`}>{RANK_TIERS[tierIdx + 1]}</span>
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: RANK_COLORS[RANK_TIERS[tierIdx + 1]] }} />
+                  </div>
+                ) : (
+                  <span className={`text-xs font-bold ${textFaint}`}>Max Rank</span>
                 )}
               </div>
+              <div className={`w-full h-3 rounded-full overflow-hidden ${light ? "bg-black/10" : "bg-white/10"}`}>
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${Math.max(tierProgress, 2)}%`,
+                    background: `linear-gradient(90deg, ${tierColor}, ${tierColor}cc)`,
+                    boxShadow: `0 0 12px ${tierColor}60`,
+                  }}
+                />
+              </div>
+              {nextTier != null && (
+                <p className={`text-xs font-semibold mt-2 text-center ${textMuted}`}>
+                  <span className="font-bold" style={{ color: tierColor }}>{nextTier - profile.trophies}</span> trophies to <span className="font-bold">{RANK_TIERS[tierIdx + 1]}</span>
+                </p>
+              )}
+            </div>
+
+            {/* All tiers mini-roadmap */}
+            <div className="flex items-center justify-between mt-5 px-1">
+              {RANK_TIERS.map((t, i) => {
+                const isActive = i === tierIdx;
+                const isPast = i < tierIdx;
+                const c = RANK_COLORS[t];
+                return (
+                  <div key={t} className="flex flex-col items-center gap-1">
+                    <div
+                      className={`rounded-full flex items-center justify-center transition-all ${
+                        isActive ? "w-8 h-8 ring-2 ring-offset-1" : "w-5 h-5"
+                      }`}
+                      style={{
+                        backgroundColor: isActive || isPast ? c : `${c}30`,
+                        ringColor: isActive ? c : undefined,
+                        opacity: isActive || isPast ? 1 : 0.5,
+                      } as React.CSSProperties}
+                    >
+                      {isActive && (
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold ${isActive ? "" : isPast ? "" : "opacity-50"}`}
+                      style={{ color: isActive || isPast ? c : undefined }}
+                    >
+                      {t}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
+
           {!user && (
-            <div className={`mt-4 flex items-center justify-between px-4 py-3 rounded-xl ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/20 border border-[#34D399]/40"}`}>
+            <div className={`relative z-10 mx-6 sm:mx-8 mb-6 sm:mb-8 flex items-center justify-between px-4 py-3 rounded-xl ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/15 border border-[#34D399]/30"}`}>
               <span className="text-sm font-bold" style={{ color: MINT }}>Sign in to save your rank</span>
               <Link href="/auth/signup" className="text-xs font-bold px-4 py-2 rounded-lg text-white transition-colors" style={{ backgroundColor: MINT }}>
                 Join Free

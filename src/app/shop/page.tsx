@@ -11,7 +11,7 @@ import {
   spendInkDrops,
   unlockItem,
   isItemUnlocked,
-} from "@/lib/storage";
+} from "@/lib/user/storage";
 import {
   BASES,
   COLORS,
@@ -28,7 +28,8 @@ import {
   getCurrentStreakDay,
   getTodayReward,
   DAILY_REWARDS,
-} from "@/lib/daily-rewards";
+  DailyReward,
+} from "@/lib/user/daily-rewards";
 import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
@@ -37,7 +38,6 @@ import ThemeToggle from "@/components/ThemeToggle";
 type ShopTab = "daily" | "bases" | "colors" | "eyes" | "accessories" | "auras";
 
 const TABS: { id: ShopTab; label: string }[] = [
-  { id: "daily", label: "Daily" },
   { id: "bases", label: "Shapes" },
   { id: "colors", label: "Colors" },
   { id: "eyes", label: "Eyes" },
@@ -52,9 +52,10 @@ export default function ShopPage() {
   const { user, loading: authLoading } = useAuth();
   const { light } = useTheme();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [tab, setTab] = useState<ShopTab>("daily");
+  const [tab, setTab] = useState<ShopTab>("bases");
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; msg: string } | null>(null);
   const [claimAnimating, setClaimAnimating] = useState(false);
+  const [claimedReward, setClaimedReward] = useState<DailyReward | null>(null);
   const [confirmItem, setConfirmItem] = useState<(CosmeticItem | ColorItem) | null>(null);
 
   useEffect(() => {
@@ -83,12 +84,17 @@ export default function ShopPage() {
   function handleClaim() {
     if (!profile || !canClaimDailyReward(profile)) return;
     setClaimAnimating(true);
-    const { updatedProfile, reward } = claimDailyReward(profile);
+    const result = claimDailyReward(profile);
+    if (!result) {
+      setClaimAnimating(false);
+      return;
+    }
+    const { updatedProfile, reward } = result;
     setTimeout(() => {
       setProfile({ ...updatedProfile });
-      showToast("success", `+${reward.drops} Ink Drops!${reward.bonus ? ` ${reward.bonus}` : ""}`);
+      setClaimedReward(reward);
       setClaimAnimating(false);
-    }, 600);
+    }, 400);
   }
 
   function handleBuy(item: CosmeticItem | ColorItem) {
@@ -128,21 +134,21 @@ export default function ShopPage() {
         key={item.id}
         onClick={() => !owned && !isFree && handleBuy(item)}
         disabled={owned || isFree}
-        className={`group relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all duration-200 ${
+        className={`group relative flex flex-col items-center gap-3 p-4 sm:p-5 rounded-2xl border-[3px] transition-all duration-200 active:scale-[0.97] ${
           owned || isFree
-            ? light ? "border-[#34D399]/50 bg-[#ECFDF5]" : "border-[#34D399]/50 bg-[#34D399]/10"
+            ? light ? "border-[#34D399]/60 bg-[#ECFDF5] shadow-[0_2px_8px_rgba(52,211,153,0.2)]" : "border-[#34D399]/50 bg-[#34D399]/15 shadow-[0_2px_8px_rgba(52,211,153,0.15)]"
             : canAfford
-            ? light ? "border-[#E2E8F0] bg-white hover:border-[#3B82F6] hover:bg-[#DBEAFE]/50 cursor-pointer" : "border-[#334155] bg-[#1E293B]/50 hover:border-[#3B82F6] hover:bg-[#3B82F6]/20 cursor-pointer"
+            ? light ? "border-[#E2E8F0] bg-white hover:border-[#3B82F6] hover:shadow-[0_4px_16px_rgba(59,130,246,0.25)] cursor-pointer" : "border-[#334155] bg-[#1E293B]/60 hover:border-[#3B82F6] hover:shadow-[0_4px_16px_rgba(59,130,246,0.2)] cursor-pointer"
             : light ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-60 cursor-not-allowed" : "border-[#334155] bg-[#0F172A]/50 opacity-60 cursor-not-allowed"
         }`}
       >
         {isColor ? (
           <div
-            className="w-14 h-14 rounded-full shadow-lg border-2 border-white/20"
+            className="w-14 h-14 rounded-2xl shadow-lg border-[3px] border-white/30 group-hover:scale-105 transition-transform"
             style={{ backgroundColor: (item as ColorItem).hex }}
           />
         ) : (
-          <div className="w-14 h-14 flex items-center justify-center">
+          <div className="w-14 h-14 flex items-center justify-center group-hover:scale-110 transition-transform">
             {item.category === "base" && (
               <InkAvatar config={{ base: item.id, color: "#1E293B", eyes: "eyes_01", accessory: "none", aura: "none" }} size="lg" />
             )}
@@ -157,16 +163,16 @@ export default function ShopPage() {
             )}
           </div>
         )}
-        <span className={`text-sm font-bold ${light ? "text-[#0F172A]" : "text-white"}`}>{item.label}</span>
+        <span className={`text-sm font-extrabold ${light ? "text-[#0F172A]" : "text-white"}`}>{item.label}</span>
         {owned || isFree ? (
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold" style={{ color: MINT }}>
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl" style={{ color: MINT, backgroundColor: `${MINT}20` }}>
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
             Owned
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 text-sm font-bold" style={{ color: MINT }}>
+          <span className="inline-flex items-center gap-1.5 text-sm font-extrabold px-2.5 py-1 rounded-xl" style={{ color: MINT, backgroundColor: `${MINT}20` }}>
             <InkDropIcon className="w-4 h-4" color={MINT} />
             {item.price}
           </span>
@@ -209,24 +215,64 @@ export default function ShopPage() {
         </h1>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#1E293B] border border-[#334155]"}`}>
+          <div
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 ${
+              light ? "bg-[#ECFDF5] border-[#34D399]/40 shadow-[0_2px_8px_rgba(52,211,153,0.2)]" : "bg-[#1E293B] border-[#34D399]/40 shadow-[0_2px_8px_rgba(52,211,153,0.15)]"
+            }`}
+          >
             <InkDropIcon className="w-5 h-5" color={MINT} />
-            <span className="text-base font-bold" style={{ color: MINT }}>{profile.ink_drops ?? 0}</span>
+            <span className="text-base font-extrabold" style={{ color: MINT }}>{profile.ink_drops ?? 0}</span>
           </div>
         </div>
       </header>
 
-      <div className="relative flex-1 max-w-4xl mx-auto w-full px-4 py-6 space-y-6">
-        {/* Tab pills */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1 min-w-0">
-          {TABS.map((t) => (
+      <div className="relative flex-1 max-w-4xl mx-auto w-full px-4 py-4 space-y-4">
+        {/* Daily rewards — compact strip (less major) */}
+        <div
+          className={`rounded-2xl border-2 overflow-hidden ${
+            light ? "bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] border-[#34D399]/40" : "bg-gradient-to-r from-[#34D399]/15 to-[#34D399]/10 border-[#34D399]/30"
+          }`}
+          style={{ boxShadow: light ? "0 2px 12px rgba(52,211,153,0.15)" : "0 2px 12px rgba(52,211,153,0.1)" }}
+        >
+          <div className="px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${light ? "bg-white/80" : "bg-[#34D399]/20"}`}>
+                <InkDropIcon className="w-5 h-5" color={MINT} />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-sm font-bold ${text}`}>Daily reward</p>
+                <p className={`text-xs ${textMuted}`}>
+                  {canClaim ? `+${todayReward.drops} Ink Drops today` : `Day ${streakDay}/7 · Streak: ${profile.daily_streak ?? 0}`}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleClaim}
+              disabled={!canClaim || claimAnimating}
+              className={`px-4 py-2 rounded-xl font-bold text-sm shrink-0 transition-all ${
+                canClaim && !claimAnimating
+                  ? "text-white hover:scale-105"
+                  : light ? "bg-[#E2E8F0] text-[#64748B] cursor-not-allowed" : "bg-[#334155] text-[#64748B] cursor-not-allowed"
+              }`}
+              style={canClaim && !claimAnimating ? { backgroundColor: MINT, boxShadow: "0 2px 8px rgba(52,211,153,0.4)" } : {}}
+            >
+              {claimAnimating ? "..." : canClaim ? "Claim" : "Tomorrow"}
+            </button>
+          </div>
+        </div>
+
+        {/* Shop tabs — cartoony pills */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1 min-w-0">
+          {TABS.filter(t => t.id !== "daily").map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-extrabold whitespace-nowrap transition-all border-2 active:scale-95 ${
                 tab === t.id
-                  ? light ? "bg-[#3B82F6] text-white" : "bg-[#3B82F6] text-white"
-                  : light ? "bg-white text-[#64748B] border border-[#E2E8F0] hover:border-[#3B82F6]/50 hover:text-[#0F172A]" : "bg-[#1E293B]/80 text-[#94A3B8] border border-[#334155] hover:border-[#3B82F6]/50 hover:text-white"
+                  ? "bg-[#3B82F6] text-white border-[#3B82F6] shadow-[0_4px_12px_rgba(59,130,246,0.4)]"
+                  : light
+                  ? "bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#3B82F6]/50 hover:text-[#0F172A] hover:shadow-md"
+                  : "bg-[#1E293B]/80 text-[#94A3B8] border-[#334155] hover:border-[#3B82F6]/50 hover:text-white hover:shadow-md"
               }`}
             >
               {t.label}
@@ -234,132 +280,174 @@ export default function ShopPage() {
           ))}
         </div>
 
-        <div className={`rounded-2xl overflow-hidden ${cardBg} border ${cardBorder}`}>
-          {tab === "daily" && (
-            <div className="p-6 space-y-6">
-              <div className="text-center">
-                <h2 className={`text-2xl font-bold mb-2 ${text}`}>Daily Reward</h2>
-                <p className={`${textMuted} text-sm`}>Claim every day. 7-day streak = bonus.</p>
-              </div>
-
-              <div className="grid grid-cols-7 gap-1 sm:gap-2 max-w-lg mx-auto">
-                {DAILY_REWARDS.map((reward, i) => {
-                  const dayNum = i + 1;
-                  const isPast = dayNum < streakDay || (dayNum === streakDay && !canClaim);
-                  const isToday = dayNum === streakDay && canClaim;
-
-                  return (
-                    <div
-                      key={dayNum}
-                      className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl border-2 transition-all ${
-                        isPast
-                          ? light ? "border-[#34D399]/50 bg-[#ECFDF5]" : "border-[#34D399]/50 bg-[#34D399]/20"
-                          : isToday
-                          ? light ? "border-[#34D399] bg-[#ECFDF5] shadow-lg scale-105" : "border-[#34D399] bg-[#34D399]/20 shadow-lg scale-105"
-                          : light ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-50" : "border-[#334155] bg-[#0F172A]/50 opacity-50"
-                      }`}
-                    >
-                      <span className={`text-[10px] font-bold uppercase ${textFaint}`}>{reward.label}</span>
-                      <div className="flex items-center gap-0.5 mt-1">
-                        <InkDropIcon className="w-4 h-4" color={MINT} />
-                        <span className="text-sm font-bold" style={{ color: MINT }}>{reward.drops}</span>
-                      </div>
-                      {isPast && <svg viewBox="0 0 20 20" fill="currentColor" className={`w-4 h-4 mt-0.5 ${light ? "text-[#059669]" : "text-[#34D399]"}`}><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
-                      {reward.bonus && <span className="text-[8px] font-bold mt-0.5" style={{ color: MINT }}>{reward.bonus}</span>}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex flex-col items-center gap-3">
-                <button
-                  onClick={handleClaim}
-                  disabled={!canClaim || claimAnimating}
-                  className={`px-10 py-4 rounded-xl font-bold text-lg transition-all ${
-                    canClaim && !claimAnimating
-                      ? "text-white hover:opacity-90"
-                      : light ? "bg-[#E2E8F0] text-[#64748B] cursor-not-allowed" : "bg-[#334155] text-[#64748B] cursor-not-allowed"
-                  }`}
-                  style={canClaim && !claimAnimating ? { backgroundColor: MINT } : {}}
-                >
-                  {claimAnimating ? "Claiming..." : canClaim ? `Claim +${todayReward.drops} Ink Drops` : "Come back tomorrow!"}
-                </button>
-                <p className={`text-sm font-medium ${textMuted}`}>Streak: {profile.daily_streak ?? 0} day{(profile.daily_streak ?? 0) !== 1 ? "s" : ""}</p>
-              </div>
-
-              <div className={`rounded-xl p-4 max-w-md mx-auto ${light ? "bg-[#F8FAFC] border border-[#E2E8F0]" : "bg-[#0F172A]/80 border border-[#334155]"}`}>
-                <h3 className={`text-sm font-bold mb-2 ${text}`}>Earn Ink Drops</h3>
-                <ul className={`space-y-2 text-sm ${textMuted}`}>
-                  <li className="flex items-center gap-2"><InkDropIcon className="w-4 h-4 shrink-0" color={MINT} /><span><strong className={text}>+2</strong> per correct answer</span></li>
-                  <li className="flex items-center gap-2"><InkDropIcon className="w-4 h-4 shrink-0" color={MINT} /><span><strong className={text}>+5</strong> bonus for ranked wins</span></li>
-                </ul>
-              </div>
-            </div>
-          )}
-
+        {/* Shop sections — each in its own card, more separated, cartoony */}
+        <div className="space-y-5">
           {tab === "bases" && (
-            <div className="p-6">
-              <p className={`${textFaint} text-xs font-bold uppercase tracking-wider mb-4`}>Ink Shapes</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">{BASES.map(renderItemCard)}</div>
+            <div
+              className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
+              style={{ boxShadow: light ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.2)" }}
+            >
+              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"}`}>
+                <p className={`text-sm font-extrabold ${text}`}>🫧 Ink Shapes</p>
+              </div>
+              <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">{BASES.map(renderItemCard)}</div>
             </div>
           )}
 
           {tab === "colors" && (
-            <div className="p-6">
-              <p className={`${textFaint} text-xs font-bold uppercase tracking-wider mb-4`}>Ink Colors</p>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">{COLORS.map(renderItemCard)}</div>
+            <div
+              className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
+              style={{ boxShadow: light ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.2)" }}
+            >
+              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"}`}>
+                <p className={`text-sm font-extrabold ${text}`}>🎨 Ink Colors</p>
+              </div>
+              <div className="p-5 sm:p-6 grid grid-cols-3 sm:grid-cols-5 gap-4">{COLORS.map(renderItemCard)}</div>
             </div>
           )}
 
           {tab === "eyes" && (
-            <div className="p-6">
-              <p className={`${textFaint} text-xs font-bold uppercase tracking-wider mb-4`}>Expressions</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{EYES.map(renderItemCard)}</div>
+            <div
+              className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
+              style={{ boxShadow: light ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.2)" }}
+            >
+              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"}`}>
+                <p className={`text-sm font-extrabold ${text}`}>👀 Expressions</p>
+              </div>
+              <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">{EYES.map(renderItemCard)}</div>
             </div>
           )}
 
           {tab === "accessories" && (
-            <div className="p-6">
-              <p className={`${textFaint} text-xs font-bold uppercase tracking-wider mb-4`}>Gear & Accessories</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">{ACCESSORIES.map(renderItemCard)}</div>
+            <div
+              className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
+              style={{ boxShadow: light ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.2)" }}
+            >
+              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"}`}>
+                <p className={`text-sm font-extrabold ${text}`}>🎩 Gear & Accessories</p>
+              </div>
+              <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">{ACCESSORIES.map(renderItemCard)}</div>
             </div>
           )}
 
           {tab === "auras" && (
-            <div className="p-6">
-              <p className={`${textFaint} text-xs font-bold uppercase tracking-wider mb-4`}>Auras</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">{AURAS.map(renderItemCard)}</div>
+            <div
+              className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
+              style={{ boxShadow: light ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.2)" }}
+            >
+              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"}`}>
+                <p className={`text-sm font-extrabold ${text}`}>✨ Auras</p>
+              </div>
+              <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">{AURAS.map(renderItemCard)}</div>
             </div>
           )}
         </div>
       </div>
 
+      {/* Daily reward claimed popup — with 7-day cycle */}
+      {claimedReward && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setClaimedReward(null)}
+        >
+          <div
+            className={`rounded-3xl overflow-hidden border-[3px] max-w-sm w-full max-h-[90vh] overflow-y-auto ${
+              light ? "bg-white border-[#34D399]/50" : "bg-[#1E293B] border-[#34D399]/50"
+            }`}
+            style={{ boxShadow: "0 8px 32px rgba(52,211,153,0.25)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${MINT}25` }}>
+                <InkDropIcon className="w-10 h-10" color={MINT} />
+              </div>
+              <p className={`text-sm font-bold uppercase tracking-wider ${textMuted} mb-1`}>Daily reward</p>
+              <p className={`text-2xl sm:text-3xl font-extrabold ${claimedReward.bonus ? "mb-1" : "mb-3"}`} style={{ color: MINT }}>+{claimedReward.drops} Ink Drops</p>
+              {claimedReward.bonus && (
+                <p className="text-sm font-bold mb-3" style={{ color: MINT }}>{claimedReward.bonus}</p>
+              )}
+
+              {/* 7-day cycle — prominent, easy to read */}
+              <div className="mb-4 p-3 rounded-2xl" style={{ backgroundColor: light ? "rgba(52,211,153,0.08)" : "rgba(52,211,153,0.12)", border: "2px solid rgba(52,211,153,0.3)" }}>
+                <p className={`text-xs font-extrabold uppercase tracking-wider ${textMuted} mb-2.5 text-center`}>7-day cycle</p>
+                <div className="grid grid-cols-7 gap-2">
+                  {DAILY_REWARDS.map((r, i) => {
+                    const dayNum = i + 1;
+                    const isPast = dayNum < claimedReward.day;
+                    const isJustClaimed = dayNum === claimedReward.day;
+                    return (
+                      <div
+                        key={dayNum}
+                        className={`flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl border-2 transition-all min-h-[56px] sm:min-h-[64px] ${
+                          isJustClaimed
+                            ? light ? "border-[#34D399] bg-[#ECFDF5] shadow-[0_0_12px_rgba(52,211,153,0.4)]" : "border-[#34D399] bg-[#34D399]/25 shadow-[0_0_12px_rgba(52,211,153,0.3)]"
+                            : isPast
+                            ? light ? "border-[#34D399]/50 bg-[#ECFDF5]/80" : "border-[#34D399]/40 bg-[#34D399]/15"
+                            : light ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-60" : "border-white/15 bg-[#0F172A]/40 opacity-60"
+                        }`}
+                      >
+                        <span className="text-[10px] sm:text-xs font-extrabold truncate w-full text-center">{r.label}</span>
+                        <div className="flex items-center gap-0.5 mt-1">
+                          <InkDropIcon className="w-3.5 h-3.5 shrink-0" color={MINT} />
+                          <span className="text-[11px] sm:text-xs font-extrabold" style={{ color: MINT }}>{r.drops}</span>
+                        </div>
+                        {isPast && (
+                          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mt-1 shrink-0" style={{ color: MINT }}>
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        {isJustClaimed && (
+                          <span className="text-[10px] font-extrabold mt-1 animate-pulse" style={{ color: MINT }}>✓ Today</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setClaimedReward(null)}
+                className="w-full py-3.5 rounded-2xl font-extrabold text-white transition-all active:scale-95"
+                style={{ backgroundColor: MINT, boxShadow: "0 4px 12px rgba(52,211,153,0.4)" }}
+              >
+                Nice!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmItem && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`rounded-2xl shadow-2xl p-6 max-w-sm w-full ${light ? "bg-white border border-[#E2E8F0]" : "bg-[#1E293B] border border-[#334155]"}`}>
-            <h3 className={`text-lg font-bold text-center mb-4 ${text}`}>Unlock {confirmItem.label}?</h3>
-            <div className="flex items-center justify-center gap-2 mb-6" style={{ color: MINT }}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className={`rounded-3xl shadow-2xl p-6 max-w-sm w-full border-[3px] ${
+              light ? "bg-white border-[#E2E8F0]" : "bg-[#1E293B] border-[#334155]"
+            }`}
+            style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}
+          >
+            <h3 className={`text-lg font-extrabold text-center mb-4 ${text}`}>Unlock {confirmItem.label}?</h3>
+            <div className="flex items-center justify-center gap-2 mb-6 px-4 py-3 rounded-2xl" style={{ backgroundColor: `${MINT}15`, border: `2px solid ${MINT}40` }}>
               <InkDropIcon className="w-6 h-6" color={MINT} />
-              <span className="text-2xl font-bold">{confirmItem.price}</span>
-              <span className={`text-sm ${textMuted}`}>Ink Drops</span>
+              <span className="text-2xl font-extrabold" style={{ color: MINT }}>{confirmItem.price}</span>
+              <span className={`text-sm font-bold ${textMuted}`}>Ink Drops</span>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmItem(null)} className={`flex-1 py-3 rounded-xl font-bold ${light ? "text-[#64748B] bg-[#F8FAFC] border border-[#E2E8F0] hover:bg-[#F1F5F9]" : "text-[#94A3B8] bg-[#0F172A] border border-[#334155] hover:bg-[#1E293B]"} transition-colors`}>
+              <button onClick={() => setConfirmItem(null)} className={`flex-1 py-3 rounded-2xl font-extrabold border-2 transition-all active:scale-95 ${light ? "text-[#64748B] bg-[#F8FAFC] border-[#E2E8F0] hover:bg-[#F1F5F9]" : "text-[#94A3B8] bg-[#0F172A] border-[#334155] hover:bg-[#1E293B]"} `}>
                 Cancel
               </button>
-              <button onClick={confirmPurchase} className="flex-1 py-3 rounded-xl font-bold text-white transition-colors" style={{ backgroundColor: MINT }}>
+              <button onClick={confirmPurchase} className="flex-1 py-3 rounded-2xl font-extrabold text-white transition-all active:scale-95" style={{ backgroundColor: MINT, boxShadow: "0 4px 12px rgba(52,211,153,0.4)" }}>
                 Buy
               </button>
             </div>
-            <p className={`text-[10px] text-center mt-3 ${textFaint}`}>Balance after: {(profile?.ink_drops ?? 0) - confirmItem.price}</p>
+            <p className={`text-[10px] font-semibold text-center mt-3 ${textFaint}`}>Balance after: {(profile?.ink_drops ?? 0) - confirmItem.price}</p>
           </div>
         </div>
       )}
 
       {toast && (
         <div
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl font-bold text-sm shadow-xl z-50 ${
-            toast.type === "success" ? "bg-[#22C55E] text-white" : toast.type === "error" ? "bg-[#EF4444] text-white" : "bg-[#3B82F6] text-white"
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl font-extrabold text-sm shadow-xl z-50 border-2 ${
+            toast.type === "success" ? "bg-[#22C55E] text-white border-[#16A34A]" : toast.type === "error" ? "bg-[#EF4444] text-white border-[#DC2626]" : "bg-[#3B82F6] text-white border-[#2563EB]"
           }`}
         >
           {toast.msg}

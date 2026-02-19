@@ -1,6 +1,6 @@
 import { UserProfile } from "@/types";
 import { getProfile, saveProfile, createGuestProfile } from "./storage";
-import { fetchProfile, upsertProfile } from "./supabase/profile";
+import { fetchProfile, upsertProfile } from "@/lib/supabase/profile";
 
 /**
  * Sync profile for authenticated user: fetch from Supabase, merge with local.

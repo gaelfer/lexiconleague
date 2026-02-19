@@ -28,6 +28,30 @@ export interface LevelProgress {
   progressPercent: number;
 }
 
+export interface LevelReward {
+  level: number;
+  label: string;
+  type: "ink_drops" | "cosmetic" | "title" | "badge";
+  amount?: number;
+  itemId?: string;
+}
+
+export const LEVEL_REWARDS: LevelReward[] = [
+  { level: 2,  label: "10 Ink Drops",       type: "ink_drops", amount: 10 },
+  { level: 3,  label: "25 Ink Drops",       type: "ink_drops", amount: 25 },
+  { level: 5,  label: "Violet Color",       type: "cosmetic",  itemId: "color_#8B5CF6" },
+  { level: 7,  label: "50 Ink Drops",       type: "ink_drops", amount: 50 },
+  { level: 10, label: "Pointed Base",       type: "cosmetic",  itemId: "droplet_03" },
+  { level: 12, label: "75 Ink Drops",       type: "ink_drops", amount: 75 },
+  { level: 15, label: "Ghost Base",         type: "cosmetic",  itemId: "droplet_04" },
+  { level: 18, label: "100 Ink Drops",      type: "ink_drops", amount: 100 },
+  { level: 20, label: "Word Warrior Title", type: "title" },
+  { level: 25, label: "Splat Base",         type: "cosmetic",  itemId: "droplet_05" },
+  { level: 30, label: "200 Ink Drops",      type: "ink_drops", amount: 200 },
+  { level: 40, label: "Lexicon Legend",      type: "badge" },
+  { level: 50, label: "500 Ink Drops",      type: "ink_drops", amount: 500 },
+];
+
 /** Progress within current level */
 export function getLevelProgress(xp: number): LevelProgress {
   const level = getLevel(xp);

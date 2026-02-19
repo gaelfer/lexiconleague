@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { GameResult } from "@/types";
-import { getProfile, getPersonalBests } from "@/lib/storage";
+import { getProfile, getPersonalBests } from "@/lib/user/storage";
 import RankBadge from "./RankBadge";
 import ProgressBar from "./ProgressBar";
 import InkAvatar from "./InkAvatar";
 import SparkIcon from "./icons/SparkIcon";
 import TrophyIcon from "./icons/TrophyIcon";
 import InkDropIcon from "./icons/InkDropIcon";
-import { getTierProgress, GAME_DURATION } from "@/lib/rank";
+import { getTierProgress, GAME_DURATION } from "@/lib/game/rank";
 
 interface ResultsScreenProps {
   result: GameResult;
