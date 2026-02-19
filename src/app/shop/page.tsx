@@ -318,7 +318,9 @@ export default function ShopPage() {
             >
               <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"} flex items-center justify-between gap-3`}>
                 <p className={`text-sm font-extrabold ${text}`}>🫧 Ink Shapes</p>
-                <InkAvatar config={{ base: "droplet_01", color: "#EC4899", eyes: "eyes_06", accessory: "bow_01", aura: "aura_glow_02" }} size={36} className="shrink-0" style={{ transform: "rotate(-8deg)" }} />
+                <div className="shrink-0 -rotate-[8deg]">
+                  <InkAvatar config={{ base: "droplet_01", color: "#EC4899", eyes: "eyes_06", accessory: "bow_01", aura: "aura_glow_02" }} size={36} />
+                </div>
               </div>
               <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">{BASES.map(renderItemCard)}</div>
             </div>
