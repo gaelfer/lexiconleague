@@ -345,6 +345,10 @@ export default function RankedPage() {
         } catch {}
       }
     };
+    const getOpponentScore = () =>
+      opponent?.isBot && botResultRef.current
+        ? calculateScore(botResultRef.current.correct)
+        : opponentScore;
     return (
       <GameScreen
         mode="ranked"
@@ -355,6 +359,7 @@ export default function RankedPage() {
         opponentScore={opponentScore}
         opponent={opponent}
         playerAvatarConfig={profile.avatar_config}
+        getOpponentScore={getOpponentScore}
       />
     );
   }

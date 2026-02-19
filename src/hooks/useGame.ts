@@ -17,9 +17,11 @@ interface UseGameOptions {
   questions: Question[];
   onComplete: (result: GameResult) => void;
   onAnswerProgress?: (answered: number, score: number) => void;
+  /** For ranked: returns opponent's final score. Win/loss/trophies use score comparison. */
+  getOpponentScore?: () => number | null;
 }
 
-export function useGame({ mode, subject, questions, onComplete, onAnswerProgress }: UseGameOptions) {
+export function useGame({ mode, subject, questions, onComplete, onAnswerProgress, getOpponentScore }: UseGameOptions) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [correctCount, setCorrectCount] = useState(0);
@@ -42,7 +44,15 @@ export function useGame({ mode, subject, questions, onComplete, onAnswerProgress
       const total = correct + incorrect;
       const score = calculateScore(correct);
       const accuracy = calculateAccuracy(correct, total);
-      const result = determineResult(correct, total);
+      const opponentScore = mode === "ranked" ? getOpponentScore?.() ?? null : null;
+      const result =
+        mode === "ranked" && opponentScore != null
+          ? score > opponentScore
+            ? "win"
+            : score < opponentScore
+            ? "loss"
+            : "draw"
+          : determineResult(correct, total);
       const profile = getProfile() ?? createGuestProfile();
       const trophiesChange = calculateTrophyChange(result, profile.rank_tier, mode);
 
@@ -61,7 +71,7 @@ export function useGame({ mode, subject, questions, onComplete, onAnswerProgress
       setIsFinished(true);
       onComplete(gameResult);
     },
-    [mode, subject, onComplete]
+    [mode, subject, onComplete, getOpponentScore]
   );
 
   // Countdown timer

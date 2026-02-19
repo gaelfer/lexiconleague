@@ -24,9 +24,11 @@ interface GameScreenProps {
   opponent?: OpponentInfo | null;
   /** Player's avatar config for ranked VS bar (shows on "You" side) */
   playerAvatarConfig?: InkAvatarConfig;
+  /** For ranked: returns opponent's final score (used for win/loss & trophies) */
+  getOpponentScore?: () => number | null;
 }
 
-export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, playerAvatarConfig }: GameScreenProps) {
+export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, playerAvatarConfig, getOpponentScore }: GameScreenProps) {
   const questions = useMemo(() => getQuestionsForMode(subject, 30), [subject]);
 
   const {
@@ -50,6 +52,7 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
       onComplete(result);
     },
     onAnswerProgress,
+    getOpponentScore,
   });
 
   useEffect(() => {
