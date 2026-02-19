@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Subject, GameResult, VocabLevel } from "@/types";
+import { Subject, GameResult, VocabLevel, DEFAULT_AVATAR_CONFIG, InkAvatarConfig } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { useParty } from "@/context/PartyContext";
-import { getProfile } from "@/lib/user/storage";
+import { useParty, type PartyMember } from "@/context/PartyContext";
+import { getProfile, createGuestProfile } from "@/lib/user/storage";
 import { upsertProfile } from "@/lib/supabase/profile";
 import GameScreen from "@/components/GameScreen";
 import ResultsScreen from "@/components/ResultsScreen";
@@ -14,6 +14,9 @@ import InkAvatar from "@/components/InkAvatar";
 import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
+import { generateBotOpponent, generateBotOpponents, generateBotScore } from "@/lib/game/matchmaking";
+import { calculateScore } from "@/lib/game/rank";
+import type { OpponentInfo } from "@/lib/game/matchmaking";
 
 const BLUE = "#3B82F6";
 const MINT = "#34D399";
@@ -45,7 +48,17 @@ export default function CasualPage() {
   const [result, setResult] = useState<GameResult | null>(null);
   const [resultMetadata, setResultMetadata] = useState<import("@/types").GameResultMetadata | undefined>(undefined);
   const [matchmakingSeconds, setMatchmakingSeconds] = useState(MATCHMAKING_SECONDS);
-  const profile = getProfile();
+  const [opponents, setOpponents] = useState<OpponentInfo[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{ username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]>([]);
+  const [opponentScores, setOpponentScores] = useState<number[]>([]);
+  const [opponentAnswered, setOpponentAnswered] = useState<number[]>([]);
+  const [teammateScores, setTeammateScores] = useState<number[]>([]);
+  const [teammateAnswered, setTeammateAnswered] = useState<number[]>([]);
+  const botResultsRef = useRef<{
+    opponents: { correct: number; total: number }[];
+    teammates: { correct: number; total: number }[];
+  } | null>(null);
+  const profile = getProfile() ?? createGuestProfile();
 
   const canQueue = mode === "1v1" ? canQueue1v1 : canQueue3v3;
 
@@ -65,31 +78,132 @@ export default function CasualPage() {
     return () => clearInterval(interval);
   }, [phase]);
 
+  // Reset opponent/teammate progress when starting a new game
+  useEffect(() => {
+    if (phase === "playing") {
+      setOpponentAnswered(new Array(opponents.length).fill(0));
+      setOpponentScores(new Array(opponents.length).fill(0));
+      setTeammateAnswered(new Array(teamMembers.length).fill(0));
+      setTeammateScores(new Array(teamMembers.length).fill(0));
+    }
+  }, [phase, opponents.length, teamMembers.length]);
+
+  // Simulate bot progress during casual match (opponents + teammates for 3v3)
+  useEffect(() => {
+    if (phase !== "playing" || opponents.length === 0) return;
+    const botResults = botResultsRef.current;
+    if (!botResults) return;
+    const totalTime = 60_000;
+    const tickMs = 1400;
+    let elapsed = 0;
+    const interval = setInterval(() => {
+      elapsed += tickMs;
+      const progress = Math.min(1, elapsed / totalTime);
+      const oppAnswered = botResults.opponents.map((b) =>
+        Math.min(Math.round(progress * b.total), b.total)
+      );
+      const oppScores = botResults.opponents.map((b, i) =>
+        Math.round((oppAnswered[i] / b.total) * b.correct) * 10
+      );
+      setOpponentAnswered(oppAnswered);
+      setOpponentScores(oppScores);
+      if (botResults.teammates.length > 0) {
+        const tmAnswered = botResults.teammates.map((b) =>
+          Math.min(Math.round(progress * b.total), b.total)
+        );
+        const tmScores = botResults.teammates.map((b, i) =>
+          Math.round((tmAnswered[i] / b.total) * b.correct) * 10
+        );
+        setTeammateAnswered(tmAnswered);
+        setTeammateScores(tmScores);
+      }
+    }, tickMs);
+    return () => clearInterval(interval);
+  }, [phase, opponents.length, teamMembers.length]);
+
   function handleStartVocab() {
     setSubject("vocabulary");
     setPhase("vocab-grade");
   }
 
+  function assignOpponents() {
+    const tier = profile?.rank_tier ?? "Bronze";
+    if (mode === "1v1") {
+      const bot = generateBotOpponent(tier);
+      const botResult = generateBotScore(tier);
+      botResultsRef.current = { opponents: [{ correct: botResult.correct, total: botResult.total }], teammates: [] };
+      setOpponents([bot]);
+      setTeamMembers([]);
+      setOpponentScores([]);
+      setOpponentAnswered([]);
+      setTeammateScores([]);
+      setTeammateAnswered([]);
+    } else {
+      const bots = generateBotOpponents(tier, 3);
+      const oppResults = bots.map(() => generateBotScore(tier));
+      const partyTeammates = members.slice(0, 2).map((m: PartyMember) => ({
+        username: m.username,
+        avatar_config: { ...DEFAULT_AVATAR_CONFIG, ...(m.avatar_config as Partial<InkAvatarConfig>) } as InkAvatarConfig,
+        isBot: false,
+      }));
+      const slotsNeeded = 2;
+      const botTeammates = Array.from({ length: slotsNeeded - partyTeammates.length }, () => {
+        const bot = generateBotOpponent(tier);
+        return { username: bot.username, avatar_config: bot.avatar_config, isBot: true };
+      });
+      const allTeammates = [...partyTeammates, ...botTeammates];
+      const teammateResults = allTeammates.map(() => generateBotScore(tier));
+      botResultsRef.current = {
+        opponents: oppResults.map((r) => ({ correct: r.correct, total: r.total })),
+        teammates: teammateResults.map((r) => ({ correct: r.correct, total: r.total })),
+      };
+      setOpponents(bots);
+      setTeamMembers(allTeammates.map((t) => ({ username: t.username, avatar_config: t.avatar_config, isBot: t.isBot })));
+      setOpponentScores([]);
+      setOpponentAnswered([]);
+      setTeammateScores([]);
+      setTeammateAnswered([]);
+    }
+  }
+
   function handleStartPunctuation() {
     setSubject("punctuation");
     setVocabGrade(undefined);
-    if (canQueue) setPhase("matchmaking");
+    if (canQueue) {
+      assignOpponents();
+      setPhase("matchmaking");
+    }
   }
 
   function handleStartWithGrade(level: VocabLevel) {
     setVocabGrade(level);
-    if (canQueue) setPhase("matchmaking");
+    if (canQueue) {
+      assignOpponents();
+      setPhase("matchmaking");
+    }
   }
 
   function handleUseDefault() {
     const defaultLevel = profile?.vocab_grade ?? 8;
     setVocabGrade(defaultLevel);
-    if (canQueue) setPhase("matchmaking");
+    if (canQueue) {
+      assignOpponents();
+      setPhase("matchmaking");
+    }
   }
 
   function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
     setResult(r);
     setResultMetadata(metadata);
+    if (botResultsRef.current) {
+      const { opponents: oppResults, teammates: tmResults } = botResultsRef.current;
+      setOpponentScores(oppResults.map((b) => calculateScore(b.correct)));
+      setOpponentAnswered(oppResults.map((b) => b.total));
+      if (tmResults.length > 0) {
+        setTeammateScores(tmResults.map((b) => calculateScore(b.correct)));
+        setTeammateAnswered(tmResults.map((b) => b.total));
+      }
+    }
     setPhase("results");
     if (user) {
       const updated = getProfile();
@@ -101,6 +215,13 @@ export default function CasualPage() {
     setResult(null);
     setResultMetadata(undefined);
     setVocabGrade(undefined);
+    setOpponents([]);
+    setTeamMembers([]);
+    setOpponentScores([]);
+    setOpponentAnswered([]);
+    setTeammateScores([]);
+    setTeammateAnswered([]);
+    botResultsRef.current = null;
     setPhase("select");
   }
 
@@ -110,27 +231,95 @@ export default function CasualPage() {
   const cardBg = light ? "bg-white" : "bg-[#1E293B]";
   const cardBorder = light ? "border-[#E2E8F0]" : "border-white/10";
 
-  if (phase === "playing") {
+  if (phase === "playing" && opponents.length > 0) {
+    const getOpponentScore = () => {
+      const br = botResultsRef.current;
+      if (!br) return null;
+      if (mode === "1v1") return calculateScore(br.opponents[0].correct);
+      return br.opponents.reduce((sum, o) => sum + calculateScore(o.correct), 0);
+    };
+    const combinedOpponentScore = mode === "1v1"
+      ? opponentScores[0] ?? null
+      : opponentScores.reduce((a, b) => a + b, 0);
+    const combinedOpponentAnswered = mode === "1v1"
+      ? opponentAnswered[0] ?? 0
+      : opponentAnswered.reduce((a, b) => a + b, 0);
     return (
       <GameScreen
         mode="casual"
         subject={subject}
         onComplete={handleComplete}
+        opponent={mode === "1v1" ? opponents[0] : undefined}
+        opponents={mode === "3v3" ? opponents : undefined}
+        teamMembers={mode === "3v3" ? teamMembers : undefined}
+        teammateScores={mode === "3v3" ? teammateScores : undefined}
+        opponentScore={combinedOpponentScore}
+        opponentAnswered={combinedOpponentAnswered}
+        playerAvatarConfig={profile?.avatar_config}
+        getOpponentScore={getOpponentScore}
         vocabGrade={subject === "vocabulary" ? vocabGrade : undefined}
       />
     );
   }
 
-  if (phase === "matchmaking") {
+  if (phase === "matchmaking" && opponents.length > 0) {
+    const cardBg = light ? "bg-white" : "bg-[#1E293B]";
+    const cardBorder = light ? "border-[#E2E8F0]" : "border-white/10";
+    const yourTeam = mode === "3v3"
+      ? [
+          { config: (profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig, name: profile?.username ?? "You", isBot: false },
+          ...teamMembers.map((m) => ({ config: m.avatar_config, name: m.username, isBot: m.isBot ?? false })),
+        ]
+      : [{ config: (profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig, name: profile?.username ?? "You", isBot: false }];
+    const theirTeam = opponents;
+
     return (
-      <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-4`}>
-        <ThemeToggle />
-        <div className="text-center">
-          <p className={`text-lg font-bold ${text} mb-2`}>Finding opponent{mode === "3v3" ? "s" : ""}...</p>
-          <p className={`text-4xl font-extrabold ${text}`}>{matchmakingSeconds}s</p>
-          <p className={`text-sm ${textMuted} mt-4`}>
-            {matchmakingSeconds > 0 ? "Match with another player or bot fallback" : "Starting with bot..."}
-          </p>
+      <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden`}>
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
+        <div className="w-full max-w-2xl space-y-6">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <div className={`flex-1 flex flex-col items-center gap-2 rounded-2xl ${cardBg} border ${cardBorder} p-3 sm:p-4 min-w-0`}>
+              <p className={`text-xs font-bold ${textMuted} mb-1`}>Your team</p>
+              <div className={`flex ${mode === "3v3" ? "gap-1 sm:gap-2 justify-center" : "-space-x-3 sm:-space-x-2"}`}>
+                {yourTeam.map((p, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...p.config }} size={mode === "3v3" ? "sm" : "lg"} className={mode === "3v3" ? "ring-2 ring-[#1E293B] rounded-full shrink-0" : "ring-2 ring-[#1E293B] rounded-full"} />
+                    <p className={`text-[10px] sm:text-xs font-extrabold truncate max-w-[50px] mt-1 ${text}`}>
+                      {p.name}{p.isBot && " BOT"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: mode === "3v3" ? MINT : BLUE }}>
+                <span className="text-white font-extrabold text-sm sm:text-base">VS</span>
+              </div>
+              <p className={`text-2xl sm:text-3xl font-extrabold tabular-nums ${text}`}>{matchmakingSeconds}s</p>
+            </div>
+            <div className={`flex-1 flex flex-col items-center gap-2 rounded-2xl ${cardBg} border ${cardBorder} p-3 sm:p-4 min-w-0`}>
+              <p className={`text-xs font-bold ${textMuted} mb-1`}>Their team</p>
+              <div className={`flex ${mode === "3v3" ? "gap-1 sm:gap-2 justify-center" : "-space-x-3 sm:-space-x-2"}`}>
+                {theirTeam.map((o, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...o.avatar_config }} size={mode === "3v3" ? "sm" : "lg"} className="ring-2 ring-[#1E293B] rounded-full shrink-0" />
+                    <p className={`text-[10px] sm:text-xs font-extrabold truncate max-w-[50px] mt-1 ${text}`}>
+                      {o.username}
+                      {o.isBot && " BOT"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="text-center">
+            <p className={`text-lg font-bold ${text}`}>Finding opponent{mode === "3v3" ? "s" : ""}...</p>
+            <p className={`text-sm ${textMuted} mt-1`}>
+              {matchmakingSeconds > 0 ? (mode === "3v3" ? "3v3 team match · bot fallback" : "Match with another player or bot fallback") : "Starting match..."}
+            </p>
+          </div>
         </div>
       </main>
     );
@@ -185,7 +374,66 @@ export default function CasualPage() {
   }
 
   if (phase === "results" && result) {
-    return <ResultsScreen result={result} onPlayAgain={handlePlayAgain} metadata={resultMetadata} />;
+    const br = botResultsRef.current;
+    const yourTeamTotal = mode === "3v3" && br?.teammates.length === 2
+      ? result.score + calculateScore(br.teammates[0].correct) + calculateScore(br.teammates[1].correct)
+      : result.score;
+    const theirTeamTotal = br
+      ? br.opponents.reduce((sum, o) => sum + calculateScore(o.correct), 0)
+      : opponentScores.reduce((a, b) => a + b, 0);
+    const youWin = yourTeamTotal > theirTeamTotal;
+    const youLose = yourTeamTotal < theirTeamTotal;
+
+    return (
+      <div>
+        {(opponents.length > 0) && (
+          <div className={`${light ? "bg-[#F8FAFC] border-[#E2E8F0]" : "bg-[#1E293B] border-white/10"} border-b px-3 sm:px-4 py-3 sm:py-4 overflow-x-hidden`}>
+            <div className="max-w-lg mx-auto flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                {mode === "3v3" ? (
+                  <div className="flex -space-x-2">
+                    <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="sm" className="ring-2 ring-[#1E293B]" />
+                    {teamMembers.map((m, i) => (
+                      <InkAvatar key={i} config={{ ...DEFAULT_AVATAR_CONFIG, ...m.avatar_config }} size="sm" className="ring-2 ring-[#1E293B]" />
+                    ))}
+                  </div>
+                ) : (
+                  <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="sm" />
+                )}
+                <div>
+                  <p className={`text-xs font-bold ${textMuted}`}>{mode === "3v3" ? "Your team" : "You"}</p>
+                  <p className={`text-lg font-extrabold ${text}`}>{yourTeamTotal}</p>
+                </div>
+              </div>
+              <div className="text-center shrink-0">
+                <p className={`text-xs font-bold ${textMuted} uppercase`}>vs</p>
+                <p className={`text-sm font-extrabold ${youWin ? "text-[#22C55E]" : youLose ? "text-[#EF4444]" : "text-[#64748B]"}`}>
+                  {youWin ? "You win!" : youLose ? "You lose!" : "Tie!"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 justify-end">
+                <div className="text-right">
+                  <p className={`text-xs font-bold ${textMuted}`}>
+                    {mode === "3v3" ? "Their team" : `${opponents[0].username}${opponents[0].isBot ? " BOT" : ""}`}
+                  </p>
+                  <p className={`text-lg font-extrabold ${text}`}>{theirTeamTotal}</p>
+                </div>
+                {mode === "3v3" ? (
+                  <div className="flex -space-x-2">
+                    {opponents.map((o, i) => (
+                      <InkAvatar key={i} config={{ ...DEFAULT_AVATAR_CONFIG, ...o.avatar_config }} size="sm" className="ring-2 ring-[#1E293B]" />
+                    ))}
+                  </div>
+                ) : (
+                  <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...opponents[0].avatar_config }} size="sm" />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        <ResultsScreen result={result} onPlayAgain={handlePlayAgain} metadata={resultMetadata} />
+      </div>
+    );
   }
 
   return (
@@ -261,7 +509,7 @@ export default function CasualPage() {
 
         {!canQueue && (
           <p className={`text-center text-sm ${textMuted} mt-4`}>
-            {mode === "1v1" ? "Leave party or reduce to 2 to queue 1v1" : "Add friends to party for 3v3"}
+            {mode === "1v1" ? "Leave party or reduce to 2 to queue 1v1" : "Add friends to party — bots fill empty slots"}
           </p>
         )}
       </div>

@@ -42,6 +42,33 @@ export function generateBotOpponent(playerTier: RankTier): OpponentInfo {
   };
 }
 
+/** Generate N unique bot opponents (distinct names and avatars). */
+export function generateBotOpponents(playerTier: RankTier, count: number): OpponentInfo[] {
+  const usedNames = new Set<string>();
+  const usedAvatarIndices = new Set<number>();
+  const result: OpponentInfo[] = [];
+  for (let i = 0; i < count; i++) {
+    let name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+    while (usedNames.has(name)) {
+      name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+    }
+    usedNames.add(name);
+    let avatarIdx = Math.floor(Math.random() * BOT_AVATARS.length);
+    while (usedAvatarIndices.has(avatarIdx)) {
+      avatarIdx = Math.floor(Math.random() * BOT_AVATARS.length);
+    }
+    usedAvatarIndices.add(avatarIdx);
+    result.push({
+      id: `bot_${Date.now()}_${i}`,
+      username: name,
+      rank_tier: playerTier,
+      avatar_config: BOT_AVATARS[avatarIdx],
+      isBot: true,
+    });
+  }
+  return result;
+}
+
 export function generateBotScore(playerTier: RankTier): { correct: number; incorrect: number; total: number } {
   const correctRanges: Record<string, [number, number]> = {
     Bronze: [4, 10],

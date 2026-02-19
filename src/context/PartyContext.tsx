@@ -40,7 +40,7 @@ export function PartyProvider({ children }: { children: ReactNode }) {
   const clearParty = useCallback(() => setMembers([]), []);
 
   const canQueue1v1 = members.length <= 2;
-  const canQueue3v3 = members.length <= 6;
+  const canQueue3v3 = true; // 3v3: you + party (or bots fill empty slots)
   const canPlayRanked = members.length === 0;
 
   return (

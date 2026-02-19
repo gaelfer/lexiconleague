@@ -12,19 +12,30 @@ import TimerRing from "./TimerRing";
 import InkAvatar from "./InkAvatar";
 import { GAME_DURATION } from "@/lib/game/rank";
 
+interface TeamMemberDisplay {
+  username: string;
+  avatar_config: InkAvatarConfig;
+}
+
 interface GameScreenProps {
   mode: GameMode;
   subject: Subject;
   onComplete: (result: GameResult, metadata?: import("@/types").GameResultMetadata) => void;
   /** Called each time the player answers a question (for ranked live opponent sync) */
   onAnswerProgress?: (answered: number, score: number) => void;
-  /** Opponent's answered count (for ranked live display) */
+  /** Opponent's answered count (for ranked live display). For 3v3, combined total. */
   opponentAnswered?: number | null;
-  /** Opponent's score (for ranked live display, when available) */
+  /** Opponent's score (for ranked live display). For 3v3, combined team score. */
   opponentScore?: number | null;
-  /** Opponent info for ranked VS bar */
+  /** Opponent info for VS bar. For 3v3, pass all 3 opponents. */
   opponent?: OpponentInfo | null;
-  /** Player's avatar config for ranked VS bar (shows on "You" side) */
+  /** For 3v3: all opponents (replaces opponent when length > 1) */
+  opponents?: OpponentInfo[];
+  /** For 3v3: your 2 teammates (avatar + name) */
+  teamMembers?: TeamMemberDisplay[];
+  /** For 3v3: teammate scores (2 values) */
+  teammateScores?: number[];
+  /** Player's avatar config for VS bar (shows on "You" side) */
   playerAvatarConfig?: InkAvatarConfig;
   /** For ranked: returns opponent's final score (used for win/loss & trophies) */
   getOpponentScore?: () => number | null;
@@ -32,7 +43,7 @@ interface GameScreenProps {
   vocabGrade?: VocabLevel;
 }
 
-export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, playerAvatarConfig, getOpponentScore, vocabGrade }: GameScreenProps) {
+export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, opponents, teamMembers, teammateScores, playerAvatarConfig, getOpponentScore, vocabGrade }: GameScreenProps) {
   const questions = useMemo(() => getQuestionsForMode(subject, 30, vocabGrade), [subject, vocabGrade]);
 
   const {
@@ -89,21 +100,36 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
 
   const totalAnswered = correctCount + incorrectCount;
   const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 100;
-  const isRanked = mode === "ranked" && opponent;
+  const is3v3 = opponents && opponents.length === 3 && teamMembers && teamMembers.length === 2;
+  const showVsBar = !!opponent || (opponents && opponents.length > 0);
   const questionCount = totalQuestions || 30;
+  const playerScore = correctCount * 10;
+  const yourTeamScore = is3v3 && teammateScores
+    ? playerScore + teammateScores[0] + teammateScores[1]
+    : playerScore;
+  const theirTeamScore = opponentScore ?? 0;
   const playerDotsFilled = Math.min(10, Math.floor((totalAnswered / questionCount) * 10));
   const opponentDotsFilled = Math.min(10, Math.floor(((opponentAnswered ?? 0) / questionCount) * 10));
 
   return (
     <main className="min-h-[100dvh] min-h-screen bg-white flex flex-col overflow-x-hidden">
-      {/* Ranked VS bar - live opponent progress */}
-      {isRanked && (
+      {/* VS bar - player vs opponent (ranked & casual 1v1) or team vs team (3v3) */}
+      {showVsBar && (opponent || opponents) && (
         <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] border-b border-[#334155] min-w-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <InkAvatar config={playerAvatarConfig ? { ...DEFAULT_AVATAR_CONFIG, ...playerAvatarConfig } : undefined} size="sm" className="shrink-0" />
+            {is3v3 ? (
+              <div className="flex -space-x-2 sm:-space-x-1.5">
+                <InkAvatar config={playerAvatarConfig ? { ...DEFAULT_AVATAR_CONFIG, ...playerAvatarConfig } : undefined} size="sm" className="shrink-0 ring-2 ring-[#1E293B]" />
+                {teamMembers!.map((m, i) => (
+                  <InkAvatar key={i} config={{ ...DEFAULT_AVATAR_CONFIG, ...m.avatar_config }} size="sm" className="shrink-0 ring-2 ring-[#1E293B]" />
+                ))}
+              </div>
+            ) : (
+              <InkAvatar config={playerAvatarConfig ? { ...DEFAULT_AVATAR_CONFIG, ...playerAvatarConfig } : undefined} size="sm" className="shrink-0" />
+            )}
             <div className="min-w-0">
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase">You</p>
-              <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">{correctCount * 10}</p>
+              <p className="text-[10px] font-bold text-[#94A3B8] uppercase">{is3v3 ? "Your team" : "You"}</p>
+              <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">{is3v3 ? yourTeamScore : playerScore}</p>
               <p className="text-[10px] text-[#94A3B8] tabular-nums">{totalAnswered}/{questionCount} q</p>
             </div>
             <div className="flex gap-0.5 sm:gap-1 shrink-0">
@@ -114,7 +140,7 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
           </div>
           <div className="text-center shrink-0 px-1">
             <p className="text-[10px] font-bold text-[#34D399] uppercase">VS</p>
-            <p className="text-[10px] sm:text-xs font-semibold text-[#94A3B8]">Live</p>
+            {mode === "ranked" && <p className="text-[10px] sm:text-xs font-semibold text-[#94A3B8]">Live</p>}
           </div>
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 justify-end">
             <div className="flex gap-0.5 sm:gap-1 shrink-0">
@@ -123,18 +149,36 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
               ))}
             </div>
             <div className="text-right min-w-0">
-              <p className="text-[10px] font-bold text-[#94A3B8] uppercase truncate max-w-[60px] sm:max-w-[80px]">
-                {opponent.username}
-                {opponent.isBot && " BOT"}
-              </p>
-              <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">
-                {opponentScore != null ? opponentScore : "—"}
-              </p>
-              <p className="text-[10px] text-[#94A3B8] tabular-nums">
-                {opponentAnswered != null ? `${opponentAnswered}/${questionCount} q` : "—"}
-              </p>
+              {is3v3 ? (
+                <>
+                  <p className="text-[10px] font-bold text-[#94A3B8] uppercase">Their team</p>
+                  <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">{theirTeamScore}</p>
+                  <p className="text-[10px] text-[#94A3B8] tabular-nums">3 players</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] font-bold text-[#94A3B8] uppercase truncate max-w-[60px] sm:max-w-[80px]">
+                    {(opponent || opponents![0]).username}
+                    {(opponent || opponents![0]).isBot && " BOT"}
+                  </p>
+                  <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">
+                    {opponentScore != null ? opponentScore : "—"}
+                  </p>
+                  <p className="text-[10px] text-[#94A3B8] tabular-nums">
+                    {opponentAnswered != null ? `${opponentAnswered}/${questionCount} q` : "—"}
+                  </p>
+                </>
+              )}
             </div>
-            <InkAvatar config={opponent.avatar_config ? { ...DEFAULT_AVATAR_CONFIG, ...opponent.avatar_config } : undefined} size="sm" className="shrink-0" />
+            {is3v3 ? (
+              <div className="flex -space-x-2 sm:-space-x-1.5">
+                {opponents!.map((o, i) => (
+                  <InkAvatar key={i} config={{ ...DEFAULT_AVATAR_CONFIG, ...o.avatar_config }} size="sm" className="shrink-0 ring-2 ring-[#1E293B]" />
+                ))}
+              </div>
+            ) : (
+              <InkAvatar config={(opponent || opponents![0]).avatar_config ? { ...DEFAULT_AVATAR_CONFIG, ...(opponent || opponents![0]).avatar_config } : undefined} size="sm" className="shrink-0" />
+            )}
           </div>
         </div>
       )}
