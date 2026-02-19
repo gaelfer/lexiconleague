@@ -18,7 +18,17 @@ const SIZE_CLASSES = {
 function RankIcon({ tier, className }: { tier: RankTier; className: string }) {
   const color = RANK_COLORS[tier];
   const common = { stroke: color, strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
-  if (tier === "Bronze" || tier === "Silver") {
+  if (tier === "Bronze") {
+    return (
+      <svg className={className} viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" fill={`${color}35`} stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M8 14c1.5-1 3-1.5 4.5-1.5s3 .5 4.5 1.5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="9" cy="10" r="1" fill={color} />
+        <circle cx="15" cy="10" r="1" fill={color} />
+      </svg>
+    );
+  }
+  if (tier === "Silver") {
     return (
       <svg className={className} viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="9" {...common} />
@@ -57,17 +67,19 @@ export default function RankBadge({
   const color = RANK_COLORS[tier];
   const sz = SIZE_CLASSES[size];
 
+  const isBronze = tier === "Bronze";
   return (
     <span
-      className={`inline-flex items-center font-bold rounded-full ${sz.container}`}
+      className={`inline-flex items-center font-bold ${sz.container} ${isBronze ? "rounded-2xl shadow-[0_2px_8px_rgba(205,127,50,0.35)]" : "rounded-full"}`}
       style={{
         color,
-        border: `2px solid ${color}40`,
-        background: `${color}15`,
+        border: isBronze ? `2.5px solid ${color}` : `2px solid ${color}40`,
+        background: isBronze ? `linear-gradient(135deg, ${color}30 0%, ${color}15 50%, ${color}25 100%)` : `${color}15`,
+        boxShadow: isBronze ? `inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 6px rgba(205,127,50,0.25)` : undefined,
       }}
     >
       <RankIcon tier={tier} className={sz.icon} />
-      <span>{tier}</span>
+      <span className={isBronze ? "font-extrabold tracking-wide" : ""}>{tier}</span>
       {showTrophies && trophies !== undefined && (
         <span className="opacity-80 font-semibold">· {trophies}</span>
       )}

@@ -138,16 +138,23 @@ function SignupPageInner() {
           </div>
           <div className="space-y-2 mt-6">
             {[
-              { label: "Bronze", color: "#CD7F32", width: "25%" },
+              { label: "Bronze", color: "#CD7F32", width: "25%", cartoony: true },
               { label: "Silver", color: "#C0C0C0", width: "45%" },
               { label: "Gold", color: "#D4AF37", width: "65%" },
               { label: "Platinum", color: "#7DD3FC", width: "80%" },
               { label: "Diamond", color: "#A78BFA", width: "100%" },
             ].map((tier) => (
-              <div key={tier.label} className="flex items-center gap-3">
-                <span className="text-xs font-bold w-16 text-right text-white/90">{tier.label}</span>
-                <div className="flex-1 h-2.5 rounded-full bg-white/20">
-                  <div className="h-full rounded-full transition-all" style={{ width: tier.width, background: tier.color }} />
+              <div key={tier.label} className={`flex items-center gap-3 ${tier.cartoony ? "transform hover:scale-[1.02] transition-transform" : ""}`}>
+                <span className={`text-xs font-bold w-16 text-right text-white/90 ${tier.cartoony ? "font-extrabold drop-shadow-sm" : ""}`}>{tier.label}</span>
+                <div className={`flex-1 h-2.5 rounded-full bg-white/20 overflow-hidden ${tier.cartoony ? "rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)]" : ""}`}>
+                  <div
+                    className={`h-full rounded-full transition-all ${tier.cartoony ? "rounded-2xl" : ""}`}
+                    style={{
+                      width: tier.width,
+                      background: tier.cartoony ? `linear-gradient(90deg, ${tier.color} 0%, ${tier.color}dd 100%)` : tier.color,
+                      boxShadow: tier.cartoony ? `0 0 8px ${tier.color}80` : undefined,
+                    }}
+                  />
                 </div>
               </div>
             ))}

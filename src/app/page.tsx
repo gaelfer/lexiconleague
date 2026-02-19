@@ -14,6 +14,7 @@ import TrophyIcon from "@/components/icons/TrophyIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import { getTierProgress, getTrophiesInTier, getTrophiesNeededForNextTier } from "@/lib/rank";
+import { getLevelProgress, getLevel } from "@/lib/levels";
 import { canClaimDailyReward } from "@/lib/daily-rewards";
 import { syncProfileForUser } from "@/lib/profile-sync";
 import { RANK_TIERS, RANK_COLORS } from "@/types";
@@ -49,6 +50,28 @@ function UserIcon({ className = "w-6 h-6", color = "currentColor" }: { className
   );
 }
 
+function LockerIcon({ className = "w-6 h-6", color = "currentColor" }: { className?: string; color?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+    </svg>
+  );
+}
+
+function LeaderboardIcon({ className = "w-6 h-6", color = "currentColor" }: { className?: string; color?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const { user, loading, signOut } = useAuth();
   const { light } = useTheme();
@@ -73,6 +96,7 @@ export default function Home() {
   const trophiesInTier = profile ? getTrophiesInTier(profile.trophies, profile.rank_tier) : 0;
   const tierIdx = profile ? RANK_TIERS.indexOf(profile.rank_tier) : 0;
   const tierColor = profile ? RANK_COLORS[profile.rank_tier] : BLUE;
+  const levelProgress = profile ? getLevelProgress(profile.xp) : null;
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
@@ -137,38 +161,42 @@ export default function Home() {
                   </button>
                   {menuOpen && (
                     <>
-                      <div className="fixed inset-0 z-40" onClick={closeMenu} />
-                      <div className={`absolute right-0 top-full mt-2 w-56 ${menuBg} border ${menuBorder} rounded-xl shadow-xl overflow-hidden z-50`}>
-                        <div className={`px-4 py-3 border-b ${menuBorder}`}>
-                          <p className={`${text} text-sm font-semibold truncate`}>{profile?.username || user.email}</p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <InkDropIcon className="w-3.5 h-3.5" color={MINT} />
-                            <span className="text-xs font-bold" style={{ color: MINT }}>{profile?.ink_drops ?? 0} Ink Drops</span>
+                      <div className="fixed inset-0 z-40" onClick={closeMenu} aria-hidden="true" />
+                      <div className={`absolute right-0 top-full mt-2 w-64 sm:w-72 ${menuBg} border ${menuBorder} rounded-2xl shadow-2xl overflow-hidden z-50`}>
+                        <div className={`px-5 py-4 border-b ${menuBorder}`}>
+                          <p className={`${text} text-base font-bold truncate`}>{profile?.username || user.email}</p>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <InkDropIcon className="w-4 h-4 shrink-0" color={MINT} />
+                            <span className="text-sm font-bold" style={{ color: MINT }}>{profile?.ink_drops ?? 0} Ink Drops</span>
                           </div>
                         </div>
-                        {[
-                          { href: "/shop", label: "Ink Shop", icon: <InkDropIcon className="w-4 h-4" color="currentColor" />, dot: profile && canClaimDailyReward(profile) },
-                          { href: "/locker", label: "Ink Locker" },
-                          { href: "/ranked", label: "Ranked & Leaderboard" },
-                          { href: "/profile", label: "Profile" },
-                        ].map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={closeMenu}
-                            className={`flex items-center gap-2 w-full px-4 py-3 text-sm font-medium transition-colors ${textMuted} ${light ? "hover:text-[#0F172A] hover:bg-[#F8FAFC]" : "hover:text-white hover:bg-white/5"}`}
+                        <nav className="py-2" aria-label="Account menu">
+                          {[
+                            { href: "/profile", label: "Profile", icon: <UserIcon className="w-5 h-5 shrink-0" color="currentColor" /> },
+                            { href: "/shop", label: "Ink Shop", icon: <InkDropIcon className="w-5 h-5 shrink-0" color="currentColor" />, dot: profile && canClaimDailyReward(profile) },
+                            { href: "/locker", label: "Ink Locker", icon: <LockerIcon className="w-5 h-5 shrink-0" color="currentColor" /> },
+                            { href: "/ranked", label: "Ranked & Leaderboard", icon: <LeaderboardIcon className="w-5 h-5 shrink-0" color="currentColor" /> },
+                          ].map((item) => (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={closeMenu}
+                              className={`flex items-center gap-4 w-full px-5 py-3.5 text-base font-semibold transition-colors min-h-[48px] active:scale-[0.98] ${textMuted} ${light ? "hover:text-[#0F172A] hover:bg-[#F8FAFC]" : "hover:text-white hover:bg-white/5"}`}
+                            >
+                              {item.icon}
+                              <span className="flex-1">{item.label}</span>
+                              {item.dot && <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] animate-pulse shrink-0" aria-label="Daily reward available" />}
+                            </Link>
+                          ))}
+                        </nav>
+                        <div className={`border-t ${menuBorder} p-2`}>
+                          <button
+                            onClick={() => { signOut(); closeMenu(); }}
+                            className={`w-full text-left px-5 py-3.5 min-h-[48px] rounded-xl ${textMuted} hover:text-[#EF4444] hover:bg-[#EF4444]/5 text-base font-semibold transition-colors active:scale-[0.98]`}
                           >
-                            {item.icon}
-                            {item.label}
-                            {item.dot && <span className="ml-auto w-2 h-2 rounded-full bg-[#EF4444] animate-pulse" />}
-                          </Link>
-                        ))}
-                        <button
-                          onClick={() => { signOut(); closeMenu(); }}
-                          className={`w-full text-left px-4 py-3 ${textMuted} hover:text-[#EF4444] hover:bg-[#EF4444]/5 text-sm font-medium transition-colors`}
-                        >
-                          Sign out
-                        </button>
+                            Sign out
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}
@@ -223,13 +251,13 @@ export default function Home() {
         <section className="relative z-10 px-4 sm:px-6 py-6 max-w-4xl mx-auto w-full">
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Trophies", value: profile.trophies, Icon: TrophyIcon, color: MINT },
-              { label: "XP", value: profile.xp, Icon: SparkIcon, color: BLUE },
-              { label: "Ink Drops", value: profile.ink_drops, Icon: InkDropIcon, color: MINT },
+              { label: "Trophies", value: profile.trophies, Icon: TrophyIcon, color: MINT, format: (v: number) => v.toLocaleString() },
+              { label: "Level", value: getLevel(profile.xp), Icon: SparkIcon, color: BLUE, format: (v: number) => String(v) },
+              { label: "Ink Drops", value: profile.ink_drops, Icon: InkDropIcon, color: MINT, format: (v: number) => v.toLocaleString() },
             ].map((stat) => (
               <div key={stat.label} className={`rounded-xl p-4 ${cardBg} border ${cardBorder} text-center`}>
                 <stat.Icon className="w-6 h-6 mx-auto mb-2" color={stat.color} />
-                <p className={`text-xl font-bold ${text}`}>{profile ? stat.value.toLocaleString() : "—"}</p>
+                <p className={`text-xl font-bold ${text}`}>{profile ? stat.format(stat.value) : "—"}</p>
                 <p className={`text-xs font-medium ${textFaint} mt-0.5`}>{stat.label}</p>
               </div>
             ))}
@@ -247,7 +275,7 @@ export default function Home() {
               </div>
               <div className="text-right">
                 <p className={`${textFaint} text-xs font-semibold uppercase mb-1`}>Level</p>
-                <p className={`${text} font-bold text-xl`}>{Math.floor(profile.xp / 100) + 1}</p>
+                <p className={`${text} font-bold text-xl`}>{levelProgress?.level ?? 1}</p>
               </div>
             </div>
             <div className="space-y-2">
@@ -263,6 +291,20 @@ export default function Home() {
                   style={{ width: `${tierProgress}%`, backgroundColor: tierColor }}
                 />
               </div>
+              {levelProgress && levelProgress.xpNeededForLevel > 0 && (
+                <div className="pt-2">
+                  <div className="flex justify-between text-xs font-medium mb-1">
+                    <span className={textFaint}>Level {levelProgress.level} → {levelProgress.level + 1}</span>
+                    <span className={textFaint}>{levelProgress.xpInLevel} / {levelProgress.xpNeededForLevel} XP</span>
+                  </div>
+                  <div className={`w-full h-1.5 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${levelProgress.progressPercent}%`, backgroundColor: BLUE }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             {!user && (
               <div className={`mt-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"}`}>
