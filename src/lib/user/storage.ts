@@ -1,5 +1,5 @@
-import { UserProfile, MatchHistory, GameResult, DEFAULT_AVATAR_CONFIG } from "@/types";
-import { getTierFromTrophies, RANK_REWARD_ITEM_IDS, RANK_TIERS, RANK_THRESHOLDS } from "@/lib/game/rank";
+import { UserProfile, MatchHistory, GameResult, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_THRESHOLDS } from "@/types";
+import { getTierFromTrophies, RANK_REWARD_ITEM_IDS } from "@/lib/game/rank";
 import { FREE_ITEM_IDS } from "@/lib/cosmetics/catalog";
 
 const STORAGE_KEYS = {

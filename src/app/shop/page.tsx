@@ -23,8 +23,8 @@ import {
   FREE_ITEM_IDS,
   isRankReward,
 } from "@/lib/cosmetics/catalog";
-import { RANK_REWARD_ITEM_IDS, RANK_TIERS } from "@/lib/game/rank";
-import { RANK_COLORS, RankTier } from "@/types";
+import { RANK_REWARD_ITEM_IDS } from "@/lib/game/rank";
+import { RANK_COLORS, RANK_TIERS, RankTier } from "@/types";
 import {
   canClaimDailyReward,
   claimDailyReward,
@@ -239,7 +239,7 @@ export default function ShopPage() {
           <SparkIcon className="w-5 h-5" color={MINT} />
           Ink Shop
         </h1>
-        <div className="flex items-center gap-2 relative">
+        <div className="flex items-center gap-2">
           <ThemeToggle />
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 ${
@@ -248,9 +248,6 @@ export default function ShopPage() {
           >
             <InkDropIcon className="w-5 h-5" color={MINT} />
             <span className="text-base font-extrabold" style={{ color: MINT }}>{profile.ink_drops ?? 0}</span>
-          </div>
-          <div className="absolute -bottom-2 -right-2 opacity-75 pointer-events-none hidden sm:block" style={{ transform: "rotate(15deg)" }}>
-            <InkAvatar config={{ base: "droplet_01", color: "#EC4899", eyes: "eyes_06", accessory: "bow_01", aura: "aura_glow_02" }} size={48} />
           </div>
         </div>
       </header>
@@ -263,13 +260,10 @@ export default function ShopPage() {
           }`}
           style={{ boxShadow: light ? "0 2px 12px rgba(52,211,153,0.15)" : "0 2px 12px rgba(52,211,153,0.1)" }}
         >
-          <div className="px-4 py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0 relative overflow-visible">
+          <div className="px-4 py-3 flex items-center justify-between gap-4 relative overflow-visible">
+            <div className="flex items-center gap-3 min-w-0">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${light ? "bg-white/80" : "bg-[#34D399]/20"}`}>
                 <InkDropIcon className="w-5 h-5" color={MINT} />
-              </div>
-              <div className="absolute -bottom-3 -right-1 opacity-80 pointer-events-none" style={{ transform: "rotate(-12deg)" }}>
-                <InkAvatar config={{ base: "droplet_02", color: MINT, eyes: "eyes_03", accessory: "none", aura: "aura_glow_01" }} size={52} />
               </div>
               <div className="min-w-0">
                 <p className={`text-sm font-bold ${text}`}>Daily reward</p>
@@ -290,6 +284,9 @@ export default function ShopPage() {
             >
               {claimAnimating ? "..." : canClaim ? "Claim" : "Tomorrow"}
             </button>
+            <div className="absolute -top-2 -right-2 opacity-75 pointer-events-none" style={{ transform: "rotate(8deg)" }}>
+              <InkAvatar config={{ base: "droplet_02", color: MINT, eyes: "eyes_03", accessory: "none", aura: "aura_glow_01" }} size={48} />
+            </div>
           </div>
         </div>
 
@@ -319,8 +316,9 @@ export default function ShopPage() {
               className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
               style={{ boxShadow: light ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.2)" }}
             >
-              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"}`}>
+              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"} flex items-center justify-between gap-3`}>
                 <p className={`text-sm font-extrabold ${text}`}>🫧 Ink Shapes</p>
+                <InkAvatar config={{ base: "droplet_01", color: "#EC4899", eyes: "eyes_06", accessory: "bow_01", aura: "aura_glow_02" }} size={36} className="shrink-0" style={{ transform: "rotate(-8deg)" }} />
               </div>
               <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">{BASES.map(renderItemCard)}</div>
             </div>
