@@ -107,15 +107,20 @@ export default function RankedScreenPage() {
               <div className="flex items-center gap-2 mt-1">
                 <RankBadge tier={profile.rank_tier} trophies={profile.trophies} showTrophies size="sm" />
               </div>
-              <div className="mt-3">
-                <div className={`flex justify-between text-xs font-semibold mb-1 ${textFaint}`}>
-                  <span>Progress to {tierIdx < RANK_TIERS.length - 1 ? RANK_TIERS[tierIdx + 1] : "Max"}</span>
-                  <span>{tierProgress}%</span>
+              <div className="mt-4">
+                <div className={`flex justify-between text-sm font-bold mb-2 ${text}`}>
+                  <span>{profile.rank_tier} → {tierIdx < RANK_TIERS.length - 1 ? RANK_TIERS[tierIdx + 1] : "Max"}</span>
+                  <span style={{ color: tierColor }}>{tierProgress}%</span>
                 </div>
-                <ProgressBar value={tierProgress} height="h-2" color={tierColor} />
+                <div className={`w-full h-4 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${tierProgress}%`, backgroundColor: tierColor, boxShadow: `0 0 12px ${tierColor}80` }}
+                  />
+                </div>
                 {nextTier != null && (
-                  <p className={`text-[10px] mt-1 ${textFaint}`}>
-                    {nextTier - profile.trophies} trophies to go
+                  <p className={`text-xs font-semibold mt-2 ${textMuted}`}>
+                    {nextTier - profile.trophies} trophies to {RANK_TIERS[tierIdx + 1]}
                   </p>
                 )}
               </div>

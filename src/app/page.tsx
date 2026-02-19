@@ -88,6 +88,27 @@ export default function Home() {
 
   return (
     <main className={`relative min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+      {/* Background design */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {light ? (
+          <>
+            <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-30 blur-3xl" style={{ background: `radial-gradient(circle, ${BLUE}40 0%, transparent 70%)` }} />
+            <div className="absolute top-1/3 -left-32 w-64 h-64 rounded-full opacity-25 blur-3xl" style={{ background: `radial-gradient(circle, ${MINT}50 0%, transparent 70%)` }} />
+            <div className="absolute bottom-20 right-1/4 w-48 h-48 rounded-full opacity-20 blur-2xl" style={{ background: `radial-gradient(circle, ${BLUE}60 0%, transparent 70%)` }} />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,#F8FAFC_40%,#F8FAFC_100%)]" />
+            <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #64748B 1px, transparent 0)", backgroundSize: "36px 36px" }} />
+          </>
+        ) : (
+          <>
+            <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full opacity-20 blur-3xl" style={{ background: `radial-gradient(circle, ${BLUE} 0%, transparent 60%)` }} />
+            <div className="absolute top-1/3 -left-40 w-80 h-80 rounded-full opacity-15 blur-3xl" style={{ background: `radial-gradient(circle, ${MINT} 0%, transparent 60%)` }} />
+            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-10 blur-2xl" style={{ background: `radial-gradient(circle, ${BLUE} 0%, transparent 60%)` }} />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,#0F172A_0%,#0F172A_30%,#0c1222_100%)]" />
+            <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "40px 40px" }} />
+          </>
+        )}
+      </div>
+
       <header className="relative z-20 flex items-center justify-between gap-3 px-4 sm:px-6 py-4 max-w-6xl mx-auto w-full">
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${headerBtn} border`}>

@@ -85,13 +85,13 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
             </div>
           </div>
           <div className="text-center shrink-0 px-1">
-            <p className="text-[10px] font-bold text-[#FBBF24] uppercase">VS</p>
+            <p className="text-[10px] font-bold text-[#34D399] uppercase">VS</p>
             <p className="text-[10px] sm:text-xs font-semibold text-[#94A3B8]">Live</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 justify-end">
             <div className="flex gap-0.5 sm:gap-1 shrink-0">
               {[...Array(10)].map((_, i) => (
-                <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${i < (opponentAnswered ?? 0) ? "bg-[#FBBF24]" : "bg-[#334155]"}`} />
+                <div key={i} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${i < (opponentAnswered ?? 0) ? "bg-[#34D399]" : "bg-[#334155]"}`} />
               ))}
             </div>
             <div className="text-right min-w-0">
@@ -100,7 +100,7 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
                 {opponent.isBot && " BOT"}
               </p>
               <p className="text-base sm:text-lg font-extrabold text-white tabular-nums">
-                {opponentScore !== null && opponentScore !== undefined ? opponentScore : opponentAnswered !== null && opponentAnswered !== undefined ? opponentAnswered * 10 : "—"}
+                {opponentScore != null ? opponentScore : opponentAnswered != null ? opponentAnswered * 10 : "—"}
               </p>
             </div>
             <InkAvatar config={opponent.avatar_config ? { ...DEFAULT_AVATAR_CONFIG, ...opponent.avatar_config } : undefined} size="sm" className="shrink-0" />

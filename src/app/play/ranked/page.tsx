@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Subject, GameResult, InkAvatarConfig, DEFAULT_AVATAR_CONFIG, RANK_TIERS } from "@/types";
+import { Subject, GameResult, InkAvatarConfig, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS } from "@/types";
 import { getProfile, createGuestProfile } from "@/lib/storage";
 import { syncProfileForUser } from "@/lib/profile-sync";
 import { upsertProfile } from "@/lib/supabase/profile";
@@ -15,14 +15,15 @@ import {
   generateMatchSeed,
   MATCHMAKING_TIMEOUT_MS,
 } from "@/lib/matchmaking";
+import { useTheme } from "@/context/ThemeContext";
 import GameScreen from "@/components/GameScreen";
 import ResultsScreen from "@/components/ResultsScreen";
 import InkAvatar from "@/components/InkAvatar";
 import RankBadge from "@/components/RankBadge";
-import ProgressBar from "@/components/ProgressBar";
 import TrophyIcon from "@/components/icons/TrophyIcon";
 import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
+import ThemeToggle from "@/components/ThemeToggle";
 import { getTierProgress, getTrophiesNeededForNextTier, calculateScore } from "@/lib/rank";
 
 type Phase = "lobby" | "searching" | "prematch" | "playing" | "results";
@@ -33,8 +34,12 @@ const isSupabaseConfigured =
   typeof process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === "string" &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 0;
 
+const BLUE = "#3B82F6";
+const MINT = "#34D399";
+
 export default function RankedPage() {
   const { user, loading: authLoading } = useAuth();
+  const { light } = useTheme();
   const [phase, setPhase] = useState<Phase>("lobby");
   const [subject, setSubject] = useState<Subject>("vocabulary");
   const [result, setResult] = useState<GameResult | null>(null);
@@ -45,6 +50,7 @@ export default function RankedPage() {
   const [searchDots, setSearchDots] = useState("");
   const [opponentScore, setOpponentScore] = useState<number | null>(null);
   const [opponentAnswered, setOpponentAnswered] = useState<number | null>(null);
+  const botFinalCorrectRef = useRef<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef = useRef<any>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,12 +93,20 @@ export default function RankedPage() {
     }
   }, [phase]);
 
-  // Simulate bot progress during ranked match (so it feels lively)
+  // Simulate bot progress during ranked match — progress toward pre-computed final score
   useEffect(() => {
     if (phase !== "playing" || !opponent?.isBot) return;
+    const finalCorrect = botFinalCorrectRef.current ?? 10;
+    const totalTime = 60_000;
+    const intervalMs = totalTime / finalCorrect;
+    let elapsed = 0;
     const interval = setInterval(() => {
-      setOpponentAnswered((prev) => Math.min((prev ?? 0) + 1, 30));
-    }, 2000 + Math.random() * 1500);
+      elapsed += 1500 + Math.random() * 500;
+      const progress = Math.min(1, elapsed / totalTime);
+      const answered = Math.round(progress * finalCorrect);
+      setOpponentAnswered(Math.min(answered, finalCorrect));
+      setOpponentScore(answered * 10);
+    }, 1500 + Math.random() * 500);
     return () => clearInterval(interval);
   }, [phase, opponent?.isBot]);
 
@@ -248,6 +262,8 @@ export default function RankedPage() {
 
   function matchWithBot() {
     const bot = generateBotOpponent(profile.rank_tier);
+    const botResult = generateBotScore(profile.rank_tier);
+    botFinalCorrectRef.current = botResult.correct;
     const seed = generateMatchSeed();
     setOpponent(bot);
     setMatchSeed(seed);
@@ -274,9 +290,10 @@ export default function RankedPage() {
       } catch {}
     }
 
-    if (opponent?.isBot) {
-      const botResult = generateBotScore(profile.rank_tier);
-      setOpponentScore(calculateScore(botResult.correct));
+    if (opponent?.isBot && botFinalCorrectRef.current !== null) {
+      const finalScore = calculateScore(botFinalCorrectRef.current);
+      setOpponentScore(finalScore);
+      setOpponentAnswered(botFinalCorrectRef.current);
     }
 
     setPhase("results");
@@ -285,6 +302,7 @@ export default function RankedPage() {
   function handlePlayAgain() {
     cleanupChannel();
     matchedRef.current = false;
+    botFinalCorrectRef.current = null;
     const fresh = getProfile() ?? createGuestProfile();
     setProfile(fresh);
     setResult(null);
@@ -295,10 +313,16 @@ export default function RankedPage() {
     setPhase("lobby");
   }
 
+  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const text = light ? "text-[#0F172A]" : "text-white";
+  const textMuted = light ? "text-[#64748B]" : "text-white/60";
+  const cardBg = light ? "bg-white" : "bg-[#1E293B]";
+  const cardBorder = light ? "border-[#E2E8F0]" : "border-white/10";
+
   if (authLoading) {
     return (
-      <main className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-[#64748B] font-semibold animate-pulse">Loading...</p>
+      <main className={`min-h-screen flex items-center justify-center ${bg}`}>
+        <p className={`font-semibold animate-pulse ${textMuted}`}>Loading...</p>
       </main>
     );
   }
@@ -337,17 +361,17 @@ export default function RankedPage() {
       <div>
         {/* Opponent comparison banner */}
         {opponent && (
-          <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-3 sm:px-4 py-3 sm:py-4 overflow-x-hidden">
+          <div className={`${light ? "bg-[#F8FAFC] border-[#E2E8F0]" : "bg-[#1E293B] border-white/10"} border-b px-3 sm:px-4 py-3 sm:py-4 overflow-x-hidden`}>
             <div className="max-w-md mx-auto flex items-center justify-between gap-2 sm:gap-4 min-w-0">
               <div className="flex items-center gap-3">
                 <InkAvatar config={profile.avatar_config} size="sm" />
                 <div>
-                  <p className="text-xs font-bold text-[#64748B]">You</p>
-                  <p className="text-lg font-extrabold text-[#0F172A]">{result.score}</p>
+                  <p className={`text-xs font-bold ${textMuted}`}>You</p>
+                  <p className={`text-lg font-extrabold ${text}`}>{result.score}</p>
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-xs font-bold text-[#64748B] uppercase">vs</p>
+                <p className={`text-xs font-bold ${textMuted} uppercase`}>vs</p>
                 {opponentScore !== null ? (
                   <p className={`text-sm font-extrabold ${
                     result.score > opponentScore
@@ -368,11 +392,11 @@ export default function RankedPage() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <p className="text-xs font-bold text-[#64748B]">
+                  <p className={`text-xs font-bold ${textMuted}`}>
                     {opponent.username}
-                    {opponent.isBot && <span className="text-[10px] ml-1 text-[#94A3B8]">BOT</span>}
+                    {opponent.isBot && <span className="text-[10px] ml-1 opacity-70">BOT</span>}
                   </p>
-                  <p className="text-lg font-extrabold text-[#0F172A]">
+                  <p className={`text-lg font-extrabold ${text}`}>
                     {opponentScore !== null ? opponentScore : "..."}
                   </p>
                 </div>
@@ -389,25 +413,25 @@ export default function RankedPage() {
   // ── Searching ───────────────────────────────────────────────────────────────
   if (phase === "searching") {
     return (
-      <main className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
+      <main className={`min-h-screen ${bg} flex flex-col items-center justify-center px-6`}>
         <div className="w-full max-w-sm text-center space-y-8">
           <div className="relative">
-            <div className="w-32 h-32 mx-auto rounded-full border-4 border-[#E2E8F0] border-t-[#34D399] animate-spin" />
+            <div className={`w-32 h-32 mx-auto rounded-full border-4 ${light ? "border-[#E2E8F0]" : "border-white/20"} border-t-[#34D399] animate-spin`} />
             <div className="absolute inset-0 flex items-center justify-center">
               <InkAvatar config={profile.avatar_config} size="lg" />
             </div>
           </div>
           <div>
-            <h2 className="text-2xl font-extrabold text-[#0F172A]">
+            <h2 className={`text-2xl font-extrabold ${text}`}>
               Searching for opponent{searchDots}
             </h2>
-            <p className="text-[#64748B] font-medium mt-2">
+            <p className={`${textMuted} font-medium mt-2`}>
               Finding a worthy challenger in {profile.rank_tier}
             </p>
           </div>
           <button
             onClick={() => { cleanupChannel(); setPhase("lobby"); }}
-            className="px-6 py-3 rounded-2xl text-[#64748B] font-bold border border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors"
+            className={`px-6 py-3 rounded-2xl font-bold border transition-colors ${light ? "text-[#64748B] border-[#E2E8F0] hover:bg-[#F8FAFC]" : "text-white/60 border-white/20 hover:bg-white/5"}`}
           >
             Cancel
           </button>
@@ -419,14 +443,14 @@ export default function RankedPage() {
   // ── Pre-match VS screen ─────────────────────────────────────────────────────
   if (phase === "prematch" && opponent) {
     return (
-      <main className="min-h-[100dvh] min-h-screen bg-white flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden">
+      <main className={`min-h-[100dvh] min-h-screen ${bg} flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden`}>
         <div className="w-full max-w-lg space-y-6 sm:space-y-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-4">
             {/* Player */}
             <div className="flex-1 flex flex-col items-center gap-3 animate-slide-in-left w-full sm:min-w-0 min-w-0">
-              <div className="rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] p-4 sm:p-6 shadow-lg w-full flex flex-col items-center min-w-0">
+              <div className={`rounded-3xl ${cardBg} border ${cardBorder} p-4 sm:p-6 shadow-lg w-full flex flex-col items-center min-w-0`}>
                 <InkAvatar config={profile.avatar_config} size="lg" />
-                <p className="mt-3 text-sm font-extrabold text-[#0F172A] truncate max-w-full w-full text-center">
+                <p className={`mt-3 text-sm font-extrabold truncate max-w-full w-full text-center ${text}`}>
                   {profile.username}
                 </p>
                 <RankBadge tier={profile.rank_tier} size="sm" />
@@ -435,19 +459,19 @@ export default function RankedPage() {
 
             {/* VS */}
             <div className="flex flex-col items-center gap-2 shrink-0">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#EF4444] flex items-center justify-center shadow-xl">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shadow-xl" style={{ backgroundColor: MINT }}>
                 <span className="text-white font-extrabold text-lg sm:text-xl">VS</span>
               </div>
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#0F172A] flex items-center justify-center shadow-lg">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg ${light ? "bg-[#0F172A]" : "bg-[#1E293B]"}`}>
                 <span className="text-white font-extrabold text-xl sm:text-2xl">{countdown}</span>
               </div>
             </div>
 
             {/* Opponent */}
             <div className="flex-1 flex flex-col items-center gap-3 animate-slide-in-right w-full sm:min-w-0 min-w-0">
-              <div className="rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] p-4 sm:p-6 shadow-lg w-full flex flex-col items-center min-w-0">
+              <div className={`rounded-3xl ${cardBg} border ${cardBorder} p-4 sm:p-6 shadow-lg w-full flex flex-col items-center min-w-0`}>
                 <InkAvatar config={opponent.avatar_config} size="lg" />
-                <p className="mt-3 text-sm font-extrabold text-[#0F172A] truncate max-w-full w-full text-center">
+                <p className={`mt-3 text-sm font-extrabold truncate max-w-full w-full text-center ${text}`}>
                   {opponent.username}
                   {opponent.isBot && (
                     <span className="text-[10px] ml-1 text-[#94A3B8] font-medium">BOT</span>
@@ -459,10 +483,10 @@ export default function RankedPage() {
           </div>
 
           <div className="text-center">
-            <p className="text-[#64748B] font-bold text-sm uppercase tracking-wider">
+            <p className={`${textMuted} font-bold text-sm uppercase tracking-wider`}>
               Match starting in {countdown}...
             </p>
-            <p className="text-[#0F172A] font-medium text-sm mt-1">
+            <p className={`${text} font-medium text-sm mt-1`}>
               {subject === "vocabulary" ? "Vocabulary Sprint" : "Punctuation Sprint"} · 60 seconds
             </p>
           </div>
@@ -493,11 +517,12 @@ export default function RankedPage() {
       : 16;
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
-      <Link
-        href="/"
-        className="absolute top-5 left-5 text-[#64748B] hover:text-[#0F172A] text-sm font-bold transition-colors flex items-center gap-1"
-      >
+    <main className={`min-h-screen ${bg} flex flex-col items-center justify-center px-6`}>
+      <div className="absolute top-5 left-5 right-5 flex items-center justify-between">
+        <Link
+          href="/"
+          className={`text-sm font-bold transition-colors flex items-center gap-1 ${textMuted} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
+        >
         <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
           <path
             fillRule="evenodd"
@@ -507,68 +532,67 @@ export default function RankedPage() {
         </svg>
         Back
       </Link>
+        <ThemeToggle />
+      </div>
 
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#ECFDF5] border border-[#34D399]/50 text-sm font-bold text-[#059669] mb-4">
-            <TrophyIcon className="w-4 h-4" color="#34D399" />
+          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4 ${light ? "bg-[#ECFDF5] border border-[#34D399]/50 text-[#059669]" : "bg-[#34D399]/20 border border-[#34D399]/40 text-[#34D399]"}`}>
+            <TrophyIcon className="w-4 h-4" color={MINT} />
             Ranked Mode
           </div>
-          <h1 className="text-4xl font-extrabold text-[#0F172A] mb-2">
+          <h1 className={`text-4xl font-extrabold mb-2 ${text}`}>
             Enter the Ladder
           </h1>
-          <p className="text-[#64748B] font-medium">
+          <p className={`font-medium ${textMuted}`}>
             Trophies on the line. Every answer matters!
           </p>
         </div>
 
         {/* Your avatar card */}
-        <div className="rounded-3xl p-6 bg-[#F8FAFC] border border-[#E2E8F0] shadow-lg">
+        <div className={`rounded-3xl p-6 ${cardBg} border ${cardBorder} shadow-lg`}>
           <div className="flex items-center gap-5">
             <InkAvatar config={profile.avatar_config} size="lg" />
             <div className="flex-1">
-              <p className="text-[#0F172A] font-extrabold text-lg">
+              <p className={`font-extrabold text-lg ${text}`}>
                 {profile.username}
               </p>
               <div className="flex items-center gap-2 mt-1">
                 <RankBadge tier={profile.rank_tier} size="sm" />
-                <span className="text-[#64748B] text-sm font-bold">
+                <span className={`text-sm font-bold ${textMuted}`}>
                   {profile.trophies} trophies
                 </span>
               </div>
-              <div className="mt-3">
-                <ProgressBar
-                  value={tierProgress}
-                  height="h-2.5"
-                  color={
-                    profile.rank_tier === "Gold"
-                      ? "#D4AF37"
-                      : profile.rank_tier === "Silver"
-                      ? "#C0C0C0"
-                      : profile.rank_tier === "Platinum"
-                      ? "#7DD3FC"
-                      : profile.rank_tier === "Diamond"
-                      ? "#A78BFA"
-                      : "#CD7F32"
-                  }
-                />
-                <p className="text-[#64748B] text-[10px] font-semibold mt-1">
-                  {tierProgress}% through {profile.rank_tier}
-                  {tierIdx < RANK_TIERS.length - 1 &&
-                    ` · ${RANK_TIERS[tierIdx + 1]} at ${
-                      getTrophiesNeededForNextTier(profile.rank_tier) ?? ""
-                    }`}
-                </p>
+              <div className="mt-4">
+                <div className={`flex justify-between text-sm font-bold mb-2 ${text}`}>
+                  <span>{profile.rank_tier} → {tierIdx < RANK_TIERS.length - 1 ? RANK_TIERS[tierIdx + 1] : "Max"}</span>
+                  <span style={{ color: RANK_COLORS[profile.rank_tier] }}>{tierProgress}%</span>
+                </div>
+                <div className={`w-full h-5 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${tierProgress}%`,
+                      backgroundColor: RANK_COLORS[profile.rank_tier],
+                      boxShadow: `0 0 14px ${RANK_COLORS[profile.rank_tier]}80`,
+                    }}
+                  />
+                </div>
+                {tierIdx < RANK_TIERS.length - 1 && (
+                  <p className={`text-xs font-semibold mt-2 ${textMuted}`}>
+                    {(getTrophiesNeededForNextTier(profile.rank_tier) ?? 0) - profile.trophies} trophies to {RANK_TIERS[tierIdx + 1]}
+                  </p>
+                )}
               </div>
             </div>
           </div>
         </div>
 
         {/* Match info */}
-        <div className="rounded-2xl p-4 bg-[#F8FAFC] border border-[#E2E8F0] shadow-md">
-          <p className="text-[#0F172A] font-bold text-sm mb-3">This match</p>
+        <div className={`rounded-2xl p-4 ${cardBg} border ${cardBorder} shadow-md`}>
+          <p className={`font-bold text-sm mb-3 ${text}`}>This match</p>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2 text-[#64748B]">
+            <div className={`flex items-center gap-2 ${textMuted}`}>
               {subject === "vocabulary" ? (
                 <BookIcon className="w-4 h-4" color="#3B82F6" />
               ) : (
@@ -578,7 +602,7 @@ export default function RankedPage() {
                 {isGoldPlus ? `Subject: ${subject}` : "Vocabulary only"}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-[#5B5B7B]">
+            <div className={`flex items-center gap-2 ${textMuted}`}>
               <span className="font-bold">60s</span>
               <span>sprint</span>
             </div>
@@ -597,13 +621,14 @@ export default function RankedPage() {
 
         <button
           onClick={startSearch}
-          className="w-full py-4 rounded-2xl font-extrabold text-lg text-white bg-[#34D399] hover:bg-[#10B981] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
+          className="w-full py-4 rounded-2xl font-extrabold text-lg text-white transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 hover:opacity-90"
+          style={{ backgroundColor: MINT }}
         >
           <TrophyIcon className="w-6 h-6" color="white" />
           Find Match
         </button>
 
-        <p className="text-center text-[#64748B] text-xs font-semibold">
+        <p className={`text-center text-xs font-semibold ${textMuted}`}>
           Online matchmaking · Bot fallback if no opponent found
         </p>
       </div>
