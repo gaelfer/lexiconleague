@@ -1,4 +1,5 @@
 import { Question } from "@/types";
+import { seededShuffle } from "./matchmaking";
 
 export const VOCAB_QUESTIONS: Question[] = [
   {
@@ -332,4 +333,14 @@ export function getMixedQuestions(count: number = 20): Question[] {
   const all = [...VOCAB_QUESTIONS, ...PUNCTUATION_QUESTIONS];
   const shuffled = all.sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(count, shuffled.length));
+}
+
+export function getSeededQuestions(
+  subject: "vocabulary" | "punctuation",
+  seed: string,
+  count: number = 20
+): Question[] {
+  const pool = subject === "vocabulary" ? VOCAB_QUESTIONS : PUNCTUATION_QUESTIONS;
+  const shuffled = seededShuffle(pool, seed);
+  return shuffled.slice(0, Math.min(count, pool.length));
 }

@@ -45,7 +45,7 @@ const TABS: { id: ShopTab; label: string }[] = [
 ];
 
 export default function ShopPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tab, setTab] = useState<ShopTab>("daily");
   const [toast, setToast] = useState<{
@@ -58,12 +58,17 @@ export default function ShopPage() {
   >(null);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      window.location.href = "/auth/signup?from=shop";
+      return;
+    }
     let p = getProfile();
     if (!p) p = createGuestProfile();
     if (!p.unlocked_items) p.unlocked_items = [...FREE_ITEM_IDS];
     if (p.ink_drops === undefined) p.ink_drops = 0;
     setProfile(p);
-  }, []);
+  }, [user, authLoading]);
 
   const showToast = useCallback(
     (type: "success" | "error" | "info", msg: string) => {

@@ -2,7 +2,8 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import GoogleIcon from "@/components/icons/GoogleIcon";
@@ -13,9 +14,27 @@ import TrophyIcon from "@/components/icons/TrophyIcon";
 
 type View = "providers" | "email";
 
+const GATE_MESSAGES: Record<string, string> = {
+  shop: "Sign up to claim daily Ink Drop rewards and buy cosmetics!",
+  locker: "Sign up to customize your Ink Avatar!",
+  ranked: "Sign up to compete in Ranked Mode!",
+};
+
 const GRADES = ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Other"];
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <SignupPageInner />
+    </Suspense>
+  );
+}
+
+function SignupPageInner() {
+  const searchParams = useSearchParams();
+  const fromPage = searchParams.get("from") ?? "";
+  const gateMessage = GATE_MESSAGES[fromPage] ?? "";
+
   const [view, setView] = useState<View>("providers");
   const [username, setUsername] = useState("");
   const [grade, setGrade] = useState("");
@@ -141,6 +160,12 @@ export default function SignupPage() {
               Lexicon<span className="text-[#3B82F6]">League</span>
             </span>
           </div>
+
+          {gateMessage && (
+            <div className="mb-4 px-4 py-3 rounded-2xl bg-[#DBEAFE] border border-[#3B82F6]/30 text-sm font-bold text-[#3B82F6]">
+              {gateMessage}
+            </div>
+          )}
 
           <div className="mb-8">
             <h2 className="text-3xl font-extrabold text-[#0F172A] mb-1">

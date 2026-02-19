@@ -74,10 +74,22 @@ body {
   75% { transform: rotate(3deg); }
 }
 
+@keyframes slide-in-left {
+  0% { transform: translateX(-40px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  0% { transform: translateX(40px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
 .animate-bounce-soft { animation: bounce-soft 2s ease-in-out infinite; }
 .animate-pop-in { animation: pop-in 0.3s ease-out; }
 .animate-slide-up { animation: slide-up 0.35s ease-out; }
 .animate-wiggle { animation: wiggle 0.5s ease-in-out; }
+.animate-slide-in-left { animation: slide-in-left 0.5s ease-out; }
+.animate-slide-in-right { animation: slide-in-right 0.5s ease-out; }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 8px; }

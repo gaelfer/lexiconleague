@@ -106,17 +106,6 @@ export default function Home() {
               ) : (
                 <div className="flex items-center gap-2">
                   <Link
-                    href="/shop"
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#DBEAFE] border border-[#3B82F6]/20 hover:bg-[#BFDBFE] transition-colors"
-                    title="Ink Shop"
-                  >
-                    <InkDropIcon className="w-3.5 h-3.5" color="#3B82F6" />
-                    <span className="text-xs font-bold text-[#3B82F6]">{profile?.ink_drops ?? 0}</span>
-                  </Link>
-                  <Link href="/locker" className="p-1.5 rounded-xl hover:bg-[#F8FAFC] transition-colors" title="Ink Locker">
-                    {profile && <InkAvatar config={profile.avatar_config} size="xs" />}
-                  </Link>
-                  <Link
                     href="/auth/login"
                     className="px-4 py-2.5 text-sm font-bold text-[#64748B] hover:text-[#0F172A] transition-colors"
                   >

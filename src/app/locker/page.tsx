@@ -32,7 +32,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export default function LockerPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [config, setConfig] = useState<InkAvatarConfig>({ ...DEFAULT_AVATAR_CONFIG });
   const [savedConfig, setSavedConfig] = useState<InkAvatarConfig>({ ...DEFAULT_AVATAR_CONFIG });
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -42,22 +42,21 @@ export default function LockerPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      window.location.href = "/auth/signup?from=locker";
+      return;
+    }
     async function load() {
       const p = getProfile();
       setProfile(p);
-      if (user) {
-        const remote = await fetchAvatarConfig(user.id);
-        setConfig(remote);
-        setSavedConfig(remote);
-      } else {
-        const local = p?.avatar_config ?? { ...DEFAULT_AVATAR_CONFIG };
-        setConfig(local);
-        setSavedConfig(local);
-      }
+      const remote = await fetchAvatarConfig(user!.id);
+      setConfig(remote);
+      setSavedConfig(remote);
       setLoading(false);
     }
     load();
-  }, [user]);
+  }, [user, authLoading]);
 
   const showToast = useCallback((type: "success" | "error", msg: string) => {
     setToast({ type, msg });
@@ -190,11 +189,7 @@ export default function LockerPage() {
           >
             {saving ? "Saving..." : hasChanges ? "Save Avatar" : "No Changes"}
           </button>
-          {!user && (
-            <p className="text-xs text-[#64748B] text-center max-w-[280px]">
-              Playing as guest. <Link href="/auth/signup" className="text-[#3B82F6] font-bold hover:underline">Create account</Link> to save online.
-            </p>
-          )}
+          {/* Auth required — user is always logged in on this page */}
         </div>
 
         {/* Controls */}
