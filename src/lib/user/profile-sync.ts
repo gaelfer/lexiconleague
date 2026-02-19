@@ -15,6 +15,10 @@ export async function syncProfileForUser(
 
   if (remote) {
     // Prefer remote for auth user; merge local game progress if local has more trophies (e.g. from before sync)
+    // For daily reward: prefer whichever is more recent (if local claimed today and remote didn't, keep local)
+    const localClaim = local?.daily_reward_claimed_at ? new Date(local.daily_reward_claimed_at) : null;
+    const remoteClaim = remote.daily_reward_claimed_at ? new Date(remote.daily_reward_claimed_at) : null;
+    const useLocalDaily = localClaim && (!remoteClaim || localClaim > remoteClaim);
     const merged: UserProfile = {
       ...remote,
       email: email || remote.email,
@@ -27,6 +31,8 @@ export async function syncProfileForUser(
           ...(local?.unlocked_items ?? []),
         ]),
       ],
+      daily_reward_claimed_at: useLocalDaily ? local!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
+      daily_streak: useLocalDaily ? (local!.daily_streak ?? 0) : (remote.daily_streak ?? 0),
     };
     saveProfile(merged);
     // Persist merged state to Supabase

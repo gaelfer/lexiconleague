@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTheme } from "@/context/ThemeContext";
 import { getProfile, createGuestProfile } from "@/lib/user/storage";
 import { getLevelProgress, LEVEL_REWARDS } from "@/lib/user/levels";
+import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -93,7 +94,10 @@ export default function LevelsPage() {
 
       <div className="flex-1 px-4 sm:px-6 py-4 max-w-4xl mx-auto w-full">
         {/* Level progress summary */}
-        <div className={`rounded-xl p-4 mb-6 ${cardBg} border ${cardBorder}`}>
+        <div className={`rounded-xl p-4 mb-6 ${cardBg} border ${cardBorder} relative overflow-visible`}>
+          <div className="absolute -top-3 -right-4 opacity-80 pointer-events-none" style={{ transform: "rotate(-8deg)" }}>
+            <InkAvatar config={{ base: "droplet_03", color: "#8B5CF6", eyes: "eyes_05", accessory: "wizard_01", aura: "aura_glow_02" }} size={56} />
+          </div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${light ? "bg-[#DBEAFE]" : "bg-[#3B82F6]/20"}`}>

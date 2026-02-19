@@ -270,7 +270,12 @@ export default function Home() {
       </header>
 
       <section className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 pt-10 sm:pt-16 pb-8 gap-4 max-w-2xl mx-auto w-full">
-        <p className={`text-sm font-semibold ${textMuted}`}>Season 1</p>
+        <div className="relative inline-block">
+          <div className="absolute -top-2 -right-4 sm:-right-6 opacity-80" style={{ transform: "rotate(-8deg)" }}>
+            <InkAvatar config={{ base: "droplet_01", color: "#3B82F6", eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={56} />
+          </div>
+          <p className={`text-sm font-semibold ${textMuted}`}>Season 1</p>
+        </div>
         <h1 className={`text-3xl sm:text-4xl font-bold ${text} leading-tight`}>
           Vocabulary and punctuation. 60 seconds. Climb the ranks.
         </h1>
@@ -420,8 +425,11 @@ export default function Home() {
 
       {profile && canClaimDailyReward(profile) && (
         <section className="relative z-10 px-4 sm:px-6 py-2 max-w-lg mx-auto w-full">
-          <Link href="/shop" className="block">
-            <div className={`rounded-xl p-4 flex items-center gap-4 ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"} transition-colors hover:opacity-90`}>
+          <Link href="/shop" className="block relative">
+            <div className={`rounded-xl p-4 flex items-center gap-4 ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"} transition-colors hover:opacity-90 overflow-visible`}>
+              <div className="absolute -bottom-1 -right-4 opacity-75 pointer-events-none" style={{ transform: "rotate(8deg)" }}>
+                <InkAvatar config={{ base: "droplet_01", color: MINT, eyes: "eyes_03", accessory: "none", aura: "aura_glow_01" }} size={52} />
+              </div>
               <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: MINT }}>
                 <InkDropIcon className="w-5 h-5" color="white" />
               </div>
@@ -436,20 +444,20 @@ export default function Home() {
       )}
 
       <section className="relative z-10 px-4 sm:px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto w-full">
-        <Link href="/play/casual" className="block">
-          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#3B82F6]/40 h-full`}>
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${light ? "bg-[#DBEAFE]" : "bg-[#3B82F6]/20"}`}>
-              <BookIcon className="w-6 h-6" color={BLUE} />
+        <Link href="/play/casual" className="block relative">
+          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#3B82F6]/40 h-full relative overflow-visible`}>
+            <div className="absolute -top-3 -right-2 opacity-90 pointer-events-none" style={{ transform: "rotate(12deg)" }}>
+              <InkAvatar config={{ base: "droplet_01", color: "#3B82F6", eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={64} />
             </div>
             <h3 className={`${text} font-bold text-lg mb-2`}>Casual Mode</h3>
             <p className={`${textMuted} text-sm mb-4`}>Vocabulary or punctuation. 60 seconds. No rank impact.</p>
             <span className="text-sm font-bold" style={{ color: BLUE }}>Play now →</span>
           </div>
         </Link>
-        <Link href={user ? "/ranked" : "/auth/signup?from=ranked"} className="block">
-          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#34D399]/40 h-full`}>
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${light ? "bg-[#D1FAE5]" : "bg-[#34D399]/20"}`}>
-              <TrophyIcon className="w-6 h-6" color={MINT} />
+        <Link href={user ? "/ranked" : "/auth/signup?from=ranked"} className="block relative">
+          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#34D399]/40 h-full relative overflow-visible`}>
+            <div className="absolute -top-2 -left-2 opacity-90 pointer-events-none" style={{ transform: "rotate(-15deg)" }}>
+              <InkAvatar config={{ base: "droplet_02", color: "#22C55E", eyes: "eyes_02", accessory: "crown_01", aura: "aura_glow_01" }} size={64} />
             </div>
             <h3 className={`${text} font-bold text-lg mb-2`}>Ranked Mode</h3>
             <p className={`${textMuted} text-sm mb-4`}>Earn trophies. Climb Bronze to Diamond.</p>

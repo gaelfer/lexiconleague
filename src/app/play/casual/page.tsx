@@ -9,6 +9,7 @@ import { getProfile } from "@/lib/user/storage";
 import { upsertProfile } from "@/lib/supabase/profile";
 import GameScreen from "@/components/GameScreen";
 import ResultsScreen from "@/components/ResultsScreen";
+import InkAvatar from "@/components/InkAvatar";
 import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -79,7 +80,10 @@ export default function CasualPage() {
       </header>
 
       <div className="flex-1 max-w-md mx-auto w-full px-4 sm:px-5 py-8 flex flex-col items-center justify-center">
-        <div className="text-center space-y-2 mb-8">
+        <div className="text-center space-y-2 mb-8 relative">
+          <div className="absolute -top-4 -right-8 sm:-right-12 opacity-80 pointer-events-none" style={{ transform: "rotate(15deg)" }}>
+            <InkAvatar config={{ base: "droplet_02", color: "#8B5CF6", eyes: "eyes_05", accessory: "glasses_01", aura: "none" }} size={72} />
+          </div>
           <h1 className={`text-2xl sm:text-3xl font-extrabold ${text}`}>Choose Your Sprint</h1>
           <p className={`${textMuted} text-sm font-medium`}>
             60 seconds. No rank impact—just fun!
@@ -89,8 +93,11 @@ export default function CasualPage() {
         <div className="grid grid-cols-2 gap-3 w-full">
           <button
             onClick={() => handleStart("vocabulary")}
-            className={`group rounded-2xl p-5 border text-left transition-all active:scale-[0.97] ${cardBg} ${cardBorder} hover:border-[#3B82F6]/40 hover:shadow-lg`}
+            className={`group rounded-2xl p-5 border text-left transition-all active:scale-[0.97] ${cardBg} ${cardBorder} hover:border-[#3B82F6]/40 hover:shadow-lg relative overflow-visible`}
           >
+            <div className="absolute -bottom-2 -left-3 opacity-70 pointer-events-none" style={{ transform: "rotate(-10deg)" }}>
+              <InkAvatar config={{ base: "droplet_01", color: "#3B82F6", eyes: "eyes_04", accessory: "glasses_01", aura: "none" }} size={56} />
+            </div>
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${light ? "bg-[#DBEAFE]" : "bg-[#3B82F6]/20"} group-hover:scale-110 transition-transform`}>
               <BookIcon className="w-6 h-6" color={BLUE} />
             </div>
@@ -108,8 +115,11 @@ export default function CasualPage() {
 
           <button
             onClick={() => handleStart("punctuation")}
-            className={`group rounded-2xl p-5 border text-left transition-all active:scale-[0.97] ${cardBg} ${cardBorder} hover:border-[#34D399]/40 hover:shadow-lg`}
+            className={`group rounded-2xl p-5 border text-left transition-all active:scale-[0.97] ${cardBg} ${cardBorder} hover:border-[#34D399]/40 hover:shadow-lg relative overflow-visible`}
           >
+            <div className="absolute -bottom-2 -right-3 opacity-70 pointer-events-none" style={{ transform: "rotate(8deg)" }}>
+              <InkAvatar config={{ base: "droplet_02", color: "#22C55E", eyes: "eyes_07", accessory: "quill_01", aura: "none" }} size={56} />
+            </div>
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${light ? "bg-[#D1FAE5]" : "bg-[#34D399]/20"} group-hover:scale-110 transition-transform`}>
               <PencilIcon className="w-6 h-6" color={MINT} />
             </div>

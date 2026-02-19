@@ -287,7 +287,10 @@ export default function RankedScreenPage() {
           )}
         </div>
 
-        <div className={`rounded-2xl overflow-hidden ${cardBg} border ${cardBorder} shadow-lg`}>
+        <div className={`rounded-2xl overflow-hidden ${cardBg} border ${cardBorder} shadow-lg relative`}>
+          <div className="absolute -bottom-4 -right-6 opacity-75 pointer-events-none z-10" style={{ transform: "rotate(15deg)" }}>
+            <InkAvatar config={{ base: "droplet_01", color: "#D4AF37", eyes: "eyes_02", accessory: "crown_01", aura: "aura_glow_03" }} size={64} />
+          </div>
           <div className={`px-6 py-4 border-b ${cardBorder} flex items-center justify-between`}>
             <h2 className={`${text} font-bold text-lg flex items-center gap-2`}>
               <TrophyIcon className="w-5 h-5" color={MINT} />

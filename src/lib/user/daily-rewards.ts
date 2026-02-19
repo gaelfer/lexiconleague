@@ -70,7 +70,8 @@ export function claimDailyReward(profile: UserProfile): {
   const dayIndex = streak % 7;
   const reward = DAILY_REWARDS[dayIndex];
 
-  profile.daily_streak = streak;
+  // After claiming, streak = days claimed in a row (1 for first claim)
+  profile.daily_streak = streak === 0 ? 1 : streak;
   profile.daily_reward_claimed_at = now.toISOString();
   profile.ink_drops = (profile.ink_drops ?? 0) + reward.drops;
   saveProfile(profile);

@@ -64,11 +64,18 @@ export default function ShopPage() {
       window.location.href = "/auth/signup?from=shop";
       return;
     }
-    let p = getProfile();
-    if (!p) p = createGuestProfile();
-    if (!p.unlocked_items) p.unlocked_items = [...FREE_ITEM_IDS];
-    if (p.ink_drops === undefined) p.ink_drops = 0;
-    setProfile(p);
+    async function loadProfile() {
+      let p = getProfile();
+      if (!p) p = createGuestProfile();
+      if (user?.id) {
+        const { syncProfileForUser } = await import("@/lib/user/profile-sync");
+        p = await syncProfileForUser(user.id, user.email ?? "");
+      }
+      if (!p.unlocked_items) p.unlocked_items = [...FREE_ITEM_IDS];
+      if (p.ink_drops === undefined) p.ink_drops = 0;
+      setProfile(p);
+    }
+    loadProfile();
   }, [user, authLoading]);
 
   const showToast = useCallback((type: "success" | "error" | "info", msg: string) => {
@@ -81,20 +88,23 @@ export default function ShopPage() {
     if (p) setProfile({ ...p });
   }
 
-  function handleClaim() {
-    if (!profile || !canClaimDailyReward(profile)) return;
+  async function handleClaim() {
+    const fresh = getProfile();
+    if (!fresh || !canClaimDailyReward(fresh)) return;
     setClaimAnimating(true);
-    const result = claimDailyReward(profile);
+    const result = claimDailyReward(fresh);
     if (!result) {
       setClaimAnimating(false);
       return;
     }
     const { updatedProfile, reward } = result;
-    setTimeout(() => {
-      setProfile({ ...updatedProfile });
-      setClaimedReward(reward);
-      setClaimAnimating(false);
-    }, 400);
+    setProfile({ ...updatedProfile });
+    setClaimedReward(reward);
+    setClaimAnimating(false);
+    if (user?.id) {
+      const { upsertProfile } = await import("@/lib/supabase/profile");
+      await upsertProfile(user.id, updatedProfile);
+    }
   }
 
   function handleBuy(item: CosmeticItem | ColorItem) {
@@ -213,7 +223,7 @@ export default function ShopPage() {
           <SparkIcon className="w-5 h-5" color={MINT} />
           Ink Shop
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative">
           <ThemeToggle />
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 ${
@@ -222,6 +232,9 @@ export default function ShopPage() {
           >
             <InkDropIcon className="w-5 h-5" color={MINT} />
             <span className="text-base font-extrabold" style={{ color: MINT }}>{profile.ink_drops ?? 0}</span>
+          </div>
+          <div className="absolute -bottom-2 -right-2 opacity-75 pointer-events-none hidden sm:block" style={{ transform: "rotate(15deg)" }}>
+            <InkAvatar config={{ base: "droplet_01", color: "#EC4899", eyes: "eyes_06", accessory: "bow_01", aura: "aura_glow_02" }} size={48} />
           </div>
         </div>
       </header>
@@ -235,9 +248,12 @@ export default function ShopPage() {
           style={{ boxShadow: light ? "0 2px 12px rgba(52,211,153,0.15)" : "0 2px 12px rgba(52,211,153,0.1)" }}
         >
           <div className="px-4 py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-3 min-w-0 relative overflow-visible">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${light ? "bg-white/80" : "bg-[#34D399]/20"}`}>
                 <InkDropIcon className="w-5 h-5" color={MINT} />
+              </div>
+              <div className="absolute -bottom-3 -right-1 opacity-80 pointer-events-none" style={{ transform: "rotate(-12deg)" }}>
+                <InkAvatar config={{ base: "droplet_02", color: MINT, eyes: "eyes_03", accessory: "none", aura: "aura_glow_01" }} size={52} />
               </div>
               <div className="min-w-0">
                 <p className={`text-sm font-bold ${text}`}>Daily reward</p>
@@ -372,41 +388,34 @@ export default function ShopPage() {
                 </div>
               </div>
 
-              {/* 7-day cycle — more breathing room */}
+              {/* Upcoming rewards — claimed + 2 next */}
               <div className="p-4 sm:p-5 rounded-2xl shrink-0" style={{ backgroundColor: light ? "rgba(52,211,153,0.08)" : "rgba(52,211,153,0.12)", border: "2px solid rgba(52,211,153,0.3)" }}>
-                <p className={`text-xs font-extrabold uppercase tracking-wider ${textMuted} mb-4 text-center`}>7-day cycle</p>
-                <div className="flex sm:grid sm:grid-cols-7 gap-3 overflow-x-auto pb-2 -mx-1 px-1 sm:overflow-visible sm:mx-0 sm:px-0 scrollbar-hide">
-                  {DAILY_REWARDS.map((r, i) => {
-                    const dayNum = i + 1;
-                    const isPast = dayNum < claimedReward.day;
-                    const isJustClaimed = dayNum === claimedReward.day;
-                    return (
-                      <div
-                        key={dayNum}
-                        className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all shrink-0 w-[76px] sm:w-auto sm:min-h-[72px] ${
-                          isJustClaimed
-                            ? light ? "border-[#34D399] bg-[#ECFDF5] shadow-[0_0_12px_rgba(52,211,153,0.4)]" : "border-[#34D399] bg-[#34D399]/25 shadow-[0_0_12px_rgba(52,211,153,0.3)]"
-                            : isPast
-                            ? light ? "border-[#34D399]/50 bg-[#ECFDF5]/80" : "border-[#34D399]/40 bg-[#34D399]/15"
-                            : light ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-60" : "border-white/15 bg-[#0F172A]/40 opacity-60"
-                        }`}
-                      >
-                        <span className="text-xs font-extrabold truncate w-full text-center">{r.label}</span>
-                        <div className="flex items-center gap-0.5 mt-1.5">
-                          <InkDropIcon className="w-4 h-4 shrink-0" color={MINT} />
-                          <span className="text-xs font-extrabold" style={{ color: MINT }}>{r.drops}</span>
-                        </div>
-                        {isPast && (
-                          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mt-1.5 shrink-0" style={{ color: MINT }}>
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        {isJustClaimed && (
-                          <span className="text-[10px] font-extrabold mt-1.5 animate-pulse" style={{ color: MINT }}>✓ Today</span>
-                        )}
+                <p className={`text-xs font-extrabold uppercase tracking-wider ${textMuted} mb-3 text-center`}>Upcoming rewards</p>
+                <div className="flex gap-3 justify-center flex-wrap">
+                  {[
+                    { r: claimedReward, label: "Claimed", isClaimed: true },
+                    { r: DAILY_REWARDS[claimedReward.day % 7], label: "Tomorrow", isClaimed: false },
+                    { r: DAILY_REWARDS[(claimedReward.day + 1) % 7], label: "Day after", isClaimed: false },
+                  ].map(({ r, label, isClaimed }, i) => (
+                    <div
+                      key={i}
+                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 min-w-[100px] ${
+                        isClaimed
+                          ? light ? "border-[#34D399] bg-[#ECFDF5] shadow-[0_0_12px_rgba(52,211,153,0.4)]" : "border-[#34D399] bg-[#34D399]/25 shadow-[0_0_12px_rgba(52,211,153,0.3)]"
+                          : light ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-70" : "border-white/15 bg-[#0F172A]/40 opacity-70"
+                      }`}
+                    >
+                      <span className="text-xs font-extrabold text-center">{label}</span>
+                      <span className="text-[10px] font-bold text-center mt-0.5">{r.label}</span>
+                      <div className="flex items-center gap-0.5 mt-1.5">
+                        <InkDropIcon className="w-4 h-4 shrink-0" color={MINT} />
+                        <span className="text-sm font-extrabold" style={{ color: MINT }}>{r.drops}</span>
                       </div>
-                    );
-                  })}
+                      {isClaimed && (
+                        <span className="text-[10px] font-extrabold mt-1" style={{ color: MINT }}>✓</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
