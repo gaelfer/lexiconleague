@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Subject, GameResult, VocabLevel, DEFAULT_AVATAR_CONFIG, InkAvatarConfig } from "@/types";
+import { Subject, GameResult, VocabLevel, DEFAULT_AVATAR_CONFIG, InkAvatarConfig, RankTier, RANK_TIERS } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useParty, type PartyMember } from "@/context/PartyContext";
@@ -66,9 +66,14 @@ type QueueEntry = {
   subject: Subject;
   queuedAt: number;
   players: QueuePlayer[];
-  rank_tier?: string;
+  rank_tier?: RankTier;
 };
-type MatchPlayer = QueuePlayer & { team: MatchTeam; isBot?: boolean; rank_tier?: string };
+type MatchPlayer = QueuePlayer & { team: MatchTeam; isBot?: boolean; rank_tier?: RankTier };
+
+function toRankTier(value: unknown): RankTier | undefined {
+  if (typeof value !== "string") return undefined;
+  return RANK_TIERS.includes(value as RankTier) ? (value as RankTier) : undefined;
+}
 
 function toQueueEntries(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,27 +81,26 @@ function toQueueEntries(
   queueMode: CasualMode,
   queueSubject: Subject
 ): QueueEntry[] {
-  return Object.entries(state)
-    .map(([leaderId, raw]) => {
-      const meta = raw?.[0] as Partial<QueueEntry> | undefined;
-      if (!meta) return null;
-      if (meta.mode !== queueMode || meta.subject !== queueSubject) return null;
-      const players = Array.isArray(meta.players)
-        ? (meta.players.filter((p): p is QueuePlayer =>
-            Boolean(p && typeof p.id === "string" && typeof p.username === "string" && p.avatar_config)
-          ))
-        : [];
-      if (players.length === 0) return null;
-      return {
-        leaderId,
-        mode: meta.mode,
-        subject: meta.subject,
-        queuedAt: typeof meta.queuedAt === "number" ? meta.queuedAt : Date.now(),
-        players: players.slice(0, 3),
-        rank_tier: typeof meta.rank_tier === "string" ? meta.rank_tier : undefined,
-      };
-    })
-    .filter((entry): entry is QueueEntry => Boolean(entry));
+  return Object.entries(state).reduce<QueueEntry[]>((acc, [leaderId, raw]) => {
+    const meta = raw?.[0] as Partial<QueueEntry> | undefined;
+    if (!meta) return acc;
+    if (meta.mode !== queueMode || meta.subject !== queueSubject) return acc;
+    const players = Array.isArray(meta.players)
+      ? (meta.players.filter((p): p is QueuePlayer =>
+          Boolean(p && typeof p.id === "string" && typeof p.username === "string" && p.avatar_config)
+        ))
+      : [];
+    if (players.length === 0) return acc;
+    acc.push({
+      leaderId,
+      mode: meta.mode,
+      subject: meta.subject,
+      queuedAt: typeof meta.queuedAt === "number" ? meta.queuedAt : Date.now(),
+      players: players.slice(0, 3),
+      rank_tier: toRankTier(meta.rank_tier),
+    });
+    return acc;
+  }, []);
 }
 
 function findEntriesTotal(
@@ -127,27 +131,33 @@ function findEntriesTotal(
 }
 
 function splitTeams(entries: QueueEntry[]): { teamA: QueueEntry[]; teamB: QueueEntry[] } | null {
-  let teamA: QueueEntry[] | null = null;
+  const n = entries.length;
+  if (n === 0) return null;
+  const maxMask = 1 << n;
+  let chosenTeamA: QueueEntry[] | null = null;
 
-  function dfs(index: number, picked: QueueEntry[], total: number) {
-    if (teamA) return;
-    if (total === 3) {
-      teamA = [...picked];
-      return;
+  for (let mask = 1; mask < maxMask; mask++) {
+    const picked: QueueEntry[] = [];
+    let total = 0;
+    for (let i = 0; i < n; i++) {
+      if ((mask & (1 << i)) === 0) continue;
+      picked.push(entries[i]);
+      total += entries[i].players.length;
+      if (total > 3) break;
     }
-    if (total > 3 || index >= entries.length) return;
-    dfs(index + 1, [...picked, entries[index]], total + entries[index].players.length);
-    dfs(index + 1, picked, total);
+    if (total === 3) {
+      chosenTeamA = picked;
+      break;
+    }
   }
 
-  dfs(0, [], 0);
-  if (!teamA) return null;
-  const teamAIds = new Set(teamA.map((e) => e.leaderId));
+  if (!chosenTeamA) return null;
+  const teamAIds = new Set(chosenTeamA.map((e) => e.leaderId));
   const teamB = entries.filter((e) => !teamAIds.has(e.leaderId));
-  const countA = teamA.reduce((sum, e) => sum + e.players.length, 0);
+  const countA = chosenTeamA.reduce((sum, e) => sum + e.players.length, 0);
   const countB = teamB.reduce((sum, e) => sum + e.players.length, 0);
   if (countA !== 3 || countB !== 3) return null;
-  return { teamA, teamB };
+  return { teamA: chosenTeamA, teamB };
 }
 
 function findEntriesBestAtMost(
@@ -180,7 +190,7 @@ function findEntriesBestAtMost(
 
 function buildMixedTeamsWithBots(
   entries: QueueEntry[],
-  defaultTier: string
+  defaultTier: RankTier
 ): MatchPlayer[] {
   const sorted = [...entries].sort(
     (a, b) => b.players.length - a.players.length || a.queuedAt - b.queuedAt || a.leaderId.localeCompare(b.leaderId)
