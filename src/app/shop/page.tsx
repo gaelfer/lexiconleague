@@ -301,6 +301,17 @@ export default function ShopPage() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <GlobalNotificationBar />
+          <Link
+            href="/locker"
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl border-2 font-bold text-sm transition-all ${
+              light ? "bg-white border-[#E2E8F0] text-[#64748B] hover:border-[#3B82F6] hover:text-[#3B82F6]" : "bg-[#1E293B] border-white/10 text-white/60 hover:border-[#3B82F6] hover:text-white"
+            }`}
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+            </svg>
+            Locker
+          </Link>
           <div
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 ${
               light ? "bg-[#ECFDF5] border-[#34D399]/40 shadow-[0_2px_8px_rgba(52,211,153,0.2)]" : "bg-[#1E293B] border-[#34D399]/40 shadow-[0_2px_8px_rgba(52,211,153,0.15)]"

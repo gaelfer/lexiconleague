@@ -68,6 +68,7 @@ export default function LevelsPage() {
   const { user } = useAuth();
   const { light } = useTheme();
   const [profile, setProfile] = useState(() => getProfile() ?? createGuestProfile());
+  const [hoveredReward, setHoveredReward] = useState<number | null>(null);
   const levelProgress = getLevelProgress(profile.xp);
   const currentLevel = levelProgress.level;
 
@@ -150,9 +151,10 @@ export default function LevelsPage() {
                 const claimed = isLevelRewardClaimed(reward.level, profile);
                 const claimable = levelReached && !claimed;
                 const isNext = !levelReached && reward.level === LEVEL_REWARDS.find(r => r.level > currentLevel)?.level;
-                const RewardVisual = reward.type === "ink_drops" ? InkDropIcon : reward.type === "cosmetic" ? PaletteIcon : reward.type === "title" ? CrownIcon : StarIcon;
-                const rewardColor = reward.type === "ink_drops" ? MINT : reward.type === "cosmetic" ? "#8B5CF6" : reward.type === "title" ? "#D4AF37" : BLUE;
+                const RewardVisual = reward.type === "ink_drops" ? InkDropIcon : reward.type === "title" ? CrownIcon : StarIcon;
+                const rewardColor = reward.type === "ink_drops" ? MINT : reward.type === "title" ? "#D4AF37" : BLUE;
                 const above = i % 2 === 0;
+                const isHovered = hoveredReward === reward.level;
 
                 async function handleClaim() {
                   if (user) {
@@ -171,34 +173,64 @@ export default function LevelsPage() {
                   if (result.success) setProfile(getProfile() ?? profile);
                 }
 
+                const tooltipTypeLabel =
+                  reward.type === "ink_drops" ? `💧 ${reward.amount} Ink Drops` :
+                  reward.type === "title" ? `🏅 "${reward.label}"` :
+                  `⭐ ${reward.label}`;
+
                 const RewardBox = () => (
-                  <div
-                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex flex-col items-center justify-center border-2 transition-all ${
-                      claimed ? "border-transparent" : claimable ? "" : isNext ? "" : light ? "border-[#E2E8F0] bg-[#F8FAFC]" : "border-white/10 bg-[#0F172A]"
-                    }`}
-                    style={{
-                      backgroundColor: claimed ? BLUE : claimable ? `${BLUE}15` : isNext ? `${BLUE}15` : undefined,
-                      borderColor: claimable || isNext ? BLUE : undefined,
-                      boxShadow: claimed ? `0 4px 12px ${BLUE}40` : claimable || isNext ? `0 4px 12px ${BLUE}25` : undefined,
-                    }}
-                  >
-                    {claimed ? (
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : claimable ? (
-                      <button
-                        onClick={handleClaim}
-                        className="w-full h-full flex flex-col items-center justify-center rounded-lg font-bold text-[10px] active:scale-95 transition-transform"
-                        style={{ color: BLUE }}
+                  <div className="relative">
+                    {/* Hover tooltip */}
+                    {isHovered && (
+                      <div
+                        className={`absolute z-30 w-36 rounded-xl border-2 p-2.5 shadow-xl text-center pointer-events-none ${
+                          light ? "bg-white border-[#E2E8F0]" : "bg-[#1E293B] border-white/20"
+                        } ${above ? "bottom-full mb-2 left-1/2 -translate-x-1/2" : "top-full mt-2 left-1/2 -translate-x-1/2"}`}
                       >
-                        Claim
-                      </button>
-                    ) : isNext ? (
-                      <RewardVisual className="w-5 h-5 sm:w-6 sm:h-6" color={rewardColor} />
-                    ) : (
-                      <LockIcon className="w-4 h-4" color={light ? "#94A3B8" : "rgba(255,255,255,0.3)"} />
+                        <p className="text-[11px] font-extrabold" style={{ color: rewardColor }}>{tooltipTypeLabel}</p>
+                        <p className={`text-[9px] font-semibold mt-0.5 ${textFaint}`}>Level {reward.level} Reward</p>
+                        {(reward.type === "title" || reward.type === "badge") && (
+                          <p className={`text-[9px] font-bold mt-1 ${textMuted}`}>Exclusive — not available in the shop</p>
+                        )}
+                        {reward.type === "ink_drops" && (
+                          <p className={`text-[9px] font-bold mt-1 ${textMuted}`}>Claim once per account</p>
+                        )}
+                        {/* Arrow pointing toward the node */}
+                        <div
+                          className={`absolute left-1/2 -translate-x-1/2 w-2 h-2 border-b-2 border-r-2 rotate-45 ${
+                            light ? "bg-white border-[#E2E8F0]" : "bg-[#1E293B] border-white/20"
+                          } ${above ? "top-full -mt-1" : "bottom-full -mb-1 rotate-[225deg]"}`}
+                        />
+                      </div>
                     )}
+                    <div
+                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex flex-col items-center justify-center border-2 transition-all ${
+                        claimed ? "border-transparent" : claimable ? "" : isNext ? "" : light ? "border-[#E2E8F0] bg-[#F8FAFC]" : "border-white/10 bg-[#0F172A]"
+                      }`}
+                      style={{
+                        backgroundColor: claimed ? BLUE : claimable ? `${BLUE}15` : isNext ? `${BLUE}15` : undefined,
+                        borderColor: claimable || isNext ? BLUE : undefined,
+                        boxShadow: claimed ? `0 4px 12px ${BLUE}40` : claimable || isNext ? `0 4px 12px ${BLUE}25` : undefined,
+                      }}
+                    >
+                      {claimed ? (
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : claimable ? (
+                        <button
+                          onClick={handleClaim}
+                          className="w-full h-full flex flex-col items-center justify-center rounded-lg font-bold text-[10px] active:scale-95 transition-transform"
+                          style={{ color: BLUE }}
+                        >
+                          Claim
+                        </button>
+                      ) : isNext ? (
+                        <RewardVisual className="w-5 h-5 sm:w-6 sm:h-6" color={rewardColor} />
+                      ) : (
+                        <LockIcon className="w-4 h-4" color={light ? "#94A3B8" : "rgba(255,255,255,0.3)"} />
+                      )}
+                    </div>
                   </div>
                 );
 
@@ -206,6 +238,10 @@ export default function LevelsPage() {
                   <div
                     key={reward.level}
                     className="relative flex flex-col items-center shrink-0 w-20 sm:w-24"
+                    onMouseEnter={() => setHoveredReward(reward.level)}
+                    onMouseLeave={() => setHoveredReward(null)}
+                    onFocus={() => setHoveredReward(reward.level)}
+                    onBlur={() => setHoveredReward(null)}
                   >
                     {/* Top: visual if above, else spacer */}
                     <div className="h-16 sm:h-20 flex flex-col items-center justify-end pb-2">

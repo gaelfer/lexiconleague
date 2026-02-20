@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Battle Axe  held on the right side of the body -->
-  <!-- Shaft (wooden handle) -->
-  <rect x="76" y="28" width="3.5" height="38" rx="1.2" fill="#78350F"/>
-  <rect x="77" y="30" width="1.2" height="34" rx="0.5" fill="#92400E" opacity="0.4"/>
-  <!-- Axe head  broad crescent blade -->
-  <path d="M72 26C72 20 78 16 78 16L78 36C78 36 72 32 72 26Z" fill="#94A3B8"/>
-  <path d="M73 24C73 20 78 17 78 17L78 34C78 34 73 30 73 24Z" fill="#CBD5E1" opacity="0.4"/>
-  <!-- Axe head right side -->
-  <path d="M83 26C83 20 78 16 78 16L78 36C78 36 83 32 83 26Z" fill="#94A3B8"/>
-  <path d="M82 24C82 20 78 17 78 17L78 34C78 34 82 30 82 24Z" fill="#CBD5E1" opacity="0.3"/>
-  <!-- Blade edge highlights -->
-  <path d="M71.5 26C71.5 19.5 78 15.5 78 15.5" stroke="#E2E8F0" stroke-width="0.6" fill="none" opacity="0.6"/>
-  <path d="M83.5 26C83.5 19.5 78 15.5 78 15.5" stroke="#E2E8F0" stroke-width="0.6" fill="none" opacity="0.6"/>
-  <!-- Shaft wrap near head -->
-  <rect x="75.5" y="35" width="4.5" height="2" rx="0.8" fill="#D4AF37"/>
-  <!-- Pommel knob at bottom -->
-  <circle cx="77.75" cy="67.5" r="2.2" fill="#D4AF37"/>
-  <circle cx="77.75" cy="67.5" r="1" fill="#EAB308"/>
-  <!-- Hand nub gripping the axe -->
-  <ellipse cx="73" cy="54" rx="4.5" ry="4" fill="#475569" opacity="0.45"/>
+  <!-- Wooden handle -->
+  <rect x="76" y="26" width="4" height="46" rx="1.5" fill="#92400E"/>
+  <rect x="77.5" y="28" width="1.5" height="42" rx="0.6" fill="#78350F" opacity="0.5"/>
+  <!-- Gold collar at axe-head junction -->
+  <rect x="73.5" y="36" width="9" height="3" rx="1.2" fill="#D4AF37"/>
+  <!-- Double axe head - LEFT blade (main, wide crescent) -->
+  <path d="M78 28 C78 28 60 29 58 38 C56 47 78 46 78 46 Z" fill="#9CA3AF"/>
+  <path d="M78 29 C78 29 62 30 61 38 C59 45 77 45 77 45 Z" fill="#E2E8F0" opacity="0.45"/>
+  <!-- LEFT blade edge (sharp leading edge) -->
+  <path d="M58.5 38 C57 46 78 46.5 78 46.5" stroke="#F1F5F9" stroke-width="0.8" fill="none" opacity="0.8"/>
+  <!-- Double axe head - RIGHT blade (secondary, smaller) -->
+  <path d="M78 28 C78 28 94 29 95 36 C96 43 78 44 78 44 Z" fill="#9CA3AF"/>
+  <path d="M78 29 C78 29 92 30 93 36 C94 42 79 43 79 43 Z" fill="#E2E8F0" opacity="0.35"/>
+  <!-- RIGHT blade edge -->
+  <path d="M95 36 C95.5 42 78.5 44.5 78.5 44.5" stroke="#F1F5F9" stroke-width="0.8" fill="none" opacity="0.6"/>
+  <!-- Pommel knob -->
+  <ellipse cx="78" cy="73" rx="3.5" ry="2.5" fill="#D4AF37"/>
+  <ellipse cx="78" cy="73" rx="1.8" ry="1.2" fill="#EAB308"/>
+  <!-- Hand nub (gripping the handle) -->
+  <ellipse cx="72.5" cy="58" rx="4.5" ry="4" fill="#475569" opacity="0.4"/>
 </svg>

@@ -37,19 +37,24 @@ export interface LevelReward {
 }
 
 export const LEVEL_REWARDS: LevelReward[] = [
-  { level: 2,  label: "10 Ink Drops",       type: "ink_drops", amount: 10 },
-  { level: 3,  label: "25 Ink Drops",       type: "ink_drops", amount: 25 },
-  { level: 5,  label: "Violet Color",       type: "cosmetic",  itemId: "color_#8B5CF6" },
-  { level: 7,  label: "50 Ink Drops",       type: "ink_drops", amount: 50 },
-  { level: 10, label: "Pointed Base",       type: "cosmetic",  itemId: "droplet_03" },
-  { level: 12, label: "75 Ink Drops",       type: "ink_drops", amount: 75 },
-  { level: 15, label: "Ghost Base",         type: "cosmetic",  itemId: "droplet_04" },
-  { level: 18, label: "100 Ink Drops",      type: "ink_drops", amount: 100 },
-  { level: 20, label: "Word Warrior Title", type: "title" },
-  { level: 25, label: "Splat Base",         type: "cosmetic",  itemId: "droplet_05" },
-  { level: 30, label: "200 Ink Drops",      type: "ink_drops", amount: 200 },
+  { level: 2,  label: "10 Ink Drops",        type: "ink_drops", amount: 10 },
+  { level: 3,  label: "25 Ink Drops",        type: "ink_drops", amount: 25 },
+  { level: 4,  label: "50 Ink Drops",        type: "ink_drops", amount: 50 },
+  { level: 5,  label: "75 Ink Drops",        type: "ink_drops", amount: 75 },
+  { level: 7,  label: "100 Ink Drops",       type: "ink_drops", amount: 100 },
+  { level: 9,  label: "150 Ink Drops",       type: "ink_drops", amount: 150 },
+  { level: 10, label: "200 Ink Drops",       type: "ink_drops", amount: 200 },
+  { level: 12, label: "300 Ink Drops",       type: "ink_drops", amount: 300 },
+  { level: 15, label: "450 Ink Drops",       type: "ink_drops", amount: 450 },
+  { level: 18, label: "500 Ink Drops",       type: "ink_drops", amount: 500 },
+  { level: 20, label: "Word Warrior Title",  type: "title" },
+  { level: 22, label: "600 Ink Drops",       type: "ink_drops", amount: 600 },
+  { level: 25, label: "750 Ink Drops",       type: "ink_drops", amount: 750 },
+  { level: 30, label: "1000 Ink Drops",      type: "ink_drops", amount: 1000 },
+  { level: 35, label: "1250 Ink Drops",      type: "ink_drops", amount: 1250 },
   { level: 40, label: "Lexicon Legend",      type: "badge" },
-  { level: 50, label: "500 Ink Drops",      type: "ink_drops", amount: 500 },
+  { level: 45, label: "1500 Ink Drops",      type: "ink_drops", amount: 1500 },
+  { level: 50, label: "2000 Ink Drops",      type: "ink_drops", amount: 2000 },
 ];
 
 /** Progress within current level */

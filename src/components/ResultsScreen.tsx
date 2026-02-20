@@ -11,7 +11,7 @@ import InkAvatar from "./InkAvatar";
 import SparkIcon from "./icons/SparkIcon";
 import TrophyIcon from "./icons/TrophyIcon";
 import InkDropIcon from "./icons/InkDropIcon";
-import { getTierProgress, GAME_DURATION } from "@/lib/game/rank";
+import { getTierProgress, GAME_DURATION, getWinStreakMultiplier } from "@/lib/game/rank";
 
 interface ResultsScreenProps {
   result: GameResult;
@@ -245,6 +245,40 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
             <ProgressBar value={tierProgress} height="h-2.5" color={RANK_COLORS[profile.rank_tier]} />
           </div>
         )}
+
+        {result.mode === "ranked" && !placementGrade && (() => {
+          const streak = profile?.ranked_win_streak ?? 0;
+          if (isWin) {
+            return (
+              <div className="rounded-2xl px-4 py-3 bg-amber-50 border border-amber-200 flex items-center gap-2">
+                <svg viewBox="0 0 24 24" fill="#F59E0B" className="w-5 h-5 shrink-0">
+                  <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152-.498 9.75 9.75 0 1010.5 14.25.75.75 0 00.75-.75v-4.133a.75.75 0 00-.75-.75 9.75 9.75 0 01-9.75-9.75.75.75 0 01.136-1.071z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <span className="font-extrabold text-amber-700 text-sm">
+                    {streak === 1 ? "Streak started!" : `${streak} win streak!`}
+                  </span>
+                  {streak > 0 && (
+                    <span className="ml-2 text-xs font-bold text-amber-600">
+                      {streak >= 10 ? "MAX 3×" : `Next win: ${getWinStreakMultiplier(streak).toFixed(1)}× trophies`}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          }
+          if (isLoss) {
+            return (
+              <div className="rounded-2xl px-4 py-3 bg-slate-50 border border-slate-200 flex items-center gap-2">
+                <svg viewBox="0 0 24 24" fill="#94A3B8" className="w-4 h-4 shrink-0">
+                  <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152-.498 9.75 9.75 0 1010.5 14.25.75.75 0 00.75-.75v-4.133a.75.75 0 00-.75-.75 9.75 9.75 0 01-9.75-9.75.75.75 0 01.136-1.071z" clipRule="evenodd" />
+                </svg>
+                <span className="text-[#64748B] font-bold text-sm">Streak reset. Win again to start a new one.</span>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="rounded-2xl px-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-2">

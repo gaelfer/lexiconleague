@@ -309,12 +309,13 @@ export default function RankedPage() {
 
     setPhase("results");
     if (user && updated) {
-      const { success, error } = await updateProfileGameProgress(user.id, {
+      const { success } = await updateProfileGameProgress(user.id, {
         trophies: updated.trophies,
         xp: updated.xp,
         rank_tier: updated.rank_tier,
         ink_drops: updated.ink_drops,
         unlocked_items: updated.unlocked_items,
+        ranked_win_streak: updated.ranked_win_streak,
       });
       if (!success) {
         await upsertProfile(user.id, updated);
@@ -546,8 +547,15 @@ export default function RankedPage() {
   const tierIdx = RANK_TIERS.indexOf(profile.rank_tier);
   const isGoldPlus = tierIdx >= RANK_TIERS.indexOf("Gold");
   const tierProgress = getTierProgress(profile.trophies, profile.rank_tier);
-  const winTrophies = TROPHY_WIN[profile.rank_tier];
+  const currentStreak = profile.ranked_win_streak ?? 0;
+  const streakMultiplier = getWinStreakMultiplier(currentStreak);
+  const winTrophies = Math.round(TROPHY_WIN[profile.rank_tier] * streakMultiplier);
   const lossTrophies = Math.abs(TROPHY_LOSS[profile.rank_tier]);
+  // Streak milestone thresholds for progress display
+  const STREAK_MILESTONES = [0, 3, 5, 7, 10];
+  const nextMilestone = STREAK_MILESTONES.find((m) => m > currentStreak) ?? 10;
+  const prevMilestone = [...STREAK_MILESTONES].reverse().find((m) => m <= currentStreak) ?? 0;
+  const streakProgress = nextMilestone === prevMilestone ? 100 : ((currentStreak - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
 
   return (
     <main className={`min-h-screen ${bg} flex flex-col items-center justify-center px-6`}>
@@ -655,8 +663,11 @@ export default function RankedPage() {
             {profile.placement_completed && (
               <>
                 <div className="flex items-center gap-2">
-                  <span className="text-[#22C55E] font-bold">
+                  <span className="text-[#22C55E] font-bold flex items-center gap-1">
                     Win: +{winTrophies}
+                    {currentStreak > 0 && (
+                      <FlameIcon className="w-3.5 h-3.5 inline" color="#F59E0B" />
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -676,16 +687,47 @@ export default function RankedPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-3">
-          {profile.ranked_win_streak != null && profile.ranked_win_streak > 0 && (
-            <div
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl ${light ? "bg-amber-50 border border-amber-200" : "bg-amber-500/20 border border-amber-500/40"}`}
-              title={`${profile.ranked_win_streak} win streak · ${Math.round(getWinStreakMultiplier(profile.ranked_win_streak) * 100)}% trophy bonus`}
-            >
-              <FlameIcon className="w-5 h-5" color="#F59E0B" />
-              <span className="font-bold text-amber-600 dark:text-amber-400 tabular-nums">{profile.ranked_win_streak}</span>
+        {/* Win streak card — shown whenever streak > 0 */}
+        {currentStreak > 0 && (
+          <div
+            className={`rounded-2xl p-4 border-2 ${
+              light ? "bg-amber-50 border-amber-200" : "bg-amber-500/10 border-amber-500/30"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <FlameIcon className="w-5 h-5" color="#F59E0B" />
+                <span className="font-extrabold text-amber-600" style={{ color: "#D97706" }}>
+                  {currentStreak} Win Streak
+                </span>
+              </div>
+              <span
+                className="font-extrabold text-sm px-2 py-0.5 rounded-lg"
+                style={{ color: "#D97706", backgroundColor: "rgba(245,158,11,0.15)" }}
+              >
+                {streakMultiplier === 1 ? "1×" : `${streakMultiplier.toFixed(1)}×`} trophies
+              </span>
             </div>
-          )}
+            {/* Progress bar to next milestone */}
+            <div className="flex items-center gap-2">
+              <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${light ? "bg-amber-100" : "bg-amber-500/20"}`}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, streakProgress)}%`, backgroundColor: "#F59E0B" }}
+                />
+              </div>
+              {currentStreak < 10 ? (
+                <span className="text-[10px] font-bold shrink-0" style={{ color: "#D97706" }}>
+                  {nextMilestone - currentStreak} to {getWinStreakMultiplier(nextMilestone).toFixed(1)}×
+                </span>
+              ) : (
+                <span className="text-[10px] font-extrabold shrink-0" style={{ color: "#D97706" }}>MAX 3×</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-3">
           <button
             onClick={startSearch}
             disabled={!canPlayRanked}

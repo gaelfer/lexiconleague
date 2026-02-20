@@ -33,6 +33,7 @@ export interface DbProfile {
   onboarding_completed?: boolean | null;
   username_changed_at: string | null;
   claimed_level_rewards?: number[] | null;
+  ranked_win_streak?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -65,6 +66,7 @@ export function dbProfileToUserProfile(row: DbProfile): UserProfile {
     tutorial_completed: row.tutorial_completed ?? undefined,
     onboarding_completed: row.onboarding_completed ?? true,
     claimed_level_rewards: Array.isArray(row.claimed_level_rewards) ? row.claimed_level_rewards : undefined,
+    ranked_win_streak: row.ranked_win_streak ?? 0,
     created_at: row.created_at,
   };
 }
@@ -110,6 +112,7 @@ export async function upsertProfile(
   if (profile.tutorial_completed !== undefined) payload.tutorial_completed = profile.tutorial_completed;
   if (profile.onboarding_completed !== undefined) payload.onboarding_completed = profile.onboarding_completed;
   if (profile.claimed_level_rewards !== undefined) payload.claimed_level_rewards = profile.claimed_level_rewards;
+  if (profile.ranked_win_streak !== undefined) payload.ranked_win_streak = profile.ranked_win_streak;
 
   const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
 
@@ -123,7 +126,7 @@ export async function upsertProfile(
  */
 export async function updateProfileGameProgress(
   userId: string,
-  profile: Pick<UserProfile, "trophies" | "xp" | "rank_tier" | "ink_drops" | "unlocked_items">
+  profile: Pick<UserProfile, "trophies" | "xp" | "rank_tier" | "ink_drops" | "unlocked_items" | "ranked_win_streak">
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient();
   const rankTier = getTierFromTrophies(profile.trophies);
@@ -135,6 +138,7 @@ export async function updateProfileGameProgress(
       rank_tier: rankTier,
       ink_drops: profile.ink_drops ?? 0,
       unlocked_items: profile.unlocked_items ?? [],
+      ranked_win_streak: profile.ranked_win_streak ?? 0,
       updated_at: new Date().toISOString(),
     })
     .eq("id", userId);
