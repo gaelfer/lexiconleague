@@ -698,7 +698,8 @@ export default function CasualPage() {
 
       const players = Object.entries(state).filter(([key, raw]) => {
         if (key === user.id) return false;
-        const meta = raw?.[0] as Partial<QueueEntry> | undefined;
+        const arr = Array.isArray(raw) ? raw : [];
+        const meta = arr[0] as Partial<QueueEntry> | undefined;
         return meta?.mode === "1v1" && meta.subject === queueSubject;
       });
 
