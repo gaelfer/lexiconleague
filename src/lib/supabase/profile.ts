@@ -131,6 +131,7 @@ export async function updateProfileGameProgress(
   const supabase = createClient();
   const rankTier = getTierFromTrophies(profile.trophies);
   const payload: Record<string, unknown> = {
+    id: userId,
     trophies: profile.trophies,
     xp: profile.xp ?? 0,
     rank_tier: rankTier,
@@ -144,8 +145,7 @@ export async function updateProfileGameProgress(
   if (profile.mmr !== undefined) payload.mmr = profile.mmr;
   const { error } = await supabase
     .from("profiles")
-    .update(payload)
-    .eq("id", userId);
+    .upsert(payload, { onConflict: "id" });
 
   if (error) return { success: false, error: error.message };
   return { success: true };

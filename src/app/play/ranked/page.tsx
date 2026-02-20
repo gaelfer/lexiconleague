@@ -4,8 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Subject, GameResult, InkAvatarConfig, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS } from "@/types";
 import { getProfile, createGuestProfile } from "@/lib/user/storage";
-import { syncProfileForUser } from "@/lib/user/profile-sync";
-import { upsertProfile, updateProfileGameProgress } from "@/lib/supabase/profile";
+import { syncProfileForUser, syncCurrentProfile } from "@/lib/user/profile-sync";
 import { useAuth } from "@/context/AuthContext";
 import { useParty } from "@/context/PartyContext";
 import { createClient } from "@/lib/supabase/client";
@@ -306,19 +305,10 @@ export default function RankedPage() {
     // the in-game display.
     setPhase("results");
     if (user && updated) {
-      const { success } = await updateProfileGameProgress(user.id, {
-        trophies: updated.trophies,
-        xp: updated.xp ?? 0,
-        rank_tier: updated.rank_tier,
-        ink_drops: updated.ink_drops,
-        unlocked_items: updated.unlocked_items,
-        ranked_win_streak: updated.ranked_win_streak,
-        placement_completed: updated.placement_completed,
-        placement_vocab_grade: updated.placement_vocab_grade,
-        mmr: updated.mmr,
-      });
-      if (!success) {
-        await upsertProfile(user.id, updated);
+      try {
+        await syncCurrentProfile(user.id);
+      } catch {
+        // Sync failed; local state is correct, Supabase will catch up on next load
       }
     }
   }

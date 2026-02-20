@@ -23,6 +23,8 @@ interface PartyContextValue {
   canQueue1v1: boolean;
   canQueue3v3: boolean;
   canPlayRanked: boolean;
+  /** True when user can queue casual (leader, or solo with no party) */
+  canPlayCasual: boolean;
 }
 
 const MAX_PARTY_SIZE = 6;
@@ -61,6 +63,7 @@ export function PartyProvider({ children }: { children: ReactNode }) {
   const canQueue1v1 = members.length <= 2 && isLeader;
   const canQueue3v3 = isLeader;
   const canPlayRanked = members.length === 0;
+  const canPlayCasual = isLeader || members.length === 0;
 
   return (
     <PartyContext.Provider
@@ -77,6 +80,7 @@ export function PartyProvider({ children }: { children: ReactNode }) {
         canQueue1v1,
         canQueue3v3,
         canPlayRanked,
+        canPlayCasual,
       }}
     >
       {children}

@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useParty, type PartyMember } from "@/context/PartyContext";
 import { getProfile, createGuestProfile } from "@/lib/user/storage";
-import { upsertProfile } from "@/lib/supabase/profile";
+import { syncCurrentProfile } from "@/lib/user/profile-sync";
 import { createClient } from "@/lib/supabase/client";
 import GameScreen from "@/components/GameScreen";
 import ResultsScreen from "@/components/ResultsScreen";
@@ -935,8 +935,11 @@ export default function CasualPage() {
     }
 
     if (user) {
-      const updated = getProfile();
-      if (updated) await upsertProfile(user.id, updated);
+      try {
+        await syncCurrentProfile(user.id);
+      } catch {
+        // Sync failed; local state is correct, Supabase will catch up on next load
+      }
     }
   }
 

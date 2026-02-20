@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { signInWithUsernameOrEmail } from "@/app/auth/actions";
 import { useTheme } from "@/context/ThemeContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import GoogleIcon from "@/components/icons/GoogleIcon";
@@ -18,7 +19,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { light } = useTheme();
   const [view, setView] = useState<View>("providers");
-  const [email, setEmail] = useState("");
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -40,10 +41,9 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     startTransition(async () => {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setError(error.message);
+      const result = await signInWithUsernameOrEmail(usernameOrEmail, password);
+      if (result.error) {
+        setError(result.error);
       } else {
         router.push("/");
         router.refresh();
@@ -159,13 +159,14 @@ export default function LoginPage() {
               </button>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-[#0F172A]">Email address</label>
+                <label className="block text-sm font-bold text-[#0F172A]">Username or email</label>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  autoComplete="username"
+                  value={usernameOrEmail}
+                  onChange={(e) => setUsernameOrEmail(e.target.value)}
+                  placeholder="username or you@example.com"
                   className="w-full px-4 py-3 rounded-2xl border-2 border-[#E2E8F0] focus:border-[#3B82F6] focus:outline-none text-[#0F172A] text-sm font-medium transition-colors bg-white placeholder-[#64748B]"
                 />
               </div>
