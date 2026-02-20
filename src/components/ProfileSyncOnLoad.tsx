@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { syncProfileForUser, syncCurrentProfile } from "@/lib/user/profile-sync";
+import { syncProfileForUser } from "@/lib/user/profile-sync";
 
 /**
  * Syncs local profile to Supabase when the app loads and when the tab becomes
@@ -17,20 +17,17 @@ export default function ProfileSyncOnLoad() {
     if (loading || !user) return;
     if (syncedRef.current) return;
     syncedRef.current = true;
-    (async () => {
-      await syncProfileForUser(user.id, user.email ?? "");
-      await syncCurrentProfile(user.id);
-    })().catch(() => {
+    syncProfileForUser(user.id, user.email ?? "").catch(() => {
       syncedRef.current = false;
     });
   }, [user, loading]);
 
-  // Push local values to Supabase when tab becomes visible
+  // Pull latest profile from Supabase when tab becomes visible
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
       if (!user) return;
-      syncCurrentProfile(user.id).catch(() => {});
+      syncProfileForUser(user.id, user.email ?? "").catch(() => {});
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);

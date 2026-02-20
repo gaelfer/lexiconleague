@@ -2,20 +2,6 @@ import { UserProfile } from "@/types";
 import { getProfile, saveProfile, createGuestProfile, ensureRankRewardsUnlocked } from "./storage";
 import { fetchProfile, upsertProfile, updateProfileGameProgress } from "@/lib/supabase/profile";
 
-function isEmptyGuestProfile(profile: UserProfile): boolean {
-  const isGuest = profile.id?.startsWith("guest_");
-  if (!isGuest) return false;
-  return (
-    (profile.trophies ?? 0) === 0 &&
-    (profile.xp ?? 0) === 0 &&
-    (profile.ink_drops ?? 0) === 0 &&
-    (profile.ranked_win_streak ?? 0) === 0 &&
-    (profile.placement_completed ?? false) === false &&
-    (profile.mmr ?? 1000) === 1000 &&
-    (profile.username ?? "Challenger") === "Challenger"
-  );
-}
-
 /**
  * Push the current localStorage profile to Supabase.
  * Call after any local mutation (game result, purchase, daily reward, etc.).
@@ -55,43 +41,63 @@ export async function syncProfileForUser(
   const local = getProfile();
   const remote = await fetchProfile(userId);
 
-  // Canonical rule: if local website values are meaningful, treat local as
-  // source of truth and push them to Supabase.
-  if (local && !(remote && isEmptyGuestProfile(local))) {
+  if (remote) {
+    const localClaim = local?.daily_reward_claimed_at ? new Date(local.daily_reward_claimed_at) : null;
+    const remoteClaim = remote.daily_reward_claimed_at ? new Date(remote.daily_reward_claimed_at) : null;
+    const useLocalDaily = localClaim && (!remoteClaim || localClaim > remoteClaim);
     const mergedUnlocked = [
       ...new Set([
-        ...(remote?.unlocked_items ?? []),
-        ...(local.unlocked_items ?? []),
+        ...(remote.unlocked_items ?? []),
+        ...(local?.unlocked_items ?? []),
       ]),
     ];
     const mergedClaimedRewards = [
       ...new Set([
-        ...(remote?.claimed_level_rewards ?? []),
-        ...(local.claimed_level_rewards ?? []),
+        ...(remote.claimed_level_rewards ?? []),
+        ...(local?.claimed_level_rewards ?? []),
       ]),
     ];
     const merged: UserProfile = {
-      ...(remote ?? local),
-      ...local,
+      ...remote,
       id: userId,
-      email: email || local.email || remote?.email || "",
+      email: email || remote.email || local?.email || "",
       username:
-        local.username && local.username !== "Challenger"
+        remote.username && remote.username !== "Challenger"
+          ? remote.username
+          : local?.username && local.username !== "Challenger"
           ? local.username
-          : remote?.username || email?.split("@")[0] || "Challenger",
+          : email?.split("@")[0] || "Challenger",
       unlocked_items: mergedUnlocked,
       claimed_level_rewards: mergedClaimedRewards,
+      daily_reward_claimed_at: useLocalDaily ? local!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
+      daily_streak: useLocalDaily ? (local!.daily_streak ?? 0) : (remote.daily_streak ?? 0),
+      // Keep completion flags sticky.
+      placement_completed: (remote.placement_completed ?? false) || (local?.placement_completed ?? false),
+      tutorial_completed: (remote.tutorial_completed ?? false) || (local?.tutorial_completed ?? false),
+      onboarding_completed: (remote.onboarding_completed ?? true) || (local?.onboarding_completed ?? false),
+      // Prefer local grade only when remote has no saved value.
+      vocab_grade: remote.vocab_grade ?? local?.vocab_grade,
+      placement_vocab_grade: remote.placement_vocab_grade ?? local?.placement_vocab_grade,
     };
     ensureRankRewardsUnlocked(merged);
     saveProfile(merged);
-    await syncCurrentProfile(userId);
+    // Only persist non-progress merge fields so remote edits remain authoritative
+    // for trophies/xp/ink_drops/mmr unless local mutations explicitly sync them.
+    await upsertProfile(userId, {
+      id: userId,
+      email: merged.email,
+      username: merged.username,
+      unlocked_items: merged.unlocked_items,
+      claimed_level_rewards: merged.claimed_level_rewards,
+      daily_reward_claimed_at: merged.daily_reward_claimed_at,
+      daily_streak: merged.daily_streak,
+      placement_completed: merged.placement_completed,
+      tutorial_completed: merged.tutorial_completed,
+      onboarding_completed: merged.onboarding_completed,
+      vocab_grade: merged.vocab_grade,
+      placement_vocab_grade: merged.placement_vocab_grade,
+    });
     return merged;
-  }
-
-  if (remote) {
-    ensureRankRewardsUnlocked(remote);
-    saveProfile(remote);
-    return remote;
   }
 
   // No remote profile yet — create from local or default

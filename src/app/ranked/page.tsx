@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { getProfile, createGuestProfile } from "@/lib/user/storage";
-import { syncCurrentProfile, syncProfileForUser } from "@/lib/user/profile-sync";
+import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { fetchLeaderboard, LeaderboardEntry } from "@/lib/supabase/profile";
 import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, getWinStreakMultiplier } from "@/lib/game/rank";
 import { getLevel } from "@/lib/user/levels";
@@ -126,14 +126,13 @@ export default function RankedScreenPage() {
     load();
   }, [user, authLoading]);
 
-  // Sync local profile and refetch leaderboard when tab becomes visible
+  // Pull latest profile and refetch leaderboard when tab becomes visible
   useEffect(() => {
     const onVisible = async () => {
       if (document.visibilityState !== "visible") return;
       if (user) {
-        await syncCurrentProfile(user.id).catch(() => {});
-        const p = getProfile() ?? createGuestProfile();
-        setProfile(p);
+        const refreshed = await syncProfileForUser(user.id, user.email ?? "").catch(() => null);
+        if (refreshed) setProfile(refreshed);
       }
       loadLeaderboard();
     };
