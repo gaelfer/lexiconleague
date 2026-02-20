@@ -313,6 +313,8 @@ export default function RankedPage() {
         ink_drops: updated.ink_drops,
         unlocked_items: updated.unlocked_items,
         ranked_win_streak: updated.ranked_win_streak,
+        placement_completed: updated.placement_completed,
+        placement_vocab_grade: updated.placement_vocab_grade,
       });
       if (!success) {
         await upsertProfile(user.id, updated);

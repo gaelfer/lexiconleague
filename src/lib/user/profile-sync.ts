@@ -51,7 +51,8 @@ export async function syncProfileForUser(
       daily_reward_claimed_at: useLocalDaily ? local!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
       daily_streak: useLocalDaily ? (local!.daily_streak ?? 0) : (remote.daily_streak ?? 0),
       vocab_grade: remote.vocab_grade ?? local?.vocab_grade,
-      placement_completed: remote.placement_completed ?? local?.placement_completed,
+      // Once placement is done, it stays done (either side can have completed it)
+      placement_completed: (remote.placement_completed ?? false) || (local?.placement_completed ?? false),
       placement_vocab_grade: remote.placement_vocab_grade ?? local?.placement_vocab_grade,
       tutorial_completed: (remote.tutorial_completed ?? false) || (local?.tutorial_completed ?? false),
       claimed_level_rewards: [
