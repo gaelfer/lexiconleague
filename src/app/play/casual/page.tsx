@@ -20,6 +20,7 @@ import {
   generateBotOpponent,
   generateBotOpponents,
   generateBotScore,
+  generateBotScore3v3,
   generateMatchSeed,
   MATCHMAKING_TIMEOUT_MS,
 } from "@/lib/game/matchmaking";
@@ -37,8 +38,10 @@ const isSupabaseConfigured =
   typeof process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === "string" &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 0;
 
+const THREE_VS_THREE_QUESTIONS = 15;
+
 type CasualMode = "1v1" | "3v3";
-type Phase = "select" | "vocab-grade" | "searching" | "matchmaking" | "playing" | "results";
+type Phase = "select" | "vocab-grade" | "searching" | "matchmaking" | "playing" | "waiting" | "results";
 
 const VOCAB_LEVELS: { level: VocabLevel; label: string }[] = [
   { level: 3, label: "Grade 3" },
@@ -264,9 +267,12 @@ export default function CasualPage() {
   const gameChannelRef = useRef<any>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const botResultsRef = useRef<{
-    opponents: { correct: number; total: number }[];
-    teammates: { correct: number; total: number }[];
+    opponents: { correct: number; total: number; finishTimeMs?: number }[];
+    teammates: { correct: number; total: number; finishTimeMs?: number }[];
   } | null>(null);
+  const gameStartTimeRef = useRef<number>(0);
+  const playerFinishTimeRef = useRef<number>(0);
+  const waitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const profile = getProfile() ?? createGuestProfile();
 
   const canQueue = mode === "1v1" ? canQueue1v1 : canQueue3v3;
@@ -334,19 +340,21 @@ export default function CasualPage() {
     return () => clearInterval(interval);
   }, [phase]);
 
-  // Reset opponent/teammate progress when starting a new game
+  // Reset opponent/teammate progress when starting a new game; record start time
   useEffect(() => {
     if (phase === "playing") {
       setOpponentAnswered(new Array(opponents.length).fill(0));
       setOpponentScores(new Array(opponents.length).fill(0));
       setTeammateAnswered(new Array(teamMembers.length).fill(0));
       setTeammateScores(new Array(teamMembers.length).fill(0));
+      gameStartTimeRef.current = Date.now();
     }
   }, [phase, opponents.length, teamMembers.length]);
 
   // Simulate bot progress during casual match (opponents + teammates for 3v3)
+  // Only runs while actively playing; "waiting" phase uses snapped final scores
   useEffect(() => {
-    if (phase !== "playing" || opponents.length === 0) return;
+    if ((phase !== "playing") || opponents.length === 0) return;
     const botResults = botResultsRef.current;
     if (!botResults) return;
     const totalTime = 60_000;
@@ -405,6 +413,7 @@ export default function CasualPage() {
     return () => {
       cleanupChannel();
       cleanupGameChannel();
+      if (waitTimerRef.current) { clearTimeout(waitTimerRef.current); waitTimerRef.current = null; }
     };
   }, [cleanupChannel, cleanupGameChannel]);
 
@@ -432,8 +441,9 @@ export default function CasualPage() {
       setOpponents(opps);
       setTeamMembers(tms);
     } else {
+      // 3v3: all bots answer exactly 15 questions with a simulated finish time
       const bots = generateBotOpponents(tier, 3);
-      const oppResults = bots.map(() => generateBotScore(tier));
+      const oppResults = bots.map(() => generateBotScore3v3(tier));
       const partyTeammates = members.slice(0, 2).map((m: PartyMember) => ({
         id: m.id,
         username: m.username,
@@ -445,10 +455,10 @@ export default function CasualPage() {
         return { username: bot.username, avatar_config: bot.avatar_config, isBot: true };
       });
       const allTeammates = [...partyTeammates, ...botTeammates];
-      const teammateResults = allTeammates.map(() => generateBotScore(tier));
+      const teammateResults = allTeammates.map(() => generateBotScore3v3(tier));
       botResultsRef.current = {
-        opponents: oppResults.map((r) => ({ correct: r.correct, total: r.total })),
-        teammates: teammateResults.map((r) => ({ correct: r.correct, total: r.total })),
+        opponents: oppResults.map((r) => ({ correct: r.correct, total: r.total, finishTimeMs: r.finishTimeMs })),
+        teammates: teammateResults.map((r) => ({ correct: r.correct, total: r.total, finishTimeMs: r.finishTimeMs })),
       };
       opps = bots;
       tms = allTeammates.map((t) => ({ id: (t as { id?: string }).id, username: t.username, avatar_config: t.avatar_config, isBot: t.isBot }));
@@ -510,11 +520,12 @@ export default function CasualPage() {
     }));
     const hasAnyBot = [...opps, ...tms].some((p) => p.isBot);
     if (hasAnyBot) {
-      const oppResults = opps.map(() => generateBotScore(profile.rank_tier));
-      const tmResults = tms.map(() => generateBotScore(profile.rank_tier));
+      // 3v3: use 3v3-specific scoring (15 questions, includes finishTimeMs)
+      const oppResults = opps.map(() => generateBotScore3v3(profile.rank_tier));
+      const tmResults = tms.map(() => generateBotScore3v3(profile.rank_tier));
       botResultsRef.current = {
-        opponents: oppResults.map((r) => ({ correct: r.correct, total: r.total })),
-        teammates: tmResults.map((r) => ({ correct: r.correct, total: r.total })),
+        opponents: oppResults.map((r) => ({ correct: r.correct, total: r.total, finishTimeMs: r.finishTimeMs })),
+        teammates: tmResults.map((r) => ({ correct: r.correct, total: r.total, finishTimeMs: r.finishTimeMs })),
       };
     } else {
       botResultsRef.current = null;
@@ -851,6 +862,8 @@ export default function CasualPage() {
   async function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
     setResult(r);
     setResultMetadata(metadata);
+
+    // Snap final bot scores immediately
     if (botResultsRef.current && botResultsRef.current.opponents.length > 0) {
       const { opponents: oppResults, teammates: tmResults } = botResultsRef.current;
       setOpponentScores(oppResults.map((b) => calculateScore(b.correct)));
@@ -860,7 +873,26 @@ export default function CasualPage() {
         setTeammateAnswered(tmResults.map((b) => b.total));
       }
     }
-    setPhase("results");
+
+    const playerAnswered = r.correct + r.incorrect;
+    const is3v3Game = mode === "3v3" && opponents.length === 3;
+
+    if (is3v3Game && playerAnswered >= THREE_VS_THREE_QUESTIONS) {
+      // Player finished all 15 questions — may need to wait for bots to finish
+      playerFinishTimeRef.current = Date.now() - gameStartTimeRef.current;
+      const br = botResultsRef.current;
+      const slowestBotFinish = br
+        ? Math.max(...br.opponents.map((b) => b.finishTimeMs ?? 0))
+        : 0;
+      const waitMs = Math.min(2500, Math.max(0, slowestBotFinish - playerFinishTimeRef.current));
+      setPhase("waiting");
+      waitTimerRef.current = setTimeout(() => setPhase("results"), waitMs);
+    } else {
+      // Timer ran out or 1v1: go to results immediately
+      if (is3v3Game) playerFinishTimeRef.current = Date.now() - gameStartTimeRef.current;
+      setPhase("results");
+    }
+
     if (user) {
       const updated = getProfile();
       if (updated) await upsertProfile(user.id, updated);
@@ -870,6 +902,7 @@ export default function CasualPage() {
   function handlePlayAgain() {
     cleanupChannel();
     cleanupGameChannel();
+    if (waitTimerRef.current) { clearTimeout(waitTimerRef.current); waitTimerRef.current = null; }
     matchedRef.current = false;
     setResult(null);
     setResultMetadata(undefined);
@@ -882,6 +915,7 @@ export default function CasualPage() {
     setTeammateScores([]);
     setTeammateAnswered([]);
     botResultsRef.current = null;
+    playerFinishTimeRef.current = 0;
     setPhase("select");
   }
 
@@ -891,10 +925,12 @@ export default function CasualPage() {
   const cardBg = light ? "bg-white" : "bg-[#1E293B]";
   const cardBorder = light ? "border-[#E2E8F0]" : "border-white/10";
 
-  const seededQuestions = useMemo(
-    () => (matchSeed ? getSeededQuestionsForMode(subject, matchSeed, 30, vocabGrade) : undefined),
-    [matchSeed, subject, vocabGrade]
-  );
+  const seededQuestions = useMemo(() => {
+    if (!matchSeed) return undefined;
+    const qs = getSeededQuestionsForMode(subject, matchSeed, 30, vocabGrade);
+    // 3v3 uses a fixed 15-question sprint; everyone answers the same set
+    return mode === "3v3" ? qs.slice(0, THREE_VS_THREE_QUESTIONS) : qs;
+  }, [matchSeed, mode, subject, vocabGrade]);
 
   if (phase === "playing" && opponents.length > 0) {
     const getOpponentScore = () => {
@@ -937,6 +973,53 @@ export default function CasualPage() {
         vocabGrade={subject === "vocabulary" ? vocabGrade : undefined}
         questionsOverride={seededQuestions}
       />
+    );
+  }
+
+  // ── Waiting for other players to finish (3v3 only) ─────────────────────────
+  if (phase === "waiting") {
+    const br = botResultsRef.current;
+    const allBotsDone = !br || br.opponents.every((b) => (b.finishTimeMs ?? 0) <= playerFinishTimeRef.current);
+    return (
+      <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-6 overflow-x-hidden`}>
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          <ThemeToggle />
+          <GlobalNotificationBar />
+        </div>
+        <div className="w-full max-w-sm text-center space-y-6">
+          <div className="relative mx-auto w-24 h-24">
+            <div className={`w-24 h-24 rounded-full border-4 ${light ? "border-[#E2E8F0]" : "border-white/20"} border-t-[#34D399] animate-spin`} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="md" />
+            </div>
+          </div>
+          <div>
+            <h2 className={`text-xl font-extrabold ${text}`}>
+              {allBotsDone ? "Tallying scores…" : "Waiting for others to finish…"}
+            </h2>
+            <p className={`${textMuted} text-sm mt-1`}>
+              You answered all {THREE_VS_THREE_QUESTIONS} questions!
+            </p>
+          </div>
+          {br && (
+            <div className="space-y-2">
+              {opponents.map((opp, i) => {
+                const botFinish = br.opponents[i]?.finishTimeMs ?? 60000;
+                const done = botFinish <= playerFinishTimeRef.current;
+                return (
+                  <div key={i} className={`flex items-center gap-2 rounded-xl px-3 py-2 ${light ? "bg-white border border-[#E2E8F0]" : "bg-[#1E293B] border border-white/10"}`}>
+                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...opp.avatar_config }} size="xs" className="shrink-0" />
+                    <p className={`text-xs font-bold flex-1 text-left truncate ${text}`}>{opp.username}{opp.isBot ? " BOT" : ""}</p>
+                    <span className={`text-xs font-bold ${done ? "text-[#22C55E]" : "text-[#FBBF24]"}`}>
+                      {done ? "Done" : "Playing…"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
     );
   }
 
@@ -1056,7 +1139,8 @@ export default function CasualPage() {
               Match starting in {prematchSeconds}...
             </p>
             <p className={`${text} font-medium text-sm mt-1`}>
-              {subject === "vocabulary" ? "Vocabulary" : "Punctuation"} Sprint · 60 seconds
+              {subject === "vocabulary" ? "Vocabulary" : "Punctuation"} Sprint ·{" "}
+              {mode === "3v3" ? `${THREE_VS_THREE_QUESTIONS} questions` : "60 seconds"}
             </p>
           </div>
         </div>
@@ -1121,46 +1205,96 @@ export default function CasualPage() {
     const hasBotResults3v3 = !!br && br.opponents.length === 3 && br.teammates.length === 2;
     const is3v3 = mode === "3v3" && opponents.length === 3 && teamMembers.length === 2;
 
+    // Tiebreaker: whoever finishes their 15 questions faster wins a tied matchup.
+    // Lower finishTimeMs = finished faster = wins the tie.
+    function matchupWinner(
+      allyCorrect: number, allyFinishMs: number,
+      oppCorrect: number, oppFinishMs: number
+    ): "ally" | "opp" | "tie" {
+      if (allyCorrect !== oppCorrect) return allyCorrect > oppCorrect ? "ally" : "opp";
+      if (allyFinishMs < oppFinishMs) return "ally";
+      if (oppFinishMs < allyFinishMs) return "opp";
+      return "tie";
+    }
+
+    const playerCorrect = result.correct;
+    const playerFinishMs = playerFinishTimeRef.current;
+
     // 3v3: individual matchups (best of 3)
     const matchups = is3v3
-      ? [
-          {
-            allyName: profile?.username ?? "You",
-            allyAvatar: (profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig,
-            allyScore: result.score,
-            allyIsPlayer: true,
-            oppName: opponents[0].username,
-            oppAvatar: opponents[0].avatar_config,
-            oppIsBot: opponents[0].isBot,
-            oppScore: hasBotResults3v3 && br ? calculateScore(br.opponents[0].correct) : opponentScores[0] ?? 0,
-          },
-          {
-            allyName: teamMembers[0]?.username ?? "Teammate 1",
-            allyAvatar: teamMembers[0]?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
-            allyScore: hasBotResults3v3 && br ? calculateScore(br.teammates[0].correct) : teammateScores[0] ?? 0,
-            allyIsPlayer: false,
-            oppName: opponents[1].username,
-            oppAvatar: opponents[1].avatar_config,
-            oppIsBot: opponents[1].isBot,
-            oppScore: hasBotResults3v3 && br ? calculateScore(br.opponents[1].correct) : opponentScores[1] ?? 0,
-          },
-          {
-            allyName: teamMembers[1]?.username ?? "Teammate 2",
-            allyAvatar: teamMembers[1]?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
-            allyScore: hasBotResults3v3 && br ? calculateScore(br.teammates[1].correct) : teammateScores[1] ?? 0,
-            allyIsPlayer: false,
-            oppName: opponents[2].username,
-            oppAvatar: opponents[2].avatar_config,
-            oppIsBot: opponents[2].isBot,
-            oppScore: hasBotResults3v3 && br ? calculateScore(br.opponents[2].correct) : opponentScores[2] ?? 0,
-          },
-        ]
+      ? (() => {
+          const allyScore0 = result.score;
+          const allyCorrect0 = playerCorrect;
+          const allyFinishMs0 = playerFinishMs;
+          const oppCorrect0 = hasBotResults3v3 && br ? br.opponents[0].correct : Math.round((opponentScores[0] ?? 0) / 10);
+          const oppFinishMs0 = hasBotResults3v3 && br ? (br.opponents[0].finishTimeMs ?? 60000) : 60000;
+          const oppScore0 = hasBotResults3v3 && br ? calculateScore(br.opponents[0].correct) : opponentScores[0] ?? 0;
+          const w0 = matchupWinner(allyCorrect0, allyFinishMs0, oppCorrect0, oppFinishMs0);
+
+          const allyCorrect1 = hasBotResults3v3 && br ? br.teammates[0].correct : Math.round((teammateScores[0] ?? 0) / 10);
+          const allyFinishMs1 = hasBotResults3v3 && br ? (br.teammates[0].finishTimeMs ?? 60000) : 60000;
+          const allyScore1 = hasBotResults3v3 && br ? calculateScore(br.teammates[0].correct) : teammateScores[0] ?? 0;
+          const oppCorrect1 = hasBotResults3v3 && br ? br.opponents[1].correct : Math.round((opponentScores[1] ?? 0) / 10);
+          const oppFinishMs1 = hasBotResults3v3 && br ? (br.opponents[1].finishTimeMs ?? 60000) : 60000;
+          const oppScore1 = hasBotResults3v3 && br ? calculateScore(br.opponents[1].correct) : opponentScores[1] ?? 0;
+          const w1 = matchupWinner(allyCorrect1, allyFinishMs1, oppCorrect1, oppFinishMs1);
+
+          const allyCorrect2 = hasBotResults3v3 && br ? br.teammates[1].correct : Math.round((teammateScores[1] ?? 0) / 10);
+          const allyFinishMs2 = hasBotResults3v3 && br ? (br.teammates[1].finishTimeMs ?? 60000) : 60000;
+          const allyScore2 = hasBotResults3v3 && br ? calculateScore(br.teammates[1].correct) : teammateScores[1] ?? 0;
+          const oppCorrect2 = hasBotResults3v3 && br ? br.opponents[2].correct : Math.round((opponentScores[2] ?? 0) / 10);
+          const oppFinishMs2 = hasBotResults3v3 && br ? (br.opponents[2].finishTimeMs ?? 60000) : 60000;
+          const oppScore2 = hasBotResults3v3 && br ? calculateScore(br.opponents[2].correct) : opponentScores[2] ?? 0;
+          const w2 = matchupWinner(allyCorrect2, allyFinishMs2, oppCorrect2, oppFinishMs2);
+
+          return [
+            {
+              allyName: profile?.username ?? "You",
+              allyAvatar: (profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig,
+              allyScore: allyScore0,
+              allyCorrect: allyCorrect0,
+              allyIsPlayer: true,
+              oppName: opponents[0].username,
+              oppAvatar: opponents[0].avatar_config,
+              oppIsBot: opponents[0].isBot,
+              oppScore: oppScore0,
+              oppCorrect: oppCorrect0,
+              winner: w0,
+            },
+            {
+              allyName: teamMembers[0]?.username ?? "Teammate 1",
+              allyAvatar: teamMembers[0]?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+              allyScore: allyScore1,
+              allyCorrect: allyCorrect1,
+              allyIsPlayer: false,
+              oppName: opponents[1].username,
+              oppAvatar: opponents[1].avatar_config,
+              oppIsBot: opponents[1].isBot,
+              oppScore: oppScore1,
+              oppCorrect: oppCorrect1,
+              winner: w1,
+            },
+            {
+              allyName: teamMembers[1]?.username ?? "Teammate 2",
+              allyAvatar: teamMembers[1]?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+              allyScore: allyScore2,
+              allyCorrect: allyCorrect2,
+              allyIsPlayer: false,
+              oppName: opponents[2].username,
+              oppAvatar: opponents[2].avatar_config,
+              oppIsBot: opponents[2].isBot,
+              oppScore: oppScore2,
+              oppCorrect: oppCorrect2,
+              winner: w2,
+            },
+          ];
+        })()
       : [];
 
-    const matchupsWon = matchups.filter((m) => m.allyScore > m.oppScore).length;
-    const matchupsLost = matchups.filter((m) => m.allyScore < m.oppScore).length;
+    const matchupsWon = matchups.filter((m) => m.winner === "ally").length;
+    const matchupsLost = matchups.filter((m) => m.winner === "opp").length;
 
-    // 1v1 uses simple score comparison; 3v3 uses best-of-3 matchups
+    // 1v1 uses simple score comparison; 3v3 uses best-of-3 matchups with tiebreaker
     let youWin: boolean;
     let youLose: boolean;
     if (is3v3) {
@@ -1185,13 +1319,13 @@ export default function CasualPage() {
                   <p className={`text-sm font-extrabold ${youWin ? "text-[#22C55E]" : youLose ? "text-[#EF4444]" : "text-[#64748B]"}`}>
                     {youWin ? "Team Wins!" : youLose ? "Team Loses!" : "Tie!"}
                   </p>
-                  <p className={`text-xs ${textMuted}`}>Best of 3 — {matchupsWon} won, {matchupsLost} lost</p>
+                  <p className={`text-xs ${textMuted}`}>Best of 3 — {matchupsWon} won · {matchupsLost} lost · winner by most correct ({THREE_VS_THREE_QUESTIONS} q)</p>
                 </div>
                 <div className="space-y-2">
                   {matchups.map((m, i) => {
-                    const allyWon = m.allyScore > m.oppScore;
-                    const oppWon = m.allyScore < m.oppScore;
-                    const tied = m.allyScore === m.oppScore;
+                    const allyWon = m.winner === "ally";
+                    const oppWon = m.winner === "opp";
+                    const tied = m.winner === "tie";
                     return (
                       <div
                         key={i}
@@ -1209,7 +1343,9 @@ export default function CasualPage() {
                             <p className={`text-xs font-bold truncate ${text}`}>
                               {m.allyIsPlayer ? "You" : m.allyName}
                             </p>
-                            <p className={`text-sm font-extrabold ${allyWon ? "text-[#22C55E]" : text}`}>{m.allyScore}</p>
+                            <p className={`text-sm font-extrabold ${allyWon ? "text-[#22C55E]" : text}`}>
+                              {m.allyCorrect}/{THREE_VS_THREE_QUESTIONS}
+                            </p>
                           </div>
                         </div>
                         <div className="shrink-0 px-1">
@@ -1224,7 +1360,9 @@ export default function CasualPage() {
                             <p className={`text-xs font-bold truncate ${text}`}>
                               {m.oppName}{m.oppIsBot ? " BOT" : ""}
                             </p>
-                            <p className={`text-sm font-extrabold ${oppWon ? "text-[#EF4444]" : text}`}>{m.oppScore}</p>
+                            <p className={`text-sm font-extrabold ${oppWon ? "text-[#EF4444]" : text}`}>
+                              {m.oppCorrect}/{THREE_VS_THREE_QUESTIONS}
+                            </p>
                           </div>
                           <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...m.oppAvatar }} size="xs" className="shrink-0" />
                         </div>

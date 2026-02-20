@@ -95,6 +95,28 @@ export function generateBotScore(playerTier: RankTier): { correct: number; incor
   return { correct, incorrect, total: correct + incorrect };
 }
 
+/**
+ * Bot score for 3v3 mode. All bots answer exactly 15 questions (the per-player cap)
+ * and have a simulated finish time so tiebreakers can be applied fairly.
+ */
+export function generateBotScore3v3(playerTier: RankTier): { correct: number; total: number; finishTimeMs: number } {
+  const MAX_Q = 15;
+  // Correct answers out of 15 — scaled to the 15-question format
+  const correctRanges3v3: Record<string, [number, number]> = {
+    Bronze:   [5,  9],
+    Silver:   [7, 11],
+    Gold:     [9, 13],
+    Platinum: [10, 13],
+    Diamond:  [11, 14],
+    Emerald:  [12, 15],
+  };
+  const [cMin, cMax] = correctRanges3v3[playerTier] ?? [6, 10];
+  const correct = cMin + Math.floor(Math.random() * (cMax - cMin + 1));
+  // Finish time: bots take 18–52 seconds to answer all 15 questions
+  const finishTimeMs = (18 + Math.random() * 34) * 1000;
+  return { correct, total: MAX_Q, finishTimeMs };
+}
+
 export const MATCHMAKING_TIMEOUT_MS = 12_000;
 
 export function seededShuffle<T>(arr: T[], seed: string): T[] {
