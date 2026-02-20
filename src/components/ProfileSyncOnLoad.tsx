@@ -23,24 +23,36 @@ export default function ProfileSyncOnLoad() {
     });
   }, [user, loading]);
 
-  // Pull latest profile from Supabase when tab becomes visible
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      if (!user) return;
-      syncProfileForUser(user.id, user.email ?? "").catch(() => {});
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [user]);
-
-  // Keep local profile in sync with cloud edits (e.g. manual Supabase table updates)
+  // Pull from Supabase when tab visible: immediate sync + 45s interval when focused
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(() => {
-      syncProfileForUser(user.id, user.email ?? "").catch(() => {});
-    }, 20_000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const sync = () => syncProfileForUser(user.id, user.email ?? "").catch(() => {});
+    const startPolling = () => {
+      if (document.visibilityState !== "visible") return;
+      sync();
+      if (interval) return;
+      interval = setInterval(() => {
+        if (document.visibilityState !== "visible") return;
+        sync();
+      }, 45_000);
+    };
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") startPolling();
+      else stopPolling();
+    };
+    if (document.visibilityState === "visible") startPolling();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      stopPolling();
+    };
   }, [user]);
 
   // Push local writes (purchases, rewards, etc.) shortly after they happen

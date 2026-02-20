@@ -6,12 +6,12 @@ import {
   ensureRankRewardsUnlocked,
   getLocalProfileUpdatedAtMs,
 } from "./storage";
-import { fetchProfile, upsertProfile } from "@/lib/supabase/profile";
+import { fetchProfile, updateProfileProgress, upsertProfile } from "@/lib/supabase/profile";
 import { getTierFromTrophies } from "@/lib/game/rank";
 
 /**
  * Push the current localStorage profile to Supabase.
- * Call after any local mutation (game result, purchase, daily reward, etc.).
+ * Uses update() for trophies/xp/ink_drops when row exists; falls back to upsert() for new users.
  */
 export async function syncCurrentProfile(userId: string): Promise<void> {
   const profile = getProfile();
@@ -23,15 +23,25 @@ export async function syncCurrentProfile(userId: string): Promise<void> {
     ...profile,
     id: userId,
   };
-  const result = await upsertProfile(userId, normalized);
-  if (!result.success) {
-    console.error("[ProfileSync] Failed to push profile to Supabase:", result.error, {
-      trophies: normalized.trophies,
-      ink_drops: normalized.ink_drops,
-      xp: normalized.xp,
-    });
-    throw new Error(result.error || "Failed to sync profile");
+
+  const updateResult = await updateProfileProgress(userId, normalized);
+  if (updateResult.success) return;
+
+  if (updateResult.rowExists === false) {
+    const upsertResult = await upsertProfile(userId, normalized);
+    if (!upsertResult.success) {
+      console.error("[ProfileSync] Upsert fallback failed:", upsertResult.error);
+      throw new Error(upsertResult.error || "Failed to sync profile");
+    }
+    return;
   }
+
+  console.error("[ProfileSync] Failed to push profile to Supabase:", updateResult.error, {
+    trophies: normalized.trophies,
+    ink_drops: normalized.ink_drops,
+    xp: normalized.xp,
+  });
+  throw new Error(updateResult.error || "Failed to sync profile");
 }
 
 /**

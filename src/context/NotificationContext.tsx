@@ -42,7 +42,7 @@ export interface NotificationState {
 }
 
 const NotificationContext = createContext<NotificationState | null>(null);
-const POLL_INTERVAL_MS = 20_000;
+const POLL_INTERVAL_MS = 45_000;
 const PROCESSED_PARTY_INVITES_KEY = "ll_processed_party_accept_invites";
 
 export function NotificationProvider({ children }: { children: ReactNode }) {

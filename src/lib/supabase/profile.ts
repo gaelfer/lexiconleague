@@ -84,6 +84,52 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
   return dbProfileToUserProfile(data as DbProfile);
 }
 
+/**
+ * Update trophies, XP, ink drops, and related game progress using Supabase update().
+ * Use when the profile row already exists (after games, purchases, rewards).
+ */
+export async function updateProfileProgress(
+  userId: string,
+  profile: Partial<UserProfile>
+): Promise<{ success: boolean; error?: string; rowExists?: boolean }> {
+  const supabase = createClient();
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    return { success: false, error: "Not authenticated — session expired or missing" };
+  }
+
+  const trophies = profile.trophies;
+  const rankTier = trophies != null ? getTierFromTrophies(trophies) : profile.rank_tier;
+
+  const payload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (profile.trophies !== undefined) payload.trophies = profile.trophies;
+  if (profile.xp !== undefined) payload.xp = profile.xp;
+  if (profile.ink_drops !== undefined) payload.ink_drops = profile.ink_drops;
+  if ((rankTier ?? profile.rank_tier) !== undefined) payload.rank_tier = rankTier ?? profile.rank_tier;
+  if (profile.unlocked_items !== undefined) payload.unlocked_items = profile.unlocked_items;
+  if (profile.ranked_win_streak !== undefined) payload.ranked_win_streak = profile.ranked_win_streak;
+  if (profile.placement_completed !== undefined) payload.placement_completed = profile.placement_completed;
+  if (profile.placement_vocab_grade !== undefined) payload.placement_vocab_grade = profile.placement_vocab_grade;
+  if (profile.mmr !== undefined) payload.mmr = profile.mmr;
+  if (profile.daily_reward_claimed_at !== undefined) payload.daily_reward_claimed_at = profile.daily_reward_claimed_at;
+  if (profile.daily_streak !== undefined) payload.daily_streak = profile.daily_streak;
+  if (profile.claimed_level_rewards !== undefined) payload.claimed_level_rewards = profile.claimed_level_rewards;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(payload)
+    .eq("id", userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { success: false, error: error.message };
+  if (!data) return { success: false, error: "Update affected no rows — RLS may have blocked the write", rowExists: false };
+  return { success: true, rowExists: true };
+}
+
 export async function upsertProfile(
   userId: string,
   profile: Partial<UserProfile>
@@ -130,17 +176,6 @@ export async function upsertProfile(
   if (error) return { success: false, error: error.message };
   if (!data) return { success: false, error: "Upsert returned no data — RLS may have blocked the write" };
   return { success: true };
-}
-
-/**
- * @deprecated Use upsertProfile instead — this function is redundant.
- * Kept temporarily for backward compatibility; all callers should migrate.
- */
-export async function updateProfileGameProgress(
-  userId: string,
-  profile: Pick<UserProfile, "trophies" | "xp" | "rank_tier" | "ink_drops" | "unlocked_items" | "ranked_win_streak" | "placement_completed" | "placement_vocab_grade" | "mmr">
-): Promise<{ success: boolean; error?: string }> {
-  return upsertProfile(userId, profile);
 }
 
 export async function claimLevelRewardRemote(level: number): Promise<{ success: boolean; error?: string }> {
