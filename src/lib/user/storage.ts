@@ -40,7 +40,9 @@ export function getProfile(): UserProfile | null {
   const raw = localStorage.getItem(STORAGE_KEYS.PROFILE);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as UserProfile;
+    const p = JSON.parse(raw) as UserProfile;
+    // Always derive rank_tier from trophies so it stays correct when crossing thresholds
+    return { ...p, rank_tier: getTierFromTrophies(p.trophies ?? 0) as UserProfile["rank_tier"] };
   } catch {
     return null;
   }
@@ -76,7 +78,12 @@ export function getLocalProfileUpdatedAtMs(): number {
 
 export function saveProfile(profile: UserProfile, options?: SaveProfileOptions): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+  // Always derive rank_tier from trophies so it stays correct when crossing thresholds
+  const toSave: UserProfile = {
+    ...profile,
+    rank_tier: getTierFromTrophies(profile.trophies ?? 0) as UserProfile["rank_tier"],
+  };
+  localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(toSave));
   const source = options?.source ?? "local";
   const updatedAtMs =
     source === "remote" && options?.remoteUpdatedAt
@@ -104,7 +111,7 @@ function getPlacementVocabGrade(correct: number, total: number): 3 | 4 | 5 | 6 |
 }
 
 export function applyGameResult(result: GameResult): UserProfile {
-  let profile = getProfile() ?? createGuestProfile();
+  const profile = getProfile() ?? createGuestProfile();
   const isPlacement = result.mode === "ranked" && !profile.placement_completed;
 
   const xpBase = profile.xp ?? 0;

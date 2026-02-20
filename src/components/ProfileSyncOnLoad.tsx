@@ -45,10 +45,11 @@ export default function ProfileSyncOnLoad() {
     };
 
     const onVisibility = () => {
-      document.visibilityState === "visible" ? startPolling() : stopPolling();
+      if (document.visibilityState === "visible") startPolling();
+      else stopPolling();
     };
 
-    if (document.visibilityState === "visible") startPolling();
+    if (document.visibilityState === "visible") { startPolling(); }
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);

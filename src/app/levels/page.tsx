@@ -381,8 +381,6 @@ function BattlePassTrack({
           const claimable = reachable && !claimed;
           const locked = !reachable;
           const above = idx % 2 === 0;
-          const accent = rewardAccent(reward);
-
           // Stem connecting card to node
           const stemTop = above ? ABOVE_H : TRACK_CY + NODE_R;
           const stemColor = claimed ? MINT : claimable ? BLUE : (light ? "#E2E8F0" : "rgba(255,255,255,0.1)");

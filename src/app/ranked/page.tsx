@@ -9,7 +9,7 @@ import { syncCurrentProfile } from "@/lib/user/profile-sync";
 import { fetchLeaderboard, LeaderboardEntry } from "@/lib/supabase/profile";
 import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, getWinStreakMultiplier } from "@/lib/game/rank";
 import { getLevel } from "@/lib/user/levels";
-import { RANK_TIERS, RANK_COLORS, RANK_THRESHOLDS, RANK_INKLING_CONFIG, RankTier } from "@/types";
+import { RANK_TIERS, RANK_COLORS, RANK_INKLING_CONFIG, RankTier } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
 import RankBadge from "@/components/RankBadge";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -154,7 +154,6 @@ export default function RankedScreenPage() {
   const textFaint = light ? "text-[#94A3B8]" : "text-white/40";
   const cardBg = light ? "bg-white" : "bg-[#1E293B]";
   const cardBorder = light ? "border-[#E2E8F0]" : "border-[#334155]";
-  const heroBg = light ? "bg-white" : "bg-gradient-to-br from-[#1E293B] to-[#0F172A]";
 
   return (
     <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>

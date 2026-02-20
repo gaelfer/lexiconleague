@@ -19,7 +19,7 @@ import HomeTutorialOverlay from "@/components/HomeTutorialOverlay";
 import { getTierProgress, getTrophiesInTier, getTrophiesToNextTier, getTierFromTrophies } from "@/lib/game/rank";
 import { getLevelProgress, getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
 import { canClaimDailyReward } from "@/lib/user/daily-rewards";
-import { RANK_TIERS, RANK_COLORS } from "@/types";
+import { RANK_COLORS } from "@/types";
 
 const BLUE = "#3B82F6";
 const MINT = "#34D399";
@@ -191,7 +191,6 @@ function Home() {
   const displayTier = profile ? getTierFromTrophies(profile.trophies) : "Bronze";
   const tierProgress = profile ? getTierProgress(profile.trophies, displayTier) : 0;
   const trophiesInTier = profile ? getTrophiesInTier(profile.trophies, displayTier) : 0;
-  const tierIdx = profile ? RANK_TIERS.indexOf(displayTier) : 0;
   const tierColor = profile ? RANK_COLORS[displayTier] : BLUE;
   const levelProgress = profile ? getLevelProgress(profile.xp) : null;
 

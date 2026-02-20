@@ -26,11 +26,9 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setTheme(getStoredTheme());
-    setMounted(true);
   }, []);
 
   const toggleTheme = () => {

@@ -1,4 +1,4 @@
-import { InkAvatarConfig, DEFAULT_AVATAR_CONFIG, RankTier } from "@/types";
+import { InkAvatarConfig, RankTier } from "@/types";
 
 export interface OpponentInfo {
   id: string;

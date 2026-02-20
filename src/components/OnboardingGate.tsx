@@ -10,7 +10,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const [checked, setChecked] = useState(false);
+  const [, setChecked] = useState(false);
 
   useEffect(() => {
     if (loading || !user) {

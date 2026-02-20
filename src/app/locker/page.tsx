@@ -14,8 +14,6 @@ import {
   ACCESSORIES,
   CosmeticItem,
   ColorItem,
-  colorHexToId,
-  FREE_ITEM_IDS,
   getOwnedAuraVariants,
   AuraVariant,
   RARITY_COLORS,

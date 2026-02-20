@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Subject, GameResult, InkAvatarConfig, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS } from "@/types";
+import { Subject, GameResult, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS } from "@/types";
 import { getProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
 import { syncProfileForUser, syncCurrentProfile } from "@/lib/user/profile-sync";
 import { useAuth } from "@/context/AuthContext";
@@ -26,7 +26,7 @@ import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
-import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, calculateScore, TROPHY_WIN, TROPHY_LOSS, getWinStreakMultiplier } from "@/lib/game/rank";
+import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, TROPHY_WIN, TROPHY_LOSS, getWinStreakMultiplier } from "@/lib/game/rank";
 import { getVocabGradeForRanked, PLACEMENT_VOCAB_GRADE } from "@/lib/game/questions";
 
 type Phase = "lobby" | "searching" | "prematch" | "playing" | "results";
@@ -37,7 +37,6 @@ const isSupabaseConfigured =
   typeof process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === "string" &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 0;
 
-const BLUE = "#3B82F6";
 const MINT = "#34D399";
 
 export default function RankedPage() {
@@ -50,17 +49,19 @@ export default function RankedPage() {
   const [resultMetadata, setResultMetadata] = useState<import("@/types").GameResultMetadata | undefined>(undefined);
   const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [opponent, setOpponent] = useState<OpponentInfo | null>(null);
-  const [matchSeed, setMatchSeed] = useState("");
   const [countdown, setCountdown] = useState(3);
   const [searchDots, setSearchDots] = useState("");
   const [opponentScore, setOpponentScore] = useState<number | null>(null);
   const [opponentAnswered, setOpponentAnswered] = useState<number | null>(null);
   const botResultRef = useRef<{ correct: number; total: number } | null>(null);
+  const matchSeedRef = useRef("");
+  const opponentIdRef = useRef<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef = useRef<any>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const matchedRef = useRef(false);
   const isPlacementMatchRef = useRef(false);
+  const [isPlacementMatch, setIsPlacementMatch] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -184,7 +185,7 @@ export default function RankedPage() {
         if (players.length > 0 && !matchedRef.current) {
           matchedRef.current = true;
           const [opId, opData] = players[0];
-          const opInfo = (opData as any[])[0];
+          const opInfo = (opData as { username?: string; rank_tier?: string; avatar_config?: unknown }[])[0];
 
           const seed = generateMatchSeed();
 
@@ -213,43 +214,48 @@ export default function RankedPage() {
           };
 
           isPlacementMatchRef.current = !(getProfile() ?? createGuestProfile()).placement_completed;
-          setMatchSeed(seed);
+          matchSeedRef.current = seed;
+          opponentIdRef.current = opId;
           setOpponent(opp);
           if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
           setPhase("prematch");
         }
       });
 
-      channel.on("broadcast", { event: "match-found" }, (msg: any) => {
+      channel.on("broadcast", { event: "match-found" }, (msg: { payload?: { from?: string; to?: string; player?: { username?: string; rank_tier?: string; avatar_config?: unknown }; seed?: string } }) => {
         const payload = msg.payload;
-        if (payload.to === user.id && !matchedRef.current) {
-          matchedRef.current = true;
-          const opp: OpponentInfo = {
-            id: payload.from,
-            username: payload.player?.username ?? "Opponent",
-            rank_tier: payload.player?.rank_tier ?? profile.rank_tier,
-            avatar_config: payload.player?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
-            isBot: false,
-          };
-          isPlacementMatchRef.current = !(getProfile() ?? createGuestProfile()).placement_completed;
-          setMatchSeed(payload.seed);
-          setOpponent(opp);
-          if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-          setPhase("prematch");
-        }
+        if (!payload || payload.to !== user.id || matchedRef.current) return;
+        matchedRef.current = true;
+        const opp: OpponentInfo = {
+          id: payload.from ?? "",
+          username: payload.player?.username ?? "Opponent",
+          rank_tier: payload.player?.rank_tier ?? profile.rank_tier,
+          avatar_config: payload.player?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+          isBot: false,
+        };
+        isPlacementMatchRef.current = !(getProfile() ?? createGuestProfile()).placement_completed;
+        matchSeedRef.current = payload.seed ?? "";
+        opponentIdRef.current = payload.from ?? null;
+        setOpponent(opp);
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        setPhase("prematch");
       });
 
-      channel.on("broadcast", { event: "game-score" }, (msg: any) => {
-        if (msg.payload.userId !== user.id) {
-          setOpponentScore(msg.payload.score);
-        }
+      channel.on("broadcast", { event: "game-score" }, (msg: { payload?: { matchSeed?: string; userId?: string; score?: number } }) => {
+        const payload = msg.payload as { matchSeed?: string; userId?: string; score?: number };
+        if (!payload || !payload.userId || payload.userId === user.id) return;
+        if (!payload.matchSeed || payload.matchSeed !== matchSeedRef.current) return;
+        if (!opponentIdRef.current || payload.userId !== opponentIdRef.current) return;
+        setOpponentScore(payload.score ?? 0);
       });
 
-      channel.on("broadcast", { event: "game-progress" }, (msg: any) => {
-        if (msg.payload.userId !== user.id) {
-          setOpponentAnswered(msg.payload.answered ?? 0);
-          setOpponentScore(msg.payload.score ?? null);
-        }
+      channel.on("broadcast", { event: "game-progress" }, (msg: { payload?: { matchSeed?: string; userId?: string; answered?: number; score?: number | null } }) => {
+        const payload = msg.payload as { matchSeed?: string; userId?: string; answered?: number; score?: number | null };
+        if (!payload || !payload.userId || payload.userId === user.id) return;
+        if (!payload.matchSeed || payload.matchSeed !== matchSeedRef.current) return;
+        if (!opponentIdRef.current || payload.userId !== opponentIdRef.current) return;
+        setOpponentAnswered(payload.answered ?? 0);
+        setOpponentScore(payload.score ?? null);
       });
 
       channel.subscribe(async (status: string) => {
@@ -278,13 +284,15 @@ export default function RankedPage() {
     const botResult = generateBotScore(profile.rank_tier);
     botResultRef.current = { correct: botResult.correct, total: botResult.total };
     const seed = generateMatchSeed();
+    matchSeedRef.current = seed;
+    opponentIdRef.current = bot.id;
     setOpponent(bot);
-    setMatchSeed(seed);
     cleanupChannel();
     setPhase("prematch");
   }
 
   async function handleComplete(r: GameResult, metadata?: import("@/types").GameResultMetadata) {
+    setIsPlacementMatch(isPlacementMatchRef.current);
     setResult(r);
     setResultMetadata(metadata);
     const updated = getProfile();
@@ -295,7 +303,7 @@ export default function RankedPage() {
         channelRef.current.send({
           type: "broadcast",
           event: "game-score",
-          payload: { userId: user.id, score: r.score },
+          payload: { matchSeed: matchSeedRef.current, userId: user.id, score: r.score },
         });
       } catch {}
     }
@@ -318,14 +326,16 @@ export default function RankedPage() {
     cleanupChannel();
     matchedRef.current = false;
     botResultRef.current = null;
+    setIsPlacementMatch(false);
     const fresh = getProfile() ?? createGuestProfile();
     setProfile(fresh);
     setResult(null);
     setResultMetadata(undefined);
     setOpponent(null);
+    opponentIdRef.current = null;
     setOpponentScore(null);
     setOpponentAnswered(null);
-    setMatchSeed("");
+    matchSeedRef.current = "";
     setPhase("lobby");
   }
 
@@ -353,7 +363,7 @@ export default function RankedPage() {
           channelRef.current.send({
             type: "broadcast",
             event: "game-progress",
-            payload: { userId: user.id, answered, score },
+            payload: { matchSeed: matchSeedRef.current, userId: user.id, answered, score },
           });
         } catch {}
       }
@@ -440,7 +450,7 @@ export default function RankedPage() {
         <ResultsScreen
           result={result}
           onPlayAgain={handlePlayAgain}
-          placementGrade={isPlacementMatchRef.current ? (getProfile()?.placement_vocab_grade) : undefined}
+          placementGrade={isPlacementMatch ? (getProfile()?.placement_vocab_grade) : undefined}
           metadata={resultMetadata}
         />
       </div>
@@ -539,7 +549,6 @@ export default function RankedPage() {
   const currentStreak = profile.ranked_win_streak ?? 0;
   const streakMultiplier = getWinStreakMultiplier(currentStreak);
   const winTrophies = Math.round(TROPHY_WIN[profile.rank_tier] * streakMultiplier);
-  const lossTrophies = Math.abs(TROPHY_LOSS[profile.rank_tier]);
   // Streak milestone thresholds for progress display
   const STREAK_MILESTONES = [0, 3, 5, 7, 10];
   const nextMilestone = STREAK_MILESTONES.find((m) => m > currentStreak) ?? 10;

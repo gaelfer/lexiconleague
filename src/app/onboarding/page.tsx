@@ -21,7 +21,6 @@ const VOCAB_LEVELS: { value: VocabLevel; label: string }[] = [
 ];
 
 const BLUE = "#3B82F6";
-const MINT = "#34D399";
 
 export default function OnboardingPage() {
   return (

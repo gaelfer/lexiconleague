@@ -72,10 +72,10 @@ export default function ProfilePage() {
     setSavingUsername(true);
     const result = await updateUsername(user.id, username.trim());
     if (result.success) {
-      const p = getProfile() ?? profile;
-      p.username = username.trim();
+      const base = getProfile() ?? profile;
+      const p = { ...base, username: username.trim() };
       saveProfile(p);
-      setProfile({ ...p });
+      setProfile(p);
       showToast("success", "Username updated!");
     } else {
       showToast("error", result.error ?? "Failed to update username.");
