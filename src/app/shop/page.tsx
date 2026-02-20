@@ -129,8 +129,8 @@ export default function ShopPage() {
     setClaimedReward(reward);
     setClaimAnimating(false);
     if (user?.id) {
-      const { upsertProfile } = await import("@/lib/supabase/profile");
-      await upsertProfile(user.id, updatedProfile);
+      const { syncCurrentProfile } = await import("@/lib/user/profile-sync");
+      await syncCurrentProfile(user.id);
     }
   }
 

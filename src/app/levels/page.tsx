@@ -10,7 +10,7 @@ import {
   claimLevelReward,
   isLevelRewardClaimed,
 } from "@/lib/user/storage";
-import { upsertProfile } from "@/lib/supabase/profile";
+import { syncCurrentProfile } from "@/lib/user/profile-sync";
 import { getLevelProgress, getXPForLevel, LEVEL_REWARDS, LevelReward } from "@/lib/user/levels";
 import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
@@ -467,8 +467,17 @@ export default function LevelsPage() {
   const currentLevel = levelProgress.level;
 
   useEffect(() => {
-    setProfile(getProfile() ?? createGuestProfile());
-  }, []);
+    async function load() {
+      if (user) {
+        const { syncProfileForUser } = await import("@/lib/user/profile-sync");
+        const synced = await syncProfileForUser(user.id, user.email ?? "");
+        setProfile(synced);
+      } else {
+        setProfile(getProfile() ?? createGuestProfile());
+      }
+    }
+    load();
+  }, [user]);
 
   const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
   const text = light ? "text-[#0F172A]" : "text-white";
@@ -486,12 +495,7 @@ export default function LevelsPage() {
       const updated = getProfile();
       if (updated) setProfile(updated);
       if (user && updated) {
-        await upsertProfile(user.id, {
-          xp: updated.xp ?? 0,
-          ink_drops: updated.ink_drops,
-          unlocked_items: updated.unlocked_items,
-          claimed_level_rewards: updated.claimed_level_rewards,
-        });
+        await syncCurrentProfile(user.id);
       }
     } finally {
       setClaimingLevel(null);
