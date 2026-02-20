@@ -33,7 +33,8 @@ export async function updateSession(request: NextRequest) {
   // Redirect unauthenticated users away from protected routes
   const isProtected =
     request.nextUrl.pathname.startsWith("/profile") ||
-    request.nextUrl.pathname.startsWith("/play/ranked");
+    request.nextUrl.pathname.startsWith("/play/ranked") ||
+    request.nextUrl.pathname === "/ranked";
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone();

@@ -387,14 +387,6 @@ export default function RankedScreenPage() {
             </div>
           </div>
 
-          {!user && (
-            <div className={`relative z-10 mx-6 sm:mx-8 mb-6 sm:mb-8 flex items-center justify-between px-4 py-3 rounded-xl ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/15 border border-[#34D399]/30"}`}>
-              <span className="text-sm font-bold" style={{ color: MINT }}>Sign in to save your rank</span>
-              <Link href="/auth/signup" className="text-xs font-bold px-4 py-2 rounded-lg text-white transition-colors" style={{ backgroundColor: MINT }}>
-                Join Free
-              </Link>
-            </div>
-          )}
         </div>
 
         <div className={`rounded-2xl overflow-hidden ${cardBg} border ${cardBorder} shadow-lg relative`}>
