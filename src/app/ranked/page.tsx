@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { getProfile, createGuestProfile } from "@/lib/user/storage";
+import { getProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
 import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { fetchLeaderboard, LeaderboardEntry } from "@/lib/supabase/profile";
 import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, getWinStreakMultiplier } from "@/lib/game/rank";
@@ -96,7 +96,7 @@ function TrophyIconSmall({ rank }: { rank: number }) {
 export default function RankedScreenPage() {
   const { user, loading: authLoading } = useAuth();
   const { light } = useTheme();
-  const [profile, setProfile] = useState(() => getProfile() ?? createGuestProfile());
+  const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -111,20 +111,25 @@ export default function RankedScreenPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    async function load() {
-      if (user) {
-        const u = user;
-        const synced = await syncProfileForUser(u.id, u.email ?? "");
-        setProfile(synced);
-      } else {
-        const p = getProfile() ?? createGuestProfile();
-        setProfile(p);
-      }
-      await loadLeaderboard();
-      setLoading(false);
+    setProfile(getProfile() ?? createGuestProfile());
+    if (user) {
+      syncProfileForUser(user.id, user.email ?? "")
+        .then(setProfile)
+        .catch(() => {});
     }
-    load();
+    Promise.race([
+      loadLeaderboard(),
+      new Promise<void>((r) => setTimeout(r, 8000)),
+    ]).finally(() => setLoading(false));
   }, [user, authLoading]);
+
+  useEffect(() => {
+    const onProfileUpdated = () => {
+      setProfile(getProfile() ?? createGuestProfile());
+    };
+    window.addEventListener("ll-profile-updated", onProfileUpdated);
+    return () => window.removeEventListener("ll-profile-updated", onProfileUpdated);
+  }, []);
 
   // Pull latest profile and refetch leaderboard when tab becomes visible
   useEffect(() => {

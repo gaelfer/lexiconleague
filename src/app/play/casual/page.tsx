@@ -6,7 +6,7 @@ import { Subject, GameResult, VocabLevel, DEFAULT_AVATAR_CONFIG, InkAvatarConfig
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useParty, type PartyMember } from "@/context/PartyContext";
-import { getProfile, createGuestProfile } from "@/lib/user/storage";
+import { getProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
 import { syncCurrentProfile } from "@/lib/user/profile-sync";
 import { createClient } from "@/lib/supabase/client";
 import GameScreen from "@/components/GameScreen";
@@ -274,7 +274,11 @@ export default function CasualPage() {
   const gameStartTimeRef = useRef<number>(0);
   const playerFinishTimeRef = useRef<number>(0);
   const waitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const profile = getProfile() ?? createGuestProfile();
+  const [profile, setProfile] = useState(INITIAL_PROFILE);
+
+  useEffect(() => {
+    setProfile(getProfile() ?? createGuestProfile());
+  }, []);
 
   const canQueue = mode === "1v1" ? canQueue1v1 : canQueue3v3;
 
@@ -939,7 +943,9 @@ export default function CasualPage() {
     if (user) {
       try {
         await syncCurrentProfile(user.id);
-      } catch {
+        setProfile(getProfile() ?? createGuestProfile());
+      } catch (e) {
+        console.error("[Casual] Trophy sync failed:", e);
         // Sync failed; local state is correct, Supabase will catch up on next load
       }
     }

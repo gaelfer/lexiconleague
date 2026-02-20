@@ -54,15 +54,18 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingNotification[]>([]);
+  const [profile, setProfile] = useState<ReturnType<typeof getProfile>>(null);
   const ref = useRef<HTMLDivElement>(null);
-
-  const profile = getProfile();
   const hasDailyReward = profile && canClaimDailyReward(profile);
   const unclaimedLevelRewards = getUnclaimedLevelRewards(profile);
 
   useEffect(() => {
+    setProfile(getProfile());
     setPending(getPendingNotifications());
-    const handler = () => setPending(getPendingNotifications());
+    const handler = () => {
+      setProfile(getProfile());
+      setPending(getPendingNotifications());
+    };
     window.addEventListener("ll-pending-notifications", handler);
     return () => window.removeEventListener("ll-pending-notifications", handler);
   }, []);

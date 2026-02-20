@@ -107,6 +107,8 @@ export interface UserProfile {
   /** Consecutive ranked wins; resets on loss/draw. Used for trophy multiplier. */
   ranked_win_streak?: number;
   created_at: string;
+  /** Last update timestamp from Supabase row (if loaded from cloud). */
+  updated_at?: string;
 }
 
 // ── Match ───────────────────────────────────────────────────────────────────

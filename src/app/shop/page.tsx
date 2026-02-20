@@ -8,6 +8,7 @@ import { UserProfile } from "@/types";
 import {
   getProfile,
   createGuestProfile,
+  INITIAL_PROFILE,
   spendInkDrops,
   unlockItem,
   isItemUnlocked,
@@ -64,11 +65,7 @@ const MINT = "#34D399";
 export default function ShopPage() {
   const { user, loading: authLoading } = useAuth();
   const { light } = useTheme();
-  const [profile, setProfile] = useState<UserProfile | null>(() => {
-    const p = getProfile();
-    if (!p) return null;
-    return { ...p, unlocked_items: p.unlocked_items ?? [...FREE_ITEM_IDS], ink_drops: p.ink_drops ?? 0 };
-  });
+  const [profile, setProfile] = useState<UserProfile>({ ...INITIAL_PROFILE, unlocked_items: [...FREE_ITEM_IDS], ink_drops: 0 });
   const [tab, setTab] = useState<ShopTab>("bases");
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; msg: string } | null>(null);
   const [claimAnimating, setClaimAnimating] = useState(false);
@@ -102,6 +99,15 @@ export default function ShopPage() {
     }
   }, [user, authLoading]);
 
+  useEffect(() => {
+    const onProfileUpdated = () => {
+      const p = getProfile() ?? createGuestProfile();
+      setProfile({ ...p, unlocked_items: p.unlocked_items ?? [...FREE_ITEM_IDS], ink_drops: p.ink_drops ?? 0 });
+    };
+    window.addEventListener("ll-profile-updated", onProfileUpdated);
+    return () => window.removeEventListener("ll-profile-updated", onProfileUpdated);
+  }, []);
+
   const showToast = useCallback((type: "success" | "error" | "info", msg: string) => {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 3000);
@@ -114,9 +120,8 @@ export default function ShopPage() {
 
   async function syncToSupabase() {
     if (user?.id) {
-      const { upsertProfile } = await import("@/lib/supabase/profile");
-      const updated = getProfile();
-      if (updated) await upsertProfile(user.id, updated);
+      const { syncCurrentProfile } = await import("@/lib/user/profile-sync");
+      await syncCurrentProfile(user.id);
     }
   }
 
@@ -159,7 +164,11 @@ export default function ShopPage() {
       unlockItem(confirmItem.id);
       refreshProfile();
       showToast("success", `${confirmItem.label} unlocked!`);
-      await syncToSupabase();
+      try {
+        await syncToSupabase();
+      } catch {
+        showToast("info", "Saved locally. Sync when online.");
+      }
     } else {
       showToast("error", "Purchase failed.");
     }
@@ -200,7 +209,11 @@ export default function ShopPage() {
     setPackOpening(false);
     setPackResult(result);
     setPackDuplicate(isDuplicate);
-    await syncToSupabase();
+    try {
+      await syncToSupabase();
+    } catch {
+      showToast("info", "Saved locally. Sync when online.");
+    }
   }
 
   function getRankForItem(itemId: string): string | null {
@@ -274,17 +287,9 @@ export default function ShopPage() {
     );
   }
 
-  const canClaim = profile ? canClaimDailyReward(profile) : false;
-  const streakDay = profile ? getCurrentStreakDay(profile) : 1;
-  const todayReward = profile ? getTodayReward(profile) : DAILY_REWARDS[0];
-
-  if (!profile) {
-    return (
-      <main className={`min-h-screen flex items-center justify-center ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]"}`}>
-        <p className={`font-semibold animate-pulse ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>Loading shop...</p>
-      </main>
-    );
-  }
+  const canClaim = canClaimDailyReward(profile);
+  const streakDay = getCurrentStreakDay(profile);
+  const todayReward = getTodayReward(profile);
 
   const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
   const text = light ? "text-[#0F172A]" : "text-white";

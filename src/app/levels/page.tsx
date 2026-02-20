@@ -9,6 +9,7 @@ import {
   createGuestProfile,
   claimLevelReward,
   isLevelRewardClaimed,
+  INITIAL_PROFILE,
 } from "@/lib/user/storage";
 import { syncCurrentProfile } from "@/lib/user/profile-sync";
 import { getLevelProgress, getXPForLevel, LEVEL_REWARDS, LevelReward } from "@/lib/user/levels";
@@ -461,7 +462,7 @@ function BattlePassTrack({
 export default function LevelsPage() {
   const { user } = useAuth();
   const { light } = useTheme();
-  const [profile, setProfile] = useState(() => getProfile() ?? createGuestProfile());
+  const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [claimingLevel, setClaimingLevel] = useState<number | null>(null);
   const levelProgress = getLevelProgress(profile.xp);
   const currentLevel = levelProgress.level;
@@ -478,6 +479,14 @@ export default function LevelsPage() {
     }
     load();
   }, [user]);
+
+  useEffect(() => {
+    const onProfileUpdated = () => {
+      setProfile(getProfile() ?? createGuestProfile());
+    };
+    window.addEventListener("ll-profile-updated", onProfileUpdated);
+    return () => window.removeEventListener("ll-profile-updated", onProfileUpdated);
+  }, []);
 
   const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
   const text = light ? "text-[#0F172A]" : "text-white";

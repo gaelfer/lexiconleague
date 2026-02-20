@@ -1,5 +1,11 @@
 import { UserProfile, RankTier } from "@/types";
-import { getProfile, saveProfile, createGuestProfile, ensureRankRewardsUnlocked } from "./storage";
+import {
+  getProfile,
+  saveProfile,
+  createGuestProfile,
+  ensureRankRewardsUnlocked,
+  getLocalProfileUpdatedAtMs,
+} from "./storage";
 import { fetchProfile, upsertProfile, updateProfileGameProgress } from "@/lib/supabase/profile";
 import { getTierFromTrophies } from "@/lib/game/rank";
 
@@ -9,7 +15,10 @@ import { getTierFromTrophies } from "@/lib/game/rank";
  */
 export async function syncCurrentProfile(userId: string): Promise<void> {
   const profile = getProfile();
-  if (!profile) return;
+  if (!profile) {
+    console.warn("[ProfileSync] No local profile to sync");
+    return;
+  }
   const normalized: UserProfile = {
     ...profile,
     id: userId,
@@ -26,8 +35,17 @@ export async function syncCurrentProfile(userId: string): Promise<void> {
     mmr: normalized.mmr,
   });
   const upsertResult = await upsertProfile(userId, normalized);
-  if (!progressResult.success && !upsertResult.success) {
-    throw new Error(upsertResult.error ?? progressResult.error ?? "Failed to sync profile");
+  if (!progressResult.success || !upsertResult.success) {
+    const errors = [progressResult.error, upsertResult.error].filter(Boolean).join(" | ");
+    const err = errors || "Failed to sync profile";
+    console.error("[ProfileSync] Partial/failed sync:", err, {
+      progressSuccess: progressResult.success,
+      upsertSuccess: upsertResult.success,
+      trophies: normalized.trophies,
+    });
+    if (!progressResult.success && !upsertResult.success) {
+      throw new Error(err);
+    }
   }
 }
 
@@ -40,60 +58,75 @@ export async function syncProfileForUser(
   email: string
 ): Promise<UserProfile> {
   const local = getProfile();
+  const localBelongsToUser =
+    !!local && (local.id === userId || (!!email && local.email === email));
+  const localUserProfile = localBelongsToUser ? local : null;
   const remote = await fetchProfile(userId);
 
   if (remote) {
-    const localClaim = local?.daily_reward_claimed_at ? new Date(local.daily_reward_claimed_at) : null;
+    const localUpdatedAtMs = getLocalProfileUpdatedAtMs();
+    const remoteUpdatedAtMs = remote.updated_at ? Date.parse(remote.updated_at) : 0;
+    const remoteIsNewer = remoteUpdatedAtMs > localUpdatedAtMs + 1000;
+    const localIsNewer = localUpdatedAtMs > remoteUpdatedAtMs + 1000;
+    const base = remoteIsNewer ? remote : (localUserProfile ?? remote);
+
+    const localClaim = localUserProfile?.daily_reward_claimed_at ? new Date(localUserProfile.daily_reward_claimed_at) : null;
     const remoteClaim = remote.daily_reward_claimed_at ? new Date(remote.daily_reward_claimed_at) : null;
     const useLocalDaily = localClaim && (!remoteClaim || localClaim > remoteClaim);
     const mergedUnlocked = [
       ...new Set([
         ...(remote.unlocked_items ?? []),
-        ...(local?.unlocked_items ?? []),
+        ...(localUserProfile?.unlocked_items ?? []),
       ]),
     ];
     const mergedClaimedRewards = [
       ...new Set([
         ...(remote.claimed_level_rewards ?? []),
-        ...(local?.claimed_level_rewards ?? []),
+        ...(localUserProfile?.claimed_level_rewards ?? []),
       ]),
     ];
-    // Progress: take max so we never lose a fresh win (local may have just updated)
-    const mergedTrophies = Math.max(remote.trophies ?? 0, local?.trophies ?? 0);
+    const mergedTrophies = base.trophies ?? 0;
     const merged: UserProfile = {
-      ...remote,
+      ...base,
       id: userId,
       trophies: mergedTrophies,
       rank_tier: getTierFromTrophies(mergedTrophies) as RankTier,
-      xp: Math.max(remote.xp ?? 0, local?.xp ?? 0),
-      ink_drops: Math.max(remote.ink_drops ?? 0, local?.ink_drops ?? 0),
-      ranked_win_streak: Math.max(remote.ranked_win_streak ?? 0, local?.ranked_win_streak ?? 0),
-      mmr: Math.max(remote.mmr ?? 1000, local?.mmr ?? 1000),
-      email: email || remote.email || local?.email || "",
+      xp: base.xp ?? 0,
+      ink_drops: base.ink_drops ?? 0,
+      ranked_win_streak: base.ranked_win_streak ?? 0,
+      mmr: base.mmr ?? 1000,
+      email: email || remote.email || localUserProfile?.email || "",
       username:
-        remote.username && remote.username !== "Challenger"
-          ? remote.username
-          : local?.username && local.username !== "Challenger"
-          ? local.username
+        base.username && base.username !== "Challenger"
+          ? base.username
+          : localUserProfile?.username && localUserProfile.username !== "Challenger"
+          ? localUserProfile.username
           : email?.split("@")[0] || "Challenger",
       unlocked_items: mergedUnlocked,
       claimed_level_rewards: mergedClaimedRewards,
-      daily_reward_claimed_at: useLocalDaily ? local!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
-      daily_streak: useLocalDaily ? (local!.daily_streak ?? 0) : (remote.daily_streak ?? 0),
-      placement_completed: (remote.placement_completed ?? false) || (local?.placement_completed ?? false),
-      tutorial_completed: (remote.tutorial_completed ?? false) || (local?.tutorial_completed ?? false),
-      onboarding_completed: (remote.onboarding_completed ?? true) || (local?.onboarding_completed ?? false),
-      vocab_grade: remote.vocab_grade ?? local?.vocab_grade,
-      placement_vocab_grade: remote.placement_vocab_grade ?? local?.placement_vocab_grade,
+      daily_reward_claimed_at: useLocalDaily ? localUserProfile!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
+      daily_streak: useLocalDaily ? (localUserProfile!.daily_streak ?? 0) : (remote.daily_streak ?? 0),
+      placement_completed: (remote.placement_completed ?? false) || (localUserProfile?.placement_completed ?? false),
+      tutorial_completed: (remote.tutorial_completed ?? false) || (localUserProfile?.tutorial_completed ?? false),
+      onboarding_completed: (remote.onboarding_completed ?? true) || (localUserProfile?.onboarding_completed ?? false),
+      vocab_grade: base.vocab_grade ?? localUserProfile?.vocab_grade,
+      placement_vocab_grade: base.placement_vocab_grade ?? localUserProfile?.placement_vocab_grade,
+      updated_at: remote.updated_at,
     };
     ensureRankRewardsUnlocked(merged);
-    saveProfile(merged);
-    await syncCurrentProfile(userId);
+    saveProfile(merged, {
+      source: remoteIsNewer ? "remote" : "local",
+      remoteUpdatedAt: remote.updated_at,
+      emitSyncEvent: true,
+    });
+    if (localIsNewer || !remoteIsNewer) {
+      await syncCurrentProfile(userId);
+    }
     return merged;
   }
 
   // No remote profile yet — create from local or default
-  const base = local ?? createGuestProfile();
+  const base = localUserProfile ?? createGuestProfile();
   const newProfile: UserProfile = {
     ...base,
     id: userId,
@@ -101,7 +134,7 @@ export async function syncProfileForUser(
     username: base.username && base.username !== "Challenger" ? base.username : email?.split("@")[0] || "Challenger",
     onboarding_completed: false,
   };
-  saveProfile(newProfile);
+  saveProfile(newProfile, { source: "local", emitSyncEvent: true });
   await syncCurrentProfile(userId);
   return newProfile;
 }

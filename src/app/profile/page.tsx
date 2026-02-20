@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { createClient } from "@/lib/supabase/client";
-import { getProfile, saveProfile, createGuestProfile } from "@/lib/user/storage";
+import { getProfile, saveProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
 import { syncCurrentProfile, syncProfileForUser } from "@/lib/user/profile-sync";
-import { updateUsername, upsertProfile } from "@/lib/supabase/profile";
+import { updateUsername } from "@/lib/supabase/profile";
 import { VocabLevel } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
 import RankBadge from "@/components/RankBadge";
@@ -35,7 +35,7 @@ export default function ProfilePage() {
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [savingUsername, setSavingUsername] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
-  const [profile, setProfile] = useState(() => getProfile() ?? createGuestProfile());
+  const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [loading, setLoading] = useState(true);
   const [savingGrade, setSavingGrade] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -63,6 +63,16 @@ export default function ProfilePage() {
     }
     load();
   }, [user, authLoading]);
+
+  useEffect(() => {
+    const onProfileUpdated = () => {
+      const p = getProfile() ?? createGuestProfile();
+      setProfile(p);
+      setUsername(p.username);
+    };
+    window.addEventListener("ll-profile-updated", onProfileUpdated);
+    return () => window.removeEventListener("ll-profile-updated", onProfileUpdated);
+  }, []);
 
   const isOAuth = user?.app_metadata?.provider !== "email";
   const canChangePassword = !isOAuth;
@@ -108,9 +118,13 @@ export default function ProfilePage() {
     saveProfile(next);
     if (user) {
       setSavingGrade(true);
-      await upsertProfile(user.id, next);
+      try {
+        await syncCurrentProfile(user.id);
+        showToast("success", "Vocabulary level saved!");
+      } catch {
+        showToast("error", "Failed to save to cloud.");
+      }
       setSavingGrade(false);
-      showToast("success", "Vocabulary level saved!");
     }
   }
 

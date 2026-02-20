@@ -85,13 +85,19 @@ export default function LockerPage() {
   async function handleSave() {
     setSaving(true);
     if (user) {
+      const p = getProfile();
+      if (p) {
+        p.avatar_config = config;
+        saveProfile(p);
+      }
+      setSavedConfig(config);
       const result = await updateAvatarConfig(user.id, config);
       if (result.success) {
-        setSavedConfig(config);
-        const p = getProfile();
-        if (p) {
-          p.avatar_config = config;
-          saveProfile(p);
+        try {
+          const { syncCurrentProfile } = await import("@/lib/user/profile-sync");
+          await syncCurrentProfile(user.id);
+        } catch {
+          // updateAvatarConfig succeeded; sync is backup
         }
         showToast("success", "Avatar saved!");
       } else {

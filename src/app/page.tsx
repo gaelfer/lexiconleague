@@ -5,8 +5,7 @@ import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { getProfile, saveProfile, createGuestProfile } from "@/lib/user/storage";
-import { upsertProfile } from "@/lib/supabase/profile";
+import { getProfile, saveProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
 import { UserProfile } from "@/types";
 import RankBadge from "@/components/RankBadge";
 import InkAvatar from "@/components/InkAvatar";
@@ -148,23 +147,40 @@ function Home() {
   const { user, loading, signOut } = useAuth();
   const { light } = useTheme();
   const searchParams = useSearchParams();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile>(INITIAL_PROFILE);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      if (user) {
-        const synced = await syncProfileForUser(user.id, user.email ?? "");
-        setProfile(synced);
-      } else {
-        let p = getProfile();
-        if (!p) p = createGuestProfile();
-        setProfile(p);
-      }
-    }
-    load();
+    const p = getProfile() ?? createGuestProfile();
+    setProfile(p);
+    if (!user) return;
+    syncProfileForUser(user.id, user.email ?? "")
+      .then(setProfile)
+      .catch((e) => console.warn("[Home] Profile sync failed:", e));
+  }, [user]);
+
+  useEffect(() => {
+    const onProfileUpdated = () => {
+      const fresh = getProfile() ?? createGuestProfile();
+      setProfile(fresh);
+    };
+    window.addEventListener("ll-profile-updated", onProfileUpdated);
+    return () => window.removeEventListener("ll-profile-updated", onProfileUpdated);
+  }, []);
+
+  // Sync when user returns to tab (backup for missed post-game sync)
+  useEffect(() => {
+    if (!user) return;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      syncProfileForUser(user.id, user.email ?? "")
+        .then(setProfile)
+        .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [user]);
 
   useEffect(() => {
@@ -185,7 +201,12 @@ function Home() {
     setProfile(updated);
     saveProfile(updated);
     if (user) {
-      await upsertProfile(user.id, { tutorial_completed: true });
+      try {
+        const { syncCurrentProfile } = await import("@/lib/user/profile-sync");
+        await syncCurrentProfile(user.id);
+      } catch {
+        // Local save succeeded; cloud will catch up on next load
+      }
     }
   }
 

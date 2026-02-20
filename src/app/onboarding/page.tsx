@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { getProfile, saveProfile, createGuestProfile } from "@/lib/user/storage";
 import { syncProfileForUser } from "@/lib/user/profile-sync";
-import { upsertProfile } from "@/lib/supabase/profile";
+import { syncCurrentProfile } from "@/lib/user/profile-sync";
 import { VocabLevel } from "@/types";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -87,11 +87,11 @@ function OnboardingPageInner() {
       onboarding_completed: true,
     };
     saveProfile(updated);
-    const result = await upsertProfile(user.id, updated);
-    if (result.success) {
+    try {
+      await syncCurrentProfile(user.id);
       router.replace(nextUrl);
-    } else {
-      setError(result.error ?? "Failed to save. Try again.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save. Try again.");
       setSaving(false);
     }
   }

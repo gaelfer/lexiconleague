@@ -5,8 +5,33 @@ import { getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
 
 const STORAGE_KEYS = {
   PROFILE: "ll_profile",
+  PROFILE_UPDATED_AT_MS: "ll_profile_updated_at_ms",
   MATCH_HISTORY: "ll_match_history",
   PERSONAL_BEST: "ll_personal_best",
+};
+
+export interface SaveProfileOptions {
+  source?: "local" | "remote";
+  emitSyncEvent?: boolean;
+  remoteUpdatedAt?: string;
+}
+
+/** Static profile for SSR-safe initial state. Same on server and client to avoid hydration mismatch. */
+export const INITIAL_PROFILE: UserProfile = {
+  id: "guest",
+  email: "",
+  username: "Challenger",
+  rank_tier: "Bronze",
+  trophies: 0,
+  xp: 0,
+  ink_drops: 0,
+  unlocked_items: ["droplet_01", "droplet_02", "color_#1E293B", "color_#3B82F6", "eyes_01", "none"],
+  daily_reward_claimed_at: null,
+  daily_streak: 0,
+  avatar_config: { ...DEFAULT_AVATAR_CONFIG },
+  tutorial_completed: false,
+  created_at: "1970-01-01T00:00:00.000Z",
+  updated_at: "1970-01-01T00:00:00.000Z",
 };
 
 // ── Profile ───────────────────────────────────────────────────────────────────
@@ -36,14 +61,35 @@ export function createGuestProfile(): UserProfile {
     avatar_config: { ...DEFAULT_AVATAR_CONFIG },
     tutorial_completed: false,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
   saveProfile(profile);
   return profile;
 }
 
-export function saveProfile(profile: UserProfile): void {
+export function getLocalProfileUpdatedAtMs(): number {
+  if (typeof window === "undefined") return 0;
+  const raw = localStorage.getItem(STORAGE_KEYS.PROFILE_UPDATED_AT_MS);
+  const n = raw ? Number(raw) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function saveProfile(profile: UserProfile, options?: SaveProfileOptions): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+  const source = options?.source ?? "local";
+  const updatedAtMs =
+    source === "remote" && options?.remoteUpdatedAt
+      ? Date.parse(options.remoteUpdatedAt)
+      : Date.now();
+  localStorage.setItem(
+    STORAGE_KEYS.PROFILE_UPDATED_AT_MS,
+    String(Number.isFinite(updatedAtMs) ? updatedAtMs : Date.now())
+  );
+  const shouldEmit = options?.emitSyncEvent ?? source === "local";
+  if (shouldEmit) {
+    window.dispatchEvent(new CustomEvent("ll-profile-updated", { detail: { source } }));
+  }
 }
 
 /** Map placement match accuracy to starting vocab grade (3-8). */

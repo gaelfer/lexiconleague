@@ -68,6 +68,7 @@ export function dbProfileToUserProfile(row: DbProfile): UserProfile {
     claimed_level_rewards: Array.isArray(row.claimed_level_rewards) ? row.claimed_level_rewards : undefined,
     ranked_win_streak: row.ranked_win_streak ?? 0,
     created_at: row.created_at,
+    updated_at: row.updated_at,
   };
 }
 
@@ -210,20 +211,21 @@ export interface LeaderboardEntry {
 export async function fetchLeaderboard(
   limit = 100
 ): Promise<LeaderboardEntry[]> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, username, rank_tier, trophies, xp, avatar_config")
-    .order("trophies", { ascending: false })
-    .limit(limit);
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, username, rank_tier, trophies, xp, avatar_config")
+      .order("trophies", { ascending: false })
+      .limit(limit);
 
-  if (error) {
-    console.warn("[Leaderboard] fetch failed:", error.message);
-    return [];
-  }
+    if (error) {
+      console.warn("[Leaderboard] fetch failed:", error.message);
+      return [];
+    }
 
-  const rows = Array.isArray(data) ? data : [];
-  return rows
+    const rows = Array.isArray(data) ? data : [];
+    return rows
     .filter((row) => row?.id != null)
     .map((row, i) => {
       const trophies = Number(row.trophies) ?? 0;
@@ -237,4 +239,8 @@ export async function fetchLeaderboard(
         rank: i + 1,
       };
     });
+  } catch (e) {
+    console.warn("[Leaderboard] fetch error:", e);
+    return [];
+  }
 }

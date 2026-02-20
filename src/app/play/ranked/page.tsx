@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Subject, GameResult, InkAvatarConfig, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS } from "@/types";
-import { getProfile, createGuestProfile } from "@/lib/user/storage";
+import { getProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
 import { syncProfileForUser, syncCurrentProfile } from "@/lib/user/profile-sync";
 import { useAuth } from "@/context/AuthContext";
 import { useParty } from "@/context/PartyContext";
@@ -48,7 +48,7 @@ export default function RankedPage() {
   const [subject, setSubject] = useState<Subject>("vocabulary");
   const [result, setResult] = useState<GameResult | null>(null);
   const [resultMetadata, setResultMetadata] = useState<import("@/types").GameResultMetadata | undefined>(undefined);
-  const [profile, setProfile] = useState(getProfile() ?? createGuestProfile());
+  const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [opponent, setOpponent] = useState<OpponentInfo | null>(null);
   const [matchSeed, setMatchSeed] = useState("");
   const [countdown, setCountdown] = useState(3);
@@ -307,7 +307,8 @@ export default function RankedPage() {
     if (user && updated) {
       try {
         await syncCurrentProfile(user.id);
-      } catch {
+      } catch (e) {
+        console.error("[Ranked] Trophy sync failed:", e);
         // Sync failed; local state is correct, Supabase will catch up on next load
       }
     }

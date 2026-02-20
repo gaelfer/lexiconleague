@@ -25,8 +25,12 @@ interface ResultsScreenProps {
 }
 
 export default function ResultsScreen({ result, onPlayAgain, placementGrade, metadata, casualOutcome }: ResultsScreenProps) {
-  const [profile, setProfile] = useState(getProfile());
-  const [bests, setBests] = useState(getPersonalBests());
+  const [profile, setProfile] = useState<ReturnType<typeof getProfile>>(null);
+  const [bests, setBests] = useState({
+    casual_vocab: 0,
+    casual_punctuation: 0,
+    ranked: 0,
+  });
   const [visible, setVisible] = useState(false);
   const [rankUpPopup, setRankUpPopup] = useState(metadata?.rankUp ?? null);
   const [levelUpPopup, setLevelUpPopup] = useState(metadata?.levelUp ?? null);
