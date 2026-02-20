@@ -1025,47 +1025,106 @@ export default function CasualPage() {
 
   // ── Searching for opponent ──────────────────────────────────────────────────
   if (phase === "searching") {
+    const accentColor = mode === "3v3" ? MINT : BLUE;
+    const allFound = mode === "3v3" && playersFound >= 6;
     return (
       <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-6 overflow-x-hidden`}>
         <div className="absolute top-4 right-4 flex items-center gap-2">
           <ThemeToggle />
           <GlobalNotificationBar />
         </div>
-        <div className="w-full max-w-sm text-center space-y-8">
-          <div className="relative">
-            <div className={`w-32 h-32 mx-auto rounded-full border-4 ${light ? "border-[#E2E8F0]" : "border-white/20"} border-t-[#3B82F6] animate-spin`} />
+
+        <div className="w-full max-w-sm text-center space-y-6">
+          {/* Animated avatar ring */}
+          <div className="relative mx-auto" style={{ width: 120, height: 120 }}>
+            <svg className="absolute inset-0 w-full h-full animate-spin" style={{ animationDuration: "1.8s" }} viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="54" fill="none" stroke={light ? "#E2E8F0" : "rgba(255,255,255,0.08)"} strokeWidth="6" />
+              <circle cx="60" cy="60" r="54" fill="none" stroke={accentColor} strokeWidth="6"
+                strokeDasharray="80 260" strokeLinecap="round" />
+            </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="lg" />
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                style={{ backgroundColor: `${accentColor}15`, border: `2px solid ${accentColor}30` }}>
+                <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="md" />
+              </div>
             </div>
           </div>
+
+          {/* Status text */}
           <div>
-            <h2 className={`text-2xl font-extrabold ${text}`}>
-              Searching for {mode === "3v3" ? "players" : "opponent"}{searchDots}
+            <h2 className={`text-xl font-extrabold ${text}`}>
+              {allFound ? "Match found!" : `Searching for ${mode === "3v3" ? "players" : "opponent"}${searchDots}`}
             </h2>
+            <p className={`text-sm font-semibold mt-1 ${textMuted}`}>
+              {mode === "3v3" ? "3v3 Team Battle" : "1v1 Duel"} · {subject === "vocabulary" ? "Vocabulary" : "Punctuation"}
+            </p>
+          </div>
+
+          {/* Player slots */}
+          <div className={`rounded-2xl border p-4 ${cardBg} ${cardBorder}`}>
             {mode === "3v3" ? (
-              <div className="mt-3 space-y-2">
-                <p className={`text-3xl font-extrabold tabular-nums ${playersFound >= 6 ? "text-[#22C55E]" : "text-[#3B82F6]"}`}>
-                  {playersFound}/6
-                </p>
-                <p className={`${textMuted} font-medium text-sm`}>players found</p>
-                <div className="flex justify-center gap-1.5 mt-2">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-xs font-bold ${textMuted}`}>Players found</span>
+                  <span className={`text-sm font-extrabold tabular-nums`} style={{ color: allFound ? MINT : accentColor }}>
+                    {playersFound} / 6
+                  </span>
+                </div>
+                <div className="flex gap-2">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        i < playersFound ? "bg-[#3B82F6] scale-100" : light ? "bg-[#E2E8F0] scale-75" : "bg-[#334155] scale-75"
-                      }`}
-                    />
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                      <div
+                        className={`w-full h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                          i < playersFound
+                            ? ""
+                            : light ? "bg-[#F1F5F9]" : "bg-white/5"
+                        }`}
+                        style={i < playersFound ? { backgroundColor: `${accentColor}20`, border: `1.5px solid ${accentColor}60` } : {}}
+                      >
+                        {i < playersFound ? (
+                          <div className="w-5 h-5 rounded-full" style={{ backgroundColor: accentColor }} />
+                        ) : (
+                          <div className={`w-5 h-5 rounded-full ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`} />
+                        )}
+                      </div>
+                      <span className={`text-[9px] font-bold ${i < playersFound ? "" : textMuted}`}
+                        style={i < playersFound ? { color: accentColor } : {}}>
+                        {i < 3 ? "A" : "B"}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <p className={`${textMuted} font-medium mt-2`}>Finding a player to challenge</p>
+              <div className="flex items-center gap-4">
+                <div className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${BLUE}15`, border: `1.5px solid ${BLUE}40` }}>
+                    <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="sm" />
+                  </div>
+                  <span className={`text-[10px] font-bold ${text} truncate max-w-[60px]`}>{profile?.username ?? "You"}</span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs font-extrabold" style={{ color: BLUE }}>VS</span>
+                  <div className="w-0.5 h-6 rounded-full" style={{ backgroundColor: `${BLUE}30` }} />
+                </div>
+                <div className="flex-1 flex flex-col items-center gap-1">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center animate-pulse ${light ? "bg-[#F1F5F9]" : "bg-white/5"}`}>
+                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={light ? "#CBD5E1" : "rgba(255,255,255,0.2)"} strokeWidth="1.5">
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                    </svg>
+                  </div>
+                  <span className={`text-[10px] font-bold ${textMuted}`}>Searching…</span>
+                </div>
+              </div>
             )}
           </div>
+
           <button
             onClick={() => { cleanupChannel(); setPhase("select"); }}
-            className={`px-6 py-3 rounded-2xl font-bold border transition-colors ${light ? "text-[#64748B] border-[#E2E8F0] hover:bg-[#F8FAFC]" : "text-white/60 border-white/20 hover:bg-white/5"}`}
+            className={`w-full py-3 rounded-2xl font-bold border transition-colors text-sm ${
+              light ? "text-[#64748B] border-[#E2E8F0] hover:bg-[#F1F5F9]" : "text-white/60 border-white/10 hover:bg-white/5"
+            }`}
           >
             Cancel
           </button>
@@ -1149,19 +1208,29 @@ export default function CasualPage() {
   }
 
   if (phase === "vocab-grade") {
+    const gradeColors: Record<string, string> = {
+      "3": "#34D399", "4": "#60A5FA", "5": "#A78BFA",
+      "6": "#F97316", "7": "#EC4899", "8": "#EF4444",
+      psat: "#FBBF24", sat: "#F43F5E",
+    };
+    const gradeEmojis: Record<string, string> = {
+      "3": "🌱", "4": "📗", "5": "📘", "6": "📙",
+      "7": "📕", "8": "🔥", psat: "⚡", sat: "🏆",
+    };
+    const defaultLabel = VOCAB_LEVELS.find((l) => l.level === profile?.vocab_grade)?.label ?? profile?.vocab_grade;
     return (
       <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
         <header className="flex items-center justify-between px-5 py-4">
           <button
             onClick={() => setPhase("select")}
-            className={`flex items-center gap-1.5 text-sm font-bold ${textMuted}`}
+            className={`flex items-center gap-1.5 text-sm font-bold ${textMuted} hover:opacity-80 transition-opacity`}
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
             </svg>
             Back
           </button>
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#3B82F6]"}`}>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#60A5FA]"}`}>
             {mode} · Vocabulary
           </span>
           <div className="flex items-center gap-2">
@@ -1169,30 +1238,56 @@ export default function CasualPage() {
             <GlobalNotificationBar />
           </div>
         </header>
-        <div className="flex-1 max-w-md mx-auto w-full px-4 sm:px-5 py-8 flex flex-col items-center justify-center">
-          <div className="text-center space-y-2 mb-6">
+        <div className="flex-1 max-w-lg mx-auto w-full px-4 sm:px-5 py-6 flex flex-col gap-5">
+          <div className="text-center">
             <h1 className={`text-2xl sm:text-3xl font-extrabold ${text}`}>Pick Your Level</h1>
-            <p className={`${textMuted} text-sm font-medium`}>Grades 3–8, or PSAT/SAT</p>
+            <p className={`${textMuted} text-sm font-medium mt-1`}>Choose the grade that matches your skill</p>
           </div>
+
+          {/* Quick-use default */}
           {profile?.vocab_grade && (
             <button
               onClick={handleUseDefault}
-              className="w-full mb-4 py-3 rounded-2xl font-bold text-white"
-              style={{ backgroundColor: BLUE }}
+              className="flex items-center gap-3 w-full px-5 py-4 rounded-2xl font-extrabold text-white transition-all active:scale-[0.98] hover:opacity-90"
+              style={{ background: `linear-gradient(135deg, ${BLUE}, #6366F1)`, boxShadow: `0 4px 16px ${BLUE}50` }}
             >
-              Use my default ({VOCAB_LEVELS.find((l) => l.level === profile.vocab_grade)?.label ?? profile.vocab_grade})
+              <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" fill="none" stroke="white" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span className="flex-1 text-left">Use my default level</span>
+              <span className="text-sm opacity-80 font-bold">{defaultLabel}</span>
             </button>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
-            {VOCAB_LEVELS.map(({ level, label }) => (
-              <button
-                key={String(level)}
-                onClick={() => handleStartWithGrade(level)}
-                className={`rounded-2xl p-4 border-2 text-center font-bold ${cardBg} ${cardBorder} hover:border-[#3B82F6]/50`}
-              >
-                <span className={`text-lg ${text}`}>{label}</span>
-              </button>
-            ))}
+
+          {/* Grade grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {VOCAB_LEVELS.map(({ level, label }) => {
+              const key = String(level);
+              const color = gradeColors[key] ?? BLUE;
+              const emoji = gradeEmojis[key] ?? "📚";
+              const isDefault = profile?.vocab_grade === level;
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleStartWithGrade(level)}
+                  className={`relative flex flex-col items-center justify-center gap-1.5 rounded-2xl py-4 px-3 border-2 font-bold transition-all duration-150 active:scale-95`}
+                  style={{
+                    borderColor: isDefault ? color : (light ? "#E2E8F0" : "rgba(255,255,255,0.1)"),
+                    backgroundColor: isDefault ? `${color}12` : (light ? "#ffffff" : "#1E293B"),
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 0 14px ${color}30`; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = isDefault ? color : (light ? "#E2E8F0" : "rgba(255,255,255,0.1)"); e.currentTarget.style.boxShadow = "none"; }}
+                >
+                  <span className="text-xl leading-none">{emoji}</span>
+                  <span className={`text-sm font-extrabold ${text}`}>{label}</span>
+                  {isDefault && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${color}25`, color }}>
+                      default
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </main>
@@ -1411,16 +1506,27 @@ export default function CasualPage() {
     );
   }
 
+  // Static preview avatars for mode card illustrations
+  const DEMO_BOTS: InkAvatarConfig[] = [
+    { base: "droplet_01", color: "#94A3B8", eyes: "eyes_02", accessory: "headband_01", aura: "none" },
+    { base: "droplet_02", color: "#D4AF37", eyes: "eyes_02", accessory: "crown_01",    aura: "none" },
+    { base: "droplet_03", color: "#3B82F6", eyes: "eyes_05", accessory: "none",        aura: "none" },
+    { base: "droplet_01", color: "#34D399", eyes: "eyes_03", accessory: "none",        aura: "none" },
+    { base: "droplet_01", color: "#F97316", eyes: "eyes_04", accessory: "none",        aura: "none" },
+  ];
+
+  const modeAccent = mode === "1v1" ? BLUE : MINT;
+
   return (
     <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
       <header className="flex items-center justify-between px-5 py-4">
-        <Link href="/" className={`flex items-center gap-1.5 text-sm font-bold ${textMuted}`}>
+        <Link href="/" className={`flex items-center gap-1.5 text-sm font-bold ${textMuted} hover:opacity-80 transition-opacity`}>
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
           </svg>
           Back
         </Link>
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#3B82F6]"}`}>
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#60A5FA]"}`}>
           Casual
         </span>
         <div className="flex items-center gap-2">
@@ -1429,72 +1535,352 @@ export default function CasualPage() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-md mx-auto w-full px-4 sm:px-5 py-8">
-        <div className="text-center space-y-2 mb-6">
-          <h1 className={`text-2xl sm:text-3xl font-extrabold ${text}`}>Choose Your Sprint</h1>
-          <p className={`${textMuted} text-sm`}>1v1 or 3v3 · No rank impact</p>
+      <div className="flex-1 max-w-lg mx-auto w-full px-4 sm:px-5 py-6 flex flex-col gap-6">
+
+        {/* Title */}
+        <div className="text-center">
+          <h1 className={`text-2xl sm:text-3xl font-extrabold ${text} leading-tight`}>
+            Choose Your Battle
+          </h1>
+          <p className={`${textMuted} text-sm mt-1`}>No rank on the line · Pure glory</p>
         </div>
 
+        {/* Party bar */}
         {members.length > 0 && (
-          <div className={`rounded-xl p-3 mb-4 ${cardBg} border ${cardBorder}`}>
-            <p className={`text-xs font-bold ${textMuted}`}>Party ({members.length}/6)</p>
-            {!isLeader && <p className="text-xs text-amber-600 mt-1">Only the party leader can queue</p>}
-            {isLeader && !canQueue1v1 && mode === "1v1" && <p className="text-xs text-amber-600 mt-1">Party too large for 1v1</p>}
+          <div className={`rounded-xl px-4 py-2.5 flex items-center gap-3 ${cardBg} border ${cardBorder}`}>
+            <div className="flex -space-x-2">
+              {members.slice(0, 4).map((m, i) => (
+                <div key={i} className={`ring-2 ${light ? "ring-white" : "ring-[#0F172A]"} rounded-full`}>
+                  <InkAvatar
+                    config={{ ...DEFAULT_AVATAR_CONFIG, ...(m.avatar_config as Partial<InkAvatarConfig>) } as InkAvatarConfig}
+                    size={24}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-xs font-bold ${text}`}>Party · {members.length} member{members.length !== 1 ? "s" : ""}</p>
+              {!isLeader && <p className="text-[10px] text-amber-500 font-semibold">Only the party leader can queue</p>}
+              {isLeader && !canQueue1v1 && mode === "1v1" && (
+                <p className="text-[10px] text-amber-500 font-semibold">Party too large for 1v1</p>
+              )}
+            </div>
           </div>
         )}
 
-        <div className="flex gap-3 mb-6">
+        {/* Mode cards */}
+        <div className="grid grid-cols-2 gap-3">
+
+          {/* 1v1 card */}
           <button
             onClick={() => setMode("1v1")}
-            className={`flex-1 py-3 rounded-xl font-bold ${mode === "1v1" ? "text-white" : textMuted}`}
-            style={{ backgroundColor: mode === "1v1" ? BLUE : "transparent", border: `2px solid ${mode === "1v1" ? BLUE : "transparent"}` }}
+            className={`relative rounded-2xl overflow-hidden text-left transition-all duration-200 active:scale-[0.98] ${
+              mode === "1v1"
+                ? ""
+                : light ? "opacity-70 hover:opacity-90" : "opacity-60 hover:opacity-80"
+            }`}
+            style={{
+              border: `2px solid ${mode === "1v1" ? BLUE : (light ? "#E2E8F0" : "rgba(255,255,255,0.08)")}`,
+              backgroundColor: mode === "1v1"
+                ? light ? `${BLUE}08` : `${BLUE}15`
+                : light ? "#ffffff" : "#1E293B",
+              boxShadow: mode === "1v1" ? `0 0 24px ${BLUE}35, 0 4px 16px rgba(0,0,0,0.1)` : "none",
+            }}
           >
-            1v1
+            {/* Selected checkmark */}
+            {mode === "1v1" && (
+              <div
+                className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center z-10"
+                style={{ backgroundColor: BLUE }}
+              >
+                <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+            )}
+
+            {/* Avatar art */}
+            <div className="relative flex items-end justify-center pt-5 pb-2 gap-1 min-h-[90px]">
+              {/* Glow */}
+              {mode === "1v1" && (
+                <div
+                  className="absolute inset-0 opacity-20 pointer-events-none"
+                  style={{ background: `radial-gradient(ellipse at 50% 100%, ${BLUE} 0%, transparent 70%)` }}
+                />
+              )}
+              {/* Your avatar */}
+              <div className="flex flex-col items-center gap-0.5">
+                <InkAvatar
+                  config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig}
+                  size={42}
+                />
+              </div>
+              {/* VS badge */}
+              <div
+                className="flex items-center justify-center w-7 h-7 rounded-full shrink-0 mb-1 font-extrabold text-[10px] text-white z-10"
+                style={{ backgroundColor: mode === "1v1" ? BLUE : (light ? "#CBD5E1" : "#334155") }}
+              >
+                VS
+              </div>
+              {/* Mystery opponent */}
+              <div className="flex flex-col items-center gap-0.5">
+                <div
+                  className="rounded-2xl flex items-center justify-center"
+                  style={{
+                    width: 42, height: 42,
+                    backgroundColor: mode === "1v1" ? `${BLUE}15` : (light ? "#F1F5F9" : "rgba(255,255,255,0.06)"),
+                    border: `1.5px dashed ${mode === "1v1" ? `${BLUE}50` : (light ? "#CBD5E1" : "rgba(255,255,255,0.15)")}`,
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke={mode === "1v1" ? BLUE : (light ? "#94A3B8" : "rgba(255,255,255,0.3)")} strokeWidth="1.5">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Labels */}
+            <div className="px-3 pb-3">
+              <p className={`text-base font-extrabold ${text} leading-tight`}>1v1 Duel</p>
+              <p className={`text-[11px] font-semibold mt-0.5 ${textMuted}`}>60 seconds</p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${BLUE}20`, color: BLUE }}
+                >
+                  1 opponent
+                </span>
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${BLUE}20`, color: BLUE }}
+                >
+                  Best score
+                </span>
+              </div>
+            </div>
           </button>
+
+          {/* 3v3 card */}
           <button
             onClick={() => setMode("3v3")}
-            className={`flex-1 py-3 rounded-xl font-bold ${mode === "3v3" ? "text-white" : textMuted}`}
-            style={{ backgroundColor: mode === "3v3" ? MINT : "transparent", border: `2px solid ${mode === "3v3" ? MINT : "transparent"}` }}
+            className={`relative rounded-2xl overflow-hidden text-left transition-all duration-200 active:scale-[0.98] ${
+              mode === "3v3"
+                ? ""
+                : light ? "opacity-70 hover:opacity-90" : "opacity-60 hover:opacity-80"
+            }`}
+            style={{
+              border: `2px solid ${mode === "3v3" ? MINT : (light ? "#E2E8F0" : "rgba(255,255,255,0.08)")}`,
+              backgroundColor: mode === "3v3"
+                ? light ? `${MINT}08` : `${MINT}15`
+                : light ? "#ffffff" : "#1E293B",
+              boxShadow: mode === "3v3" ? `0 0 24px ${MINT}35, 0 4px 16px rgba(0,0,0,0.1)` : "none",
+            }}
           >
-            3v3
+            {mode === "3v3" && (
+              <div
+                className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center z-10"
+                style={{ backgroundColor: MINT }}
+              >
+                <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+            )}
+
+            {/* Avatar art — two teams */}
+            <div className="relative flex items-end justify-center pt-5 pb-2 gap-1.5 min-h-[90px]">
+              {mode === "3v3" && (
+                <div
+                  className="absolute inset-0 opacity-20 pointer-events-none"
+                  style={{ background: `radial-gradient(ellipse at 50% 100%, ${MINT} 0%, transparent 70%)` }}
+                />
+              )}
+              {/* Team A: 3 inklings stacked */}
+              <div className="flex flex-col items-center gap-0.5">
+                {[
+                  (profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig,
+                  DEMO_BOTS[0],
+                  DEMO_BOTS[1],
+                ].map((cfg, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      transform: `scale(${i === 0 ? 1 : 0.72})`,
+                      transformOrigin: "center",
+                      marginBottom: i < 2 ? -8 : 0,
+                      opacity: i === 0 ? 1 : 0.75,
+                      zIndex: 3 - i,
+                    }}
+                  >
+                    <InkAvatar config={cfg} size={30} />
+                  </div>
+                ))}
+              </div>
+              {/* VS */}
+              <div
+                className="flex items-center justify-center w-7 h-7 rounded-full shrink-0 mb-2 font-extrabold text-[10px] text-white z-10"
+                style={{ backgroundColor: mode === "3v3" ? MINT : (light ? "#CBD5E1" : "#334155") }}
+              >
+                VS
+              </div>
+              {/* Team B: 3 mystery opponents */}
+              <div className="flex flex-col items-center gap-0.5">
+                {[DEMO_BOTS[2], DEMO_BOTS[3], DEMO_BOTS[4]].map((cfg, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      transform: `scale(${i === 0 ? 1 : 0.72})`,
+                      transformOrigin: "center",
+                      marginBottom: i < 2 ? -8 : 0,
+                      opacity: i === 0 ? 1 : 0.75,
+                      zIndex: 3 - i,
+                    }}
+                  >
+                    <InkAvatar config={cfg} size={30} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-3 pb-3">
+              <p className={`text-base font-extrabold ${text} leading-tight`}>3v3 Battle</p>
+              <p className={`text-[11px] font-semibold mt-0.5 ${textMuted}`}>15 questions</p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${MINT}20`, color: MINT }}
+                >
+                  Team of 3
+                </span>
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${MINT}20`, color: MINT }}
+                >
+                  Best of 3
+                </span>
+              </div>
+            </div>
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Divider + subject label */}
+        <div className="flex items-center gap-3">
+          <div className={`flex-1 h-px ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`} />
+          <p className={`text-xs font-bold uppercase tracking-widest ${textMuted}`}>Pick a subject</p>
+          <div className={`flex-1 h-px ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`} />
+        </div>
+
+        {/* Subject + play buttons */}
+        <div className="flex flex-col gap-3">
           <button
             onClick={handleStartVocab}
             disabled={!canQueue}
-            className={`group rounded-2xl p-5 border text-left transition-all disabled:opacity-50 ${cardBg} ${cardBorder} hover:border-[#3B82F6]/40`}
+            className={`group relative flex items-center gap-4 rounded-2xl px-5 py-4 border-2 text-left transition-all duration-200 disabled:opacity-50 active:scale-[0.98]`}
+            style={{
+              borderColor: light ? "#E2E8F0" : "rgba(255,255,255,0.1)",
+              backgroundColor: light ? "#ffffff" : "#1E293B",
+            }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = BLUE; e.currentTarget.style.boxShadow = `0 0 16px ${BLUE}25`; }}}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = light ? "#E2E8F0" : "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }}
           >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${light ? "bg-[#DBEAFE]" : "bg-[#3B82F6]/20"}`}>
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${BLUE}18` }}
+            >
               <BookIcon className="w-6 h-6" color={BLUE} />
             </div>
-            <h3 className={`${text} font-extrabold text-base mb-1`}>Vocabulary</h3>
-            <p className={`${textMuted} text-xs`}>Definitions, synonyms, context clues</p>
+            <div className="flex-1 min-w-0">
+              <p className={`font-extrabold text-base ${text}`}>Vocabulary</p>
+              <p className={`text-xs font-semibold ${textMuted}`}>Definitions, synonyms, context clues</p>
+            </div>
+            <div
+              className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:translate-x-0.5"
+              style={{ backgroundColor: `${BLUE}18` }}
+            >
+              <svg viewBox="0 0 20 20" fill={BLUE} className="w-4 h-4">
+                <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+              </svg>
+            </div>
           </button>
 
           <button
             onClick={handleStartPunctuation}
             disabled={!canQueue}
-            className={`group rounded-2xl p-5 border text-left transition-all disabled:opacity-50 ${cardBg} ${cardBorder} hover:border-[#34D399]/40`}
+            className={`group relative flex items-center gap-4 rounded-2xl px-5 py-4 border-2 text-left transition-all duration-200 disabled:opacity-50 active:scale-[0.98]`}
+            style={{
+              borderColor: light ? "#E2E8F0" : "rgba(255,255,255,0.1)",
+              backgroundColor: light ? "#ffffff" : "#1E293B",
+            }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = MINT; e.currentTarget.style.boxShadow = `0 0 16px ${MINT}25`; }}}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = light ? "#E2E8F0" : "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }}
           >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${light ? "bg-[#D1FAE5]" : "bg-[#34D399]/20"}`}>
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${MINT}18` }}
+            >
               <PencilIcon className="w-6 h-6" color={MINT} />
             </div>
-            <h3 className={`${text} font-extrabold text-base mb-1`}>Punctuation</h3>
-            <p className={`${textMuted} text-xs`}>Commas, apostrophes, quotes</p>
+            <div className="flex-1 min-w-0">
+              <p className={`font-extrabold text-base ${text}`}>Punctuation</p>
+              <p className={`text-xs font-semibold ${textMuted}`}>Commas, apostrophes, quotes</p>
+            </div>
+            <div
+              className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:translate-x-0.5"
+              style={{ backgroundColor: `${MINT}18` }}
+            >
+              <svg viewBox="0 0 20 20" fill={MINT} className="w-4 h-4">
+                <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+              </svg>
+            </div>
           </button>
         </div>
 
+        {/* Can't queue message */}
         {!canQueue && (
-          <p className={`text-center text-sm ${textMuted} mt-4`}>
+          <p className={`text-center text-sm font-semibold ${textMuted}`}>
             {!isLeader && members.length > 0
               ? "Only the party leader can queue"
               : mode === "1v1"
-                ? "Leave party or reduce to 2 to queue 1v1"
-                : "Invite friends to party — bots fill empty slots"}
+                ? "Leave party or reduce to 2 players to queue 1v1"
+                : "Invite friends to fill your party — bots fill empty slots"}
           </p>
         )}
+
+        {/* Mode detail footer */}
+        <div
+          className={`rounded-xl px-4 py-3 flex items-center gap-3 border`}
+          style={{
+            borderColor: `${modeAccent}25`,
+            backgroundColor: `${modeAccent}08`,
+          }}
+        >
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ backgroundColor: `${modeAccent}20` }}
+          >
+            {mode === "1v1" ? (
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke={modeAccent} strokeWidth="2">
+                <circle cx="9" cy="7" r="4" />
+                <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                <path d="M21 21v-2a4 4 0 0 0-3-3.85" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke={modeAccent} strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            )}
+          </div>
+          <p className={`text-xs font-semibold ${textMuted}`}>
+            {mode === "1v1"
+              ? "Head-to-head duel. Answer as many questions as possible in 60 seconds. Highest score wins."
+              : "3 vs 3 team battle. Each player answers up to 15 questions. Best of 3 matchups decides the winner."}
+          </p>
+        </div>
       </div>
     </main>
   );
