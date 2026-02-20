@@ -123,6 +123,37 @@ export function getTierProgress(trophies: number, tier: RankTier): number {
   return Math.min(100, Math.max(0, Math.round(progress)));
 }
 
+// ── MMR (Elo-style, for ranked matchmaking) ────────────────────────────────────
+const MMR_K = 32;
+const MMR_DEFAULT = 1000;
+
+/** MMR for a bot opponent based on tier. Used for Elo calculation. */
+export function getMMRForTier(tier: RankTier): number {
+  const tierMMR: Record<RankTier, number> = {
+    Bronze: 800,
+    Silver: 950,
+    Gold: 1100,
+    Platinum: 1250,
+    Diamond: 1400,
+    Emerald: 1600,
+  };
+  return tierMMR[tier] ?? MMR_DEFAULT;
+}
+
+/** Elo-style MMR update. Returns new MMR. */
+export function calculateNewMMR(
+  currentMMR: number,
+  opponentMMR: number,
+  result: "win" | "loss" | "draw"
+): number {
+  const score = result === "win" ? 1 : result === "draw" ? 0.5 : 0;
+  const expected = 1 / (1 + Math.pow(10, (opponentMMR - currentMMR) / 400));
+  const delta = Math.round(MMR_K * (score - expected));
+  return Math.max(100, Math.min(2500, currentMMR + delta));
+}
+
+export { MMR_DEFAULT };
+
 // ── Placement assessment ──────────────────────────────────────────────────────
 export function getPlacementTier(
   correct: number,

@@ -308,13 +308,14 @@ export default function RankedPage() {
     if (user && updated) {
       const { success } = await updateProfileGameProgress(user.id, {
         trophies: updated.trophies,
-        xp: updated.xp,
+        xp: updated.xp ?? 0,
         rank_tier: updated.rank_tier,
         ink_drops: updated.ink_drops,
         unlocked_items: updated.unlocked_items,
         ranked_win_streak: updated.ranked_win_streak,
         placement_completed: updated.placement_completed,
         placement_vocab_grade: updated.placement_vocab_grade,
+        mmr: updated.mmr,
       });
       if (!success) {
         await upsertProfile(user.id, updated);

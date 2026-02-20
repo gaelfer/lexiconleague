@@ -50,7 +50,7 @@ export function dbProfileToUserProfile(row: DbProfile): UserProfile {
     username: row.username,
     rank_tier: getTierFromTrophies(trophies) as RankTier,
     trophies,
-    xp: row.xp,
+    xp: row.xp ?? 0,
     ink_drops: row.ink_drops,
     unlocked_items: row.unlocked_items ?? [...DEFAULT_UNLOCKED],
     daily_reward_claimed_at: row.daily_reward_claimed_at,
@@ -121,18 +121,18 @@ export async function upsertProfile(
 }
 
 /**
- * Direct update of game progress (trophies, xp, rank_tier, ink_drops, placement).
+ * Direct update of game progress (trophies, xp, rank_tier, ink_drops, placement, mmr).
  * Use this after ranked games to ensure Supabase gets the latest values.
  */
 export async function updateProfileGameProgress(
   userId: string,
-  profile: Pick<UserProfile, "trophies" | "xp" | "rank_tier" | "ink_drops" | "unlocked_items" | "ranked_win_streak" | "placement_completed" | "placement_vocab_grade">
+  profile: Pick<UserProfile, "trophies" | "xp" | "rank_tier" | "ink_drops" | "unlocked_items" | "ranked_win_streak" | "placement_completed" | "placement_vocab_grade" | "mmr">
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient();
   const rankTier = getTierFromTrophies(profile.trophies);
   const payload: Record<string, unknown> = {
     trophies: profile.trophies,
-    xp: profile.xp,
+    xp: profile.xp ?? 0,
     rank_tier: rankTier,
     ink_drops: profile.ink_drops ?? 0,
     unlocked_items: profile.unlocked_items ?? [],
@@ -141,6 +141,7 @@ export async function updateProfileGameProgress(
   };
   if (profile.placement_completed !== undefined) payload.placement_completed = profile.placement_completed;
   if (profile.placement_vocab_grade !== undefined) payload.placement_vocab_grade = profile.placement_vocab_grade;
+  if (profile.mmr !== undefined) payload.mmr = profile.mmr;
   const { error } = await supabase
     .from("profiles")
     .update(payload)

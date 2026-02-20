@@ -44,8 +44,8 @@ export async function syncProfileForUser(
     const merged: UserProfile = {
       ...remote,
       email: email || remote.email,
-      trophies: Math.max(remote.trophies, local?.trophies ?? 0),
-      xp: Math.max(remote.xp, local?.xp ?? 0),
+      trophies: Math.max(remote.trophies ?? 0, local?.trophies ?? 0),
+      xp: Math.max(remote.xp ?? 0, local?.xp ?? 0),
       ink_drops: mergedInkDrops,
       unlocked_items: mergedUnlocked,
       daily_reward_claimed_at: useLocalDaily ? local!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
@@ -62,6 +62,8 @@ export async function syncProfileForUser(
         ]),
       ],
       ranked_win_streak: Math.max(remote.ranked_win_streak ?? 0, local?.ranked_win_streak ?? 0),
+      // MMR: use local when it belongs to this user (just played); otherwise remote
+      mmr: localBelongsToUser ? (local!.mmr ?? remote.mmr ?? 1000) : (remote.mmr ?? 1000),
     };
     ensureRankRewardsUnlocked(merged);
     saveProfile(merged);

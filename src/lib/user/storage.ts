@@ -1,5 +1,5 @@
 import { UserProfile, MatchHistory, GameResult, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_THRESHOLDS } from "@/types";
-import { getTierFromTrophies, RANK_REWARD_ITEM_IDS } from "@/lib/game/rank";
+import { getTierFromTrophies, RANK_REWARD_ITEM_IDS, getMMRForTier, calculateNewMMR, MMR_DEFAULT, getPlacementTier } from "@/lib/game/rank";
 import { FREE_ITEM_IDS } from "@/lib/cosmetics/catalog";
 import { getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
 
@@ -61,15 +61,18 @@ export function applyGameResult(result: GameResult): UserProfile {
   let profile = getProfile() ?? createGuestProfile();
   const isPlacement = result.mode === "ranked" && !profile.placement_completed;
 
+  const xpBase = profile.xp ?? 0;
   if (isPlacement) {
     profile.placement_vocab_grade = getPlacementVocabGrade(result.correct, result.totalQuestions);
     profile.placement_completed = true;
-    profile.xp += result.correct * 5 + 20;
+    profile.xp = xpBase + result.correct * 5 + 20;
     profile.ink_drops = (profile.ink_drops ?? 0) + result.correct * 2 + 5;
-    // No trophy change for placement match
+    // No trophy change for placement match; set initial MMR from placement tier
+    const { tier: placementTier } = getPlacementTier(result.correct, result.totalQuestions || 0);
+    profile.mmr = getMMRForTier(placementTier);
   } else {
-    profile.trophies = Math.max(0, profile.trophies + result.trophiesChange);
-    profile.xp += result.correct * 5 + (result.trophiesChange > 0 ? 20 : 0);
+    profile.trophies = Math.max(0, (profile.trophies ?? 0) + result.trophiesChange);
+    profile.xp = xpBase + result.correct * 5 + (result.trophiesChange > 0 ? 20 : 0);
     profile.rank_tier = getTierFromTrophies(profile.trophies);
     const dropsEarned = result.correct * 2 + (result.trophiesChange > 0 ? 5 : 0);
     profile.ink_drops = (profile.ink_drops ?? 0) + dropsEarned;
@@ -79,6 +82,12 @@ export function applyGameResult(result: GameResult): UserProfile {
       } else {
         profile.ranked_win_streak = 0;
       }
+      // Update MMR (Elo-style)
+      const opponentTier = profile.rank_tier; // Bots match player tier
+      const opponentMMR = getMMRForTier(opponentTier);
+      const currentMMR = profile.mmr ?? MMR_DEFAULT;
+      const gameResult = result.trophiesChange > 0 ? "win" : result.trophiesChange < 0 ? "loss" : "draw";
+      profile.mmr = calculateNewMMR(currentMMR, opponentMMR, gameResult);
     }
   }
 
