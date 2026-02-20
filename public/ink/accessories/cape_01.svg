@@ -1,15 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Royal cape — clasp at neck, dramatic flowing panels behind body -->
-  <!-- Left cape panel -->
-  <path d="M32 72C26 72 18 76 12 84C10 88 12 94 18 94L34 90C32 84 32 78 32 72z" fill="#991B1B"/>
-  <path d="M32 72C28 73 22 76 16 82" fill="none" stroke="#DC2626" stroke-width="1.5" opacity="0.35"/>
-  <!-- Right cape panel -->
-  <path d="M68 72C74 72 82 76 88 84C90 88 88 94 82 94L66 90C68 84 68 78 68 72z" fill="#991B1B"/>
-  <path d="M68 72C72 73 78 76 84 82" fill="none" stroke="#DC2626" stroke-width="1.5" opacity="0.35"/>
-  <!-- Cape clasp band -->
-  <path d="M32 71Q50 67 68 71Q69 73.5 68 75Q50 71.5 32 75Q31 73.5 32 71z" fill="#D4AF37"/>
-  <!-- Clasp jewels -->
-  <circle cx="34" cy="73" r="2.5" fill="#EAB308"/>
-  <circle cx="50" cy="71" r="1.5" fill="#EF4444"/>
-  <circle cx="66" cy="73" r="2.5" fill="#EAB308"/>
+  <!-- Cloak — wraps around shoulders, drapes down behind -->
+  <!-- Collar band at neck -->
+  <path d="M28 70Q50 66 72 70Q74 72 72 74Q50 71 28 74Q26 72 28 70z" fill="#78350F"/>
+  <!-- Clasp -->
+  <circle cx="50" cy="72" r="3" fill="#D4AF37"/>
+  <circle cx="50" cy="72" r="1.5" fill="#EAB308"/>
+  <!-- Cloak body — single piece wrapping behind, fuller at bottom -->
+  <path d="M26 72Q20 78 18 88Q18 94 26 94Q50 96 74 94Q82 94 82 88Q80 78 74 72Q50 68 26 72z" fill="#991B1B"/>
+  <path d="M28 74Q22 80 20 88Q20 92 26 92Q50 94 74 92Q80 92 80 88Q78 80 72 74Q50 70 28 74z" fill="#B91C1C"/>
+  <!-- Inner lining visible at edges -->
+  <path d="M26 72L22 86" fill="none" stroke="#7F1D1D" stroke-width="2" opacity="0.5"/>
+  <path d="M74 72L78 86" fill="none" stroke="#7F1D1D" stroke-width="2" opacity="0.5"/>
 </svg>

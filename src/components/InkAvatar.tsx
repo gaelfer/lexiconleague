@@ -13,15 +13,17 @@ const SIZE_MAP: Record<string, number> = {
 };
 
 /**
- * Per-body-shape vertical offsets (%) for eyes and accessories.
- * Each shape has its "face" at a different height, so overlays need shifting.
+ * Per-body-shape offsets for eyes and accessories.
+ * eyesY/accY: vertical shift (%).
+ * accX: horizontal shift (%) — for wider/narrower bodies.
+ * accScale: uniform scale — stretches accessories to match body width.
  */
-const BODY_OFFSETS: Record<string, { eyesY: number; accY: number }> = {
-  droplet_01: { eyesY: 0,  accY: 0  },   // Classic teardrop — baseline
-  droplet_02: { eyesY: -6, accY: -8 },   // Blobby — face higher in the round body
-  droplet_03: { eyesY: -2, accY: -4 },   // Pointed — slight upward shift
-  droplet_04: { eyesY: -8, accY: -12 },  // Ghost — tall body, face much higher
-  droplet_05: { eyesY: -4, accY: -6 },   // Splat — star centered, shift up a bit
+const BODY_OFFSETS: Record<string, { eyesY: number; accY: number; accX: number; accScale: number }> = {
+  droplet_01: { eyesY: 0,  accY: 0,   accX: 0,  accScale: 1    },  // Classic teardrop — baseline
+  droplet_02: { eyesY: -6, accY: -8,  accX: 0,  accScale: 1.08 },  // Blobby — wider, scale up accessories
+  droplet_03: { eyesY: -2, accY: -4,  accX: 0,  accScale: 0.95 },  // Pointed — narrower top, scale down slightly
+  droplet_04: { eyesY: -8, accY: -12, accX: 0,  accScale: 1.02 },  // Ghost — similar width, shift up a lot
+  droplet_05: { eyesY: -4, accY: -6,  accX: 0,  accScale: 1.05 },  // Splat — wide points, slight scale up
 };
 
 interface InkAvatarProps {
@@ -37,7 +39,7 @@ export default function InkAvatar({
 }: InkAvatarProps) {
   const c = { ...DEFAULT_AVATAR_CONFIG, ...config };
   const px = typeof size === "number" ? size : SIZE_MAP[size] ?? 72;
-  const offsets = BODY_OFFSETS[c.base] ?? { eyesY: 0, accY: 0 };
+  const offsets = BODY_OFFSETS[c.base] ?? { eyesY: 0, accY: 0, accX: 0, accScale: 1 };
 
   return (
     <div
@@ -103,26 +105,33 @@ export default function InkAvatar({
         />
       </div>
 
-      {/* Accessory overlay — shifted per body shape */}
-      {c.accessory !== "none" && (
-        <div
-          className="absolute"
-          style={{
-            top: "10%",
-            left: "10%",
-            right: "10%",
-            bottom: "10%",
-            transform: offsets.accY ? `translateY(${offsets.accY}%)` : undefined,
-          }}
-        >
-          <img
-            src={`/ink/accessories/${c.accessory}.svg`}
-            alt=""
-            className="w-full h-full"
-            draggable={false}
-          />
-        </div>
-      )}
+      {/* Accessory overlay — shifted and scaled per body shape */}
+      {c.accessory !== "none" && (() => {
+        const parts: string[] = [];
+        if (offsets.accX) parts.push(`translateX(${offsets.accX}%)`);
+        if (offsets.accY) parts.push(`translateY(${offsets.accY}%)`);
+        if (offsets.accScale && offsets.accScale !== 1) parts.push(`scale(${offsets.accScale})`);
+        const transform = parts.length > 0 ? parts.join(" ") : undefined;
+        return (
+          <div
+            className="absolute"
+            style={{
+              top: "10%",
+              left: "10%",
+              right: "10%",
+              bottom: "10%",
+              transform,
+            }}
+          >
+            <img
+              src={`/ink/accessories/${c.accessory}.svg`}
+              alt=""
+              className="w-full h-full"
+              draggable={false}
+            />
+          </div>
+        );
+      })()}
     </div>
   );
 }
