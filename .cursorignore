@@ -1,0 +1,7 @@
+# Reduce Cursor indexing — lowers RAM usage
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+package-lock.json
