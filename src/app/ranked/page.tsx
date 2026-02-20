@@ -7,7 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { getProfile, createGuestProfile } from "@/lib/user/storage";
 import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { fetchLeaderboard, LeaderboardEntry } from "@/lib/supabase/profile";
-import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies } from "@/lib/game/rank";
+import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, getWinStreakMultiplier } from "@/lib/game/rank";
 import { getLevel } from "@/lib/user/levels";
 import { RANK_TIERS, RANK_COLORS, RANK_THRESHOLDS, RANK_INKLING_CONFIG, RankTier } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
@@ -128,6 +128,12 @@ export default function RankedScreenPage() {
   const tierColor = RANK_COLORS[displayTier];
   const toNextTier = getTrophiesToNextTier(profile.trophies);
 
+  const currentStreak = profile.ranked_win_streak ?? 0;
+  const streakMultiplier = getWinStreakMultiplier(currentStreak);
+  const nextMilestone = [3, 5, 7, 10].find((m) => m > currentStreak) ?? 10;
+  const prevMilestone = [0, 3, 5, 7, 10].filter((m) => m <= currentStreak).slice(-1)[0] ?? 0;
+  const streakProgress = nextMilestone === prevMilestone ? 100 : ((currentStreak - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
+
   const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
   const text = light ? "text-[#0F172A]" : "text-white";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
@@ -218,6 +224,55 @@ export default function RankedScreenPage() {
                 <TrophyIcon className="w-4 h-4" color={MINT} />
                 <span className="text-lg font-bold" style={{ color: MINT }}>{profile.trophies}</span>
                 <span className={`text-sm font-semibold ${textFaint}`}>trophies</span>
+              </div>
+
+              {/* Win streak row */}
+              <div
+                className={`mt-4 w-full rounded-xl px-4 py-3 border ${
+                  currentStreak > 0
+                    ? light ? "bg-amber-50 border-amber-300" : "bg-amber-500/10 border-amber-500/40"
+                    : light ? "bg-[#F8FAFC] border-[#E2E8F0]" : "bg-[#0F172A]/40 border-white/10"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2C12 2 9 6 9 9c0 1.66 1.34 3 3 3s3-1.34 3-3c0-1.5-1-3-1-3s2 3 2 6c0 3.31-2.69 6-6 6S5 15.31 5 12C5 7 12 2 12 2z" fill={currentStreak > 0 ? "#F59E0B" : (light ? "#CBD5E1" : "#475569")} />
+                    </svg>
+                    <span className="text-sm font-extrabold" style={{ color: currentStreak > 0 ? "#D97706" : (light ? "#94A3B8" : "#64748B") }}>
+                      {currentStreak > 0 ? `${currentStreak} Win Streak` : "No Streak"}
+                    </span>
+                  </div>
+                  <span
+                    className="text-xs font-extrabold px-2 py-0.5 rounded-lg"
+                    style={{
+                      color: currentStreak > 0 ? "#D97706" : (light ? "#94A3B8" : "#64748B"),
+                      backgroundColor: currentStreak > 0 ? "rgba(245,158,11,0.15)" : "transparent",
+                    }}
+                  >
+                    {currentStreak > 0 ? `${streakMultiplier === 1 ? "1×" : streakMultiplier.toFixed(1)}× trophies` : "Win to start"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${light ? "bg-amber-100" : "bg-amber-500/20"}`}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, streakProgress)}%`, backgroundColor: "#F59E0B" }}
+                    />
+                  </div>
+                  {currentStreak < 10 ? (
+                    <span className="text-[10px] font-bold shrink-0" style={{ color: currentStreak > 0 ? "#D97706" : (light ? "#94A3B8" : "#64748B") }}>
+                      {currentStreak === 0 ? "3 wins → 1.2×" : `${nextMilestone - currentStreak} to ${getWinStreakMultiplier(nextMilestone).toFixed(1)}×`}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-extrabold shrink-0" style={{ color: "#D97706" }}>MAX 3×</span>
+                  )}
+                </div>
+                {currentStreak === 0 && (
+                  <p className={`text-[10px] mt-1.5 font-semibold ${light ? "text-[#94A3B8]" : "text-white/30"}`}>
+                    Consecutive ranked wins multiply your trophy gains — up to 3× at 10 wins
+                  </p>
+                )}
               </div>
             </div>
 

@@ -301,12 +301,9 @@ export default function RankedPage() {
       } catch {}
     }
 
-    if (opponent?.isBot && botResultRef.current) {
-      const { correct, total } = botResultRef.current;
-      setOpponentScore(calculateScore(correct));
-      setOpponentAnswered(total);
-    }
-
+    // Do NOT snap opponentScore to the pre-computed value here — keep whatever
+    // the live simulation had reached so the results screen is consistent with
+    // the in-game display.
     setPhase("results");
     if (user && updated) {
       const { success } = await updateProfileGameProgress(user.id, {
@@ -367,10 +364,10 @@ export default function RankedPage() {
         } catch {}
       }
     };
-    const getOpponentScore = () =>
-      opponent?.isBot && botResultRef.current
-        ? calculateScore(botResultRef.current.correct)
-        : opponentScore;
+    // For win/loss determination use the live simulated score, not the
+    // pre-computed target. This keeps the result consistent with what the
+    // player saw on screen during the match.
+    const getOpponentScore = () => opponentScore;
     const isPlacement = !profile.placement_completed;
     const rankedVocabGrade =
       subject === "vocabulary"
@@ -396,10 +393,8 @@ export default function RankedPage() {
 
   // ── Results ─────────────────────────────────────────────────────────────────
   if (phase === "results" && result) {
-    const finalOpponentScore =
-      opponent?.isBot && botResultRef.current
-        ? calculateScore(botResultRef.current.correct)
-        : opponentScore;
+    // Use the live state value so it always matches what was shown during play.
+    const finalOpponentScore = opponentScore;
     return (
       <div>
         {/* Opponent comparison banner */}
