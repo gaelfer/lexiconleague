@@ -232,11 +232,11 @@ function Home() {
       </div>
 
       <header className="relative z-20 flex items-center justify-between gap-3 px-4 sm:px-6 py-4 max-w-6xl mx-auto w-full">
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${headerBtn} border overflow-hidden`}>
             <InkAvatar config={{ base: "droplet_01", color: BLUE, eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={36} />
           </div>
-          <span className={`text-lg font-extrabold tracking-tight ${text}`}>
+          <span className={`text-lg font-bold ${text}`}>
             Lexicon<span style={{ color: BLUE }}>League</span>
           </span>
         </Link>
@@ -319,37 +319,36 @@ function Home() {
         </div>
       </header>
 
-      <section className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 pt-12 sm:pt-20 pb-10 gap-5 max-w-2xl mx-auto w-full overflow-visible">
-        <div className="flex items-center gap-2">
-          <span className={`text-xs font-semibold tracking-widest uppercase ${textFaint}`}>Season 1</span>
+      <section className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 pt-10 sm:pt-16 pb-8 gap-4 max-w-2xl mx-auto w-full overflow-visible min-h-[200px]">
+        {/* Background inklings — cluster around hero */}
+        <div className="absolute top-8 left-4 opacity-40 pointer-events-none" style={{ transform: "rotate(-12deg)" }}>
+          <InkAvatar config={{ base: "droplet_02", color: "#8B5CF6", eyes: "eyes_01", accessory: "none", aura: "none" }} size={56} />
+        </div>
+        <div className="absolute top-20 right-6 sm:right-12 opacity-35 pointer-events-none" style={{ transform: "rotate(8deg)" }}>
+          <InkAvatar config={{ base: "droplet_01", color: "#22C55E", eyes: "eyes_03", accessory: "bow_01", aura: "none" }} size={52} />
+        </div>
+        <div className="absolute top-32 left-8 sm:left-16 opacity-30 pointer-events-none" style={{ transform: "rotate(5deg)" }}>
+          <InkAvatar config={{ base: "droplet_03", color: "#EC4899", eyes: "eyes_06", accessory: "none", aura: "none" }} size={48} />
+        </div>
+        <div className="flex items-center justify-center gap-2">
+          <p className={`text-sm font-bold tracking-wide ${textMuted} animate-pulse`}>Season</p>
           <div className="relative shrink-0" style={{ transform: "rotate(-6deg)" }}>
-            <InkAvatar config={{ base: "droplet_01", color: BLUE, eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={56} />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none font-black text-xl text-white drop-shadow-md" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}>
-              1
-            </div>
+            <InkAvatar config={{ base: "droplet_01", color: BLUE, eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={72} />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none" style={{ fontFamily: "system-ui, sans-serif", fontWeight: 900, fontSize: "2rem", color: "white", textShadow: "0 1px 2px rgba(0,0,0,0.5), 0 0 0 2px rgba(0,0,0,0.2)", lineHeight: 1 }}>1</div>
           </div>
         </div>
-        <h1 className={`text-3xl sm:text-4xl font-extrabold ${text} leading-[1.15] tracking-tight`}>
-          Vocabulary & punctuation.<br className="sm:hidden" /> 60 seconds. Climb the ranks.
+        <h1 className={`text-3xl sm:text-4xl font-bold ${text} leading-tight`}>
+          Vocabulary and punctuation. 60 seconds. Climb the ranks.
         </h1>
-        <p className={`${textMuted} text-base sm:text-lg max-w-md`}>
-          Casual for practice. Ranked for trophies. Bronze to Emerald.
+        <p className={`${textMuted} text-base max-w-lg`}>
+          Pick Casual for practice or Ranked to earn trophies. Bronze to Emerald.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 mt-1">
-          <Link
-            href="/play/casual"
-            data-tutorial-id="casual"
-            className="inline-flex items-center justify-center gap-2.5 px-7 py-4 font-bold text-white rounded-2xl transition-all hover:opacity-95 active:scale-[0.98] shadow-lg"
-            style={{ backgroundColor: BLUE, boxShadow: `0 4px 14px ${BLUE}40` }}
-          >
+        <div className="flex flex-col sm:flex-row gap-3 mt-2">
+          <Link href="/play/casual" data-tutorial-id="casual" className="inline-flex items-center justify-center gap-2 px-6 py-3.5 font-bold text-white rounded-xl transition-colors" style={{ backgroundColor: BLUE }}>
             <BookIcon className="w-5 h-5" color="white" />
             Play Casual
           </Link>
-          <Link
-            href={user ? "/ranked" : "/auth/signup"}
-            data-tutorial-id="ranked"
-            className={`inline-flex items-center justify-center gap-2.5 px-7 py-4 font-bold rounded-2xl border-2 transition-all active:scale-[0.98] ${light ? "border-[#34D399] text-[#059669] hover:bg-[#34D399]/10" : "border-[#34D399]/70 text-[#34D399] hover:bg-[#34D399]/10"}`}
-          >
+          <Link href={user ? "/ranked" : "/auth/signup"} data-tutorial-id="ranked" className={`inline-flex items-center justify-center gap-2 px-6 py-3.5 font-bold rounded-xl border-2 transition-colors ${light ? "border-[#34D399] text-[#059669] hover:bg-[#34D399]/10" : "border-[#34D399]/60 text-[#34D399] hover:bg-[#34D399]/10"}`}>
             <TrophyIcon className="w-5 h-5" color={MINT} />
             {user ? "Ranked Mode" : "Join to Rank Up"}
           </Link>
@@ -357,8 +356,16 @@ function Home() {
       </section>
 
       {profile && (
-        <section className="relative z-10 px-4 sm:px-6 py-4 max-w-2xl mx-auto w-full">
-          <div className={`flex rounded-2xl p-5 ${cardBg} border ${cardBorder} gap-6`}>
+        <section className="relative z-10 px-4 sm:px-6 py-6 max-w-4xl mx-auto w-full">
+          <div className="relative">
+            <div className="absolute -top-2 left-8 opacity-40 pointer-events-none" style={{ transform: "rotate(-5deg)" }}>
+              <InkAvatar config={{ base: "droplet_01", color: "#F97316", eyes: "eyes_04", accessory: "scarf_01", aura: "none" }} size={52} />
+            </div>
+            <div className="absolute top-2 right-12 opacity-35 pointer-events-none" style={{ transform: "rotate(10deg)" }}>
+              <InkAvatar config={{ base: "droplet_02", color: "#06B6D4", eyes: "eyes_01", accessory: "none", aura: "none" }} size={48} />
+            </div>
+          </div>
+          <div className={`flex rounded-xl p-5 ${cardBg} border ${cardBorder} gap-6`}>
             {[
               { label: "Trophies", value: profile.trophies, Icon: TrophyIcon, color: MINT, format: (v: number) => v.toLocaleString() },
               { label: "Level", value: getLevel(profile.xp), Icon: SparkIcon, color: BLUE, format: (v: number) => String(v) },
@@ -377,11 +384,17 @@ function Home() {
       {profile && (
         <>
           {/* Rank card — for ranked mode (clickable → /ranked) */}
-          <section className="relative z-10 px-4 sm:px-6 pb-4 max-w-lg mx-auto w-full">
+          <section className="relative z-10 px-4 sm:px-6 pb-3 max-w-lg mx-auto w-full">
             <Link href={user ? "/ranked" : "/auth/signup"} className="block">
-              <div className={`rounded-2xl p-5 ${cardBg} border ${cardBorder} cursor-pointer transition-all hover:border-[#34D399]/50 active:scale-[0.995]`}>
+              <div className={`rounded-xl p-5 ${cardBg} border ${cardBorder} relative overflow-visible cursor-pointer transition-all hover:border-[#34D399]/40 hover:shadow-md active:scale-[0.99]`}>
+                <div className="absolute -bottom-1 -left-4 opacity-40 pointer-events-none" style={{ transform: "rotate(-8deg)" }}>
+                  <InkAvatar config={{ base: "droplet_04", color: "#C0C0C0", eyes: "eyes_05", accessory: "monocle_01", aura: "none" }} size={56} />
+                </div>
+                <div className="absolute -top-1 -right-2 opacity-35 pointer-events-none" style={{ transform: "rotate(6deg)" }}>
+                  <InkAvatar config={{ base: "droplet_01", color: "#D4AF37", eyes: "eyes_02", accessory: "crown_01", aura: "none" }} size={52} />
+                </div>
                 <div className="flex items-center justify-between mb-3">
-                  <p className={`${textFaint} text-xs font-semibold uppercase tracking-wide`}>{user ? "Your rank" : "Progress"}</p>
+                  <p className={`${textFaint} text-xs font-semibold uppercase mb-1`}>{user ? "Your rank" : "Progress"}</p>
                   <RankBadge tier={displayTier} trophies={profile.trophies} showTrophies size="md" />
                 </div>
                 <div className="space-y-2">
@@ -400,7 +413,7 @@ function Home() {
                   </div>
                 </div>
                 {!user && (
-                  <div className={`mt-4 flex items-center justify-between gap-3 px-4 py-3 rounded-xl ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"}`}>
+                  <div className={`mt-4 flex items-center justify-between gap-3 px-4 py-3 rounded-lg ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"}`}>
                     <span className="text-sm font-semibold" style={{ color: MINT }}>Save progress</span>
                     <span className="text-xs font-bold px-4 py-2 rounded-lg text-white" style={{ backgroundColor: MINT }}>Join Free</span>
                   </div>
@@ -410,9 +423,12 @@ function Home() {
           </section>
 
           {/* Level & Rewards — compact preview (click to open full roadmap) */}
-          <section className="relative z-10 px-4 sm:px-6 pb-4 max-w-lg mx-auto w-full">
-            <Link href="/levels" className="block">
-              <div className={`rounded-2xl overflow-hidden border ${cardBorder} ${cardBg} transition-all hover:border-[#3B82F6]/50 active:scale-[0.995] cursor-pointer`}>
+          <section className="relative z-10 px-4 sm:px-6 pb-3 max-w-lg mx-auto w-full">
+            <Link href="/levels" className="block relative">
+              <div className={`rounded-xl overflow-visible border ${cardBorder} ${cardBg} transition-all hover:border-[#3B82F6]/40 hover:shadow-md cursor-pointer active:scale-[0.99] relative`}>
+                <div className="absolute bottom-2 right-4 opacity-40 pointer-events-none z-10" style={{ transform: "rotate(8deg)" }}>
+                  <InkAvatar config={{ base: "droplet_03", color: "#8B5CF6", eyes: "eyes_05", accessory: "wizard_01", aura: "none" }} size={52} />
+                </div>
               <div className="px-5 py-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2 min-w-0">
                   <GiftIcon className="w-4 h-4 shrink-0" color={BLUE} />
@@ -473,7 +489,7 @@ function Home() {
                 </div>
               )}
             </div>
-            <p className={`text-xs font-medium ${textFaint} text-center py-2`}>View full roadmap →</p>
+            <p className={`text-[10px] font-medium ${textFaint} text-center mt-1.5`}>Tap to view full roadmap →</p>
             </Link>
           </section>
         </>
@@ -481,36 +497,48 @@ function Home() {
 
       {profile && canClaimDailyReward(profile) && (
         <section className="relative z-10 px-4 sm:px-6 py-2 max-w-lg mx-auto w-full">
-          <Link href="/shop" className="block" data-tutorial-id="daily-reward">
-            <div className={`rounded-2xl p-4 flex items-center gap-4 ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"} transition-all hover:opacity-95 active:scale-[0.995]`}>
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: MINT }}>
-                <InkDropIcon className="w-6 h-6" color="white" />
+          <Link href="/shop" className="block relative" data-tutorial-id="daily-reward">
+            <div className={`rounded-xl p-4 flex items-center gap-4 ${light ? "bg-[#ECFDF5] border border-[#34D399]/30" : "bg-[#34D399]/10 border border-[#34D399]/20"} transition-colors hover:opacity-90 overflow-visible relative`}>
+              <div className="absolute -top-2 -left-2 opacity-40 pointer-events-none" style={{ transform: "rotate(-12deg)" }}>
+                <InkAvatar config={{ base: "droplet_02", color: "#F97316", eyes: "eyes_03", accessory: "scarf_01", aura: "none" }} size={52} />
+              </div>
+              <div className="absolute -bottom-1 -right-4 opacity-75 pointer-events-none" style={{ transform: "rotate(8deg)" }}>
+                <InkAvatar config={{ base: "droplet_01", color: MINT, eyes: "eyes_03", accessory: "none", aura: "aura_glow_01" }} size={52} />
+              </div>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: MINT }}>
+                <InkDropIcon className="w-5 h-5" color="white" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-bold ${text}`}>Daily reward ready</p>
                 <p className={`text-xs ${textMuted}`}>Claim in Ink Shop</p>
               </div>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] animate-pulse shrink-0" aria-hidden />
+              <span className="w-2 h-2 rounded-full bg-[#EF4444] animate-pulse shrink-0" />
             </div>
           </Link>
         </section>
       )}
 
-      <section className="relative z-10 px-4 sm:px-6 py-6 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto w-full">
-        <Link href="/play/casual" className="block">
-          <div className={`rounded-2xl p-6 ${cardBg} border ${cardBorder} h-full transition-all hover:border-[#3B82F6]/50 active:scale-[0.995]`}>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: `${BLUE}20` }}>
-              <BookIcon className="w-6 h-6" color={BLUE} />
+      <section className="relative z-10 px-4 sm:px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto w-full">
+        <Link href="/play/casual" className="block relative">
+          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#3B82F6]/40 h-full relative overflow-visible`}>
+            <div className="absolute -bottom-2 -left-2 opacity-40 pointer-events-none" style={{ transform: "rotate(-10deg)" }}>
+              <InkAvatar config={{ base: "droplet_04", color: "#06B6D4", eyes: "eyes_08", accessory: "none", aura: "none" }} size={56} />
+            </div>
+            <div className="absolute -top-3 -right-2 opacity-90 pointer-events-none" style={{ transform: "rotate(12deg)" }}>
+              <InkAvatar config={{ base: "droplet_01", color: BLUE, eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={64} />
             </div>
             <h3 className={`${text} font-bold text-lg mb-2`}>Casual Mode</h3>
             <p className={`${textMuted} text-sm mb-4`}>Vocabulary or punctuation. 60 seconds. No rank impact.</p>
             <span className="text-sm font-bold" style={{ color: BLUE }}>Play now →</span>
           </div>
         </Link>
-        <Link href={user ? "/ranked" : "/auth/signup?from=ranked"} className="block">
-          <div className={`rounded-2xl p-6 ${cardBg} border ${cardBorder} h-full transition-all hover:border-[#34D399]/50 active:scale-[0.995]`}>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: `${MINT}25` }}>
-              <TrophyIcon className="w-6 h-6" color={MINT} />
+        <Link href={user ? "/ranked" : "/auth/signup?from=ranked"} className="block relative">
+          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#34D399]/40 h-full relative overflow-visible`}>
+            <div className="absolute -bottom-2 -right-1 opacity-40 pointer-events-none" style={{ transform: "rotate(15deg)" }}>
+              <InkAvatar config={{ base: "droplet_05", color: "#EAB308", eyes: "eyes_01", accessory: "tophat_01", aura: "none" }} size={56} />
+            </div>
+            <div className="absolute -top-3 -right-2 opacity-90 pointer-events-none" style={{ transform: "rotate(12deg)" }}>
+              <InkAvatar config={{ base: "droplet_02", color: "#22C55E", eyes: "eyes_02", accessory: "crown_01", aura: "aura_glow_01" }} size={64} />
             </div>
             <h3 className={`${text} font-bold text-lg mb-2`}>Ranked Mode</h3>
             <p className={`${textMuted} text-sm mb-4`}>Earn trophies. Climb Bronze to Emerald.</p>
@@ -519,15 +547,23 @@ function Home() {
         </Link>
 
         {/* Story Mode — Coming Soon */}
-        <div className={`rounded-2xl p-6 ${cardBg} border-2 border-dashed min-w-0 opacity-90 cursor-default select-none`} style={{ borderColor: "rgba(190, 18, 60, 0.4)" }}>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-[#BE123C]/15">
-            <InkAvatar config={{ base: "droplet_01", color: "#BE123C", eyes: "eyes_02", accessory: "none", aura: "none" }} size={36} />
+        <div className="relative rounded-2xl overflow-hidden border-[3px] cursor-default select-none min-w-0" style={{ borderColor: "rgba(190, 18, 60, 0.5)", background: light ? "linear-gradient(135deg, rgba(190, 18, 60, 0.08) 0%, rgba(190, 18, 60, 0.15) 50%, rgba(190, 18, 60, 0.08) 100%)" : "linear-gradient(135deg, rgba(190, 18, 60, 0.2) 0%, rgba(190, 18, 60, 0.1) 50%, rgba(15, 23, 42, 0.6) 100%)", boxShadow: "0 6px 24px rgba(190, 18, 60, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)" }}>
+          <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full blur-3xl opacity-30 pointer-events-none" style={{ background: "#BE123C" }} />
+          <div className="relative z-10 p-4 sm:p-6 h-full flex flex-col min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-2 sm:mb-3">
+              <div className="relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-[18px] sm:rounded-[22px] flex items-center justify-center overflow-visible mx-auto sm:mx-0" style={{ background: "linear-gradient(145deg, #E11D48 0%, #BE123C 40%, #9F1239 100%)", boxShadow: "0 6px 16px rgba(220, 38, 38, 0.45), inset 0 2px 0 rgba(255,255,255,0.25), 0 0 0 3px rgba(255,255,255,0.15)", transform: "rotate(-3deg)" }}>
+                <InkAvatar config={{ base: "droplet_01", color: "#DC2626", eyes: "eyes_02", accessory: "none", aura: "none" }} size={48} className="drop-shadow-lg" />
+              </div>
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <div className="inline-flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+                  <h3 className="font-extrabold text-base sm:text-lg" style={{ color: "#BE123C" }}>Story Mode</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white whitespace-nowrap" style={{ backgroundColor: "#9F1239", boxShadow: "0 2px 6px rgba(159, 18, 57, 0.4)" }}>Coming Soon</span>
+                </div>
+                <p className={`text-xs font-medium mt-1 ${textMuted}`}>Chapters · Boss battles · Exclusive loot</p>
+              </div>
+            </div>
+            <p className={`text-xs sm:text-sm font-medium flex-1 ${textMuted} text-center sm:text-left`}>A narrative adventure through the world of words. Defeat vocab villains!</p>
           </div>
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className={`${text} font-bold text-lg`}>Story Mode</h3>
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide text-white" style={{ backgroundColor: "#BE123C" }}>Coming Soon</span>
-          </div>
-          <p className={`${textMuted} text-sm`}>Chapters · Boss battles · Exclusive loot</p>
         </div>
       </section>
 
@@ -541,7 +577,7 @@ function Home() {
             { href: user ? "/profile" : "/auth/signup", label: user ? "Profile" : "Join Free", Icon: UserIcon, color: BLUE },
           ].map((link) => (
             <Link key={link.href + link.label} href={link.href} className="block" data-tutorial-id={link.tutorialId}>
-              <div className={`rounded-2xl p-4 ${cardBg} border ${cardBorder} text-center transition-all hover:border-opacity-70 active:scale-[0.98]`}>
+              <div className={`rounded-xl p-4 ${cardBg} border ${cardBorder} text-center transition-colors hover:border-opacity-60`}>
                 <link.Icon className="w-6 h-6 mx-auto mb-2" color={link.color} />
                 <p className={`${text} text-sm font-semibold`}>{link.label}</p>
               </div>
@@ -550,7 +586,7 @@ function Home() {
         </div>
       </section>
 
-      <footer className={`relative z-10 mt-auto text-center py-8 text-sm ${textFaint} font-medium`}>
+      <footer className={`relative z-10 mt-auto text-center py-6 text-sm ${textFaint} font-medium border-t ${cardBorder}`}>
         Lexicon League · Season 1
       </footer>
 

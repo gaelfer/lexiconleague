@@ -487,6 +487,7 @@ export default function LevelsPage() {
       if (updated) setProfile(updated);
       if (user && updated) {
         await upsertProfile(user.id, {
+          xp: updated.xp ?? 0,
           ink_drops: updated.ink_drops,
           unlocked_items: updated.unlocked_items,
           claimed_level_rewards: updated.claimed_level_rewards,
