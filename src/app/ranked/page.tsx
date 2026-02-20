@@ -100,6 +100,15 @@ export default function RankedScreenPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  async function loadLeaderboard() {
+    try {
+      const entries = await fetchLeaderboard(100);
+      setLeaderboard(entries);
+    } catch {
+      setLeaderboard([]);
+    }
+  }
+
   useEffect(() => {
     if (authLoading) return;
     async function load() {
@@ -111,16 +120,20 @@ export default function RankedScreenPage() {
         const p = getProfile() ?? createGuestProfile();
         setProfile(p);
       }
-      try {
-        const entries = await fetchLeaderboard(100);
-        setLeaderboard(entries);
-      } catch {
-        setLeaderboard([]);
-      }
+      await loadLeaderboard();
       setLoading(false);
     }
     load();
   }, [user, authLoading]);
+
+  // Refetch leaderboard when page becomes visible (e.g. user returns from playing a game)
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadLeaderboard();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   const displayTier = getTierFromTrophies(profile.trophies);
   const tierProgress = getTierProgress(profile.trophies, displayTier);
