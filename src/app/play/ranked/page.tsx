@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Subject, GameResult, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS } from "@/types";
+import { Subject, GameResult, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS, RankTier, InkAvatarConfig } from "@/types";
 import { getProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
 import { syncProfileForUser, syncCurrentProfile } from "@/lib/user/profile-sync";
 import { useAuth } from "@/context/AuthContext";
@@ -208,8 +208,8 @@ export default function RankedPage() {
           const opp: OpponentInfo = {
             id: opId,
             username: opInfo?.username ?? "Opponent",
-            rank_tier: opInfo?.rank_tier ?? profile.rank_tier,
-            avatar_config: opInfo?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+            rank_tier: (opInfo?.rank_tier ?? profile.rank_tier) as RankTier,
+            avatar_config: { ...DEFAULT_AVATAR_CONFIG, ...(opInfo?.avatar_config as Partial<InkAvatarConfig>) } as InkAvatarConfig,
             isBot: false,
           };
 
@@ -229,8 +229,8 @@ export default function RankedPage() {
         const opp: OpponentInfo = {
           id: payload.from ?? "",
           username: payload.player?.username ?? "Opponent",
-          rank_tier: payload.player?.rank_tier ?? profile.rank_tier,
-          avatar_config: payload.player?.avatar_config ?? DEFAULT_AVATAR_CONFIG,
+          rank_tier: (payload.player?.rank_tier ?? profile.rank_tier) as RankTier,
+          avatar_config: { ...DEFAULT_AVATAR_CONFIG, ...(payload.player?.avatar_config as Partial<InkAvatarConfig>) } as InkAvatarConfig,
           isBot: false,
         };
         isPlacementMatchRef.current = !(getProfile() ?? createGuestProfile()).placement_completed;
