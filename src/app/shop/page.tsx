@@ -64,7 +64,11 @@ const MINT = "#34D399";
 export default function ShopPage() {
   const { user, loading: authLoading } = useAuth();
   const { light } = useTheme();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    const p = getProfile();
+    if (!p) return null;
+    return { ...p, unlocked_items: p.unlocked_items ?? [...FREE_ITEM_IDS], ink_drops: p.ink_drops ?? 0 };
+  });
   const [tab, setTab] = useState<ShopTab>("bases");
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; msg: string } | null>(null);
   const [claimAnimating, setClaimAnimating] = useState(false);
@@ -83,18 +87,19 @@ export default function ShopPage() {
       window.location.href = "/auth/signup?from=shop";
       return;
     }
-    async function loadProfile() {
-      let p = getProfile();
-      if (!p) p = createGuestProfile();
-      if (user?.id) {
-        const { syncProfileForUser } = await import("@/lib/user/profile-sync");
-        p = await syncProfileForUser(user.id, user.email ?? "");
-      }
-      if (!p.unlocked_items) p.unlocked_items = [...FREE_ITEM_IDS];
-      if (p.ink_drops === undefined) p.ink_drops = 0;
-      setProfile(p);
+    // Show shop immediately with local profile — don't block on network
+    let p = getProfile();
+    if (!p) p = createGuestProfile();
+    if (!p.unlocked_items) p.unlocked_items = [...FREE_ITEM_IDS];
+    if (p.ink_drops === undefined) p.ink_drops = 0;
+    setProfile({ ...p });
+
+    // Sync in background and update when done
+    if (user?.id) {
+      import("@/lib/user/profile-sync").then(({ syncProfileForUser }) =>
+        syncProfileForUser(user.id, user.email ?? "")
+      ).then((synced) => setProfile(synced)).catch(() => {});
     }
-    loadProfile();
   }, [user, authLoading]);
 
   const showToast = useCallback((type: "success" | "error" | "info", msg: string) => {
