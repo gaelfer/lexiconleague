@@ -70,13 +70,15 @@ export function generateBotOpponents(playerTier: RankTier, count: number): Oppon
 }
 
 export function generateBotScore(playerTier: RankTier): { correct: number; incorrect: number; total: number } {
+  // Bronze/Silver: forgiving. Gold: 50/50 gate. Platinum: beatable by good players.
+  // Diamond/Emerald: only exceptional players can climb.
   const correctRanges: Record<string, [number, number]> = {
     Bronze: [4, 10],
     Silver: [7, 13],
-    Gold: [16, 24],
-    Platinum: [13, 19],
-    Diamond: [16, 22],
-    Emerald: [19, 26],
+    Gold: [16, 22],
+    Platinum: [17, 22],
+    Diamond: [21, 26],
+    Emerald: [23, 28],
   };
   const incorrectRanges: Record<string, [number, number]> = {
     Bronze: [3, 6],
@@ -84,7 +86,7 @@ export function generateBotScore(playerTier: RankTier): { correct: number; incor
     Gold: [0, 2],
     Platinum: [1, 3],
     Diamond: [0, 2],
-    Emerald: [0, 2],
+    Emerald: [0, 1],
   };
   const [cMin, cMax] = correctRanges[playerTier] ?? [5, 12];
   const [iMin, iMax] = incorrectRanges[playerTier] ?? [2, 4];
