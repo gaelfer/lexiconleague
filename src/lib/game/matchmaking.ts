@@ -117,6 +117,42 @@ export function generateBotScore3v3(playerTier: RankTier): { correct: number; to
   return { correct, total: MAX_Q, finishTimeMs };
 }
 
+/** Seeded RNG for deterministic bot scores. Same (seed, index) → same result. */
+function seededNext(seed: string, index: number): () => number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  let rng = Math.abs((h + index * 31) | 0) % 2147483647;
+  return () => {
+    rng = (rng * 16807) % 2147483647;
+    return rng / 2147483647;
+  };
+}
+
+/**
+ * Deterministic bot score for 3v3. Use when coordinator broadcasts match — all
+ * players must see the same bot scores so win/loss is consistent.
+ */
+export function generateBotScore3v3Seeded(
+  seed: string,
+  slotIndex: number,
+  playerTier: RankTier
+): { correct: number; total: number; finishTimeMs: number } {
+  const MAX_Q = 15;
+  const next = seededNext(seed, slotIndex);
+  const correctRanges3v3: Record<string, [number, number]> = {
+    Bronze:   [5,  9],
+    Silver:   [7, 11],
+    Gold:     [9, 13],
+    Platinum: [10, 13],
+    Diamond:  [11, 14],
+    Emerald:  [12, 15],
+  };
+  const [cMin, cMax] = correctRanges3v3[playerTier] ?? [6, 10];
+  const correct = cMin + Math.floor(next() * (cMax - cMin + 1));
+  const finishTimeMs = (18 + next() * 34) * 1000;
+  return { correct, total: MAX_Q, finishTimeMs };
+}
+
 export const MATCHMAKING_TIMEOUT_MS = 12_000;
 
 export function seededShuffle<T>(arr: T[], seed: string): T[] {

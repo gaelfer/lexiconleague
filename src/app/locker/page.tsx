@@ -88,6 +88,11 @@ export default function LockerPage() {
       const result = await updateAvatarConfig(user.id, config);
       if (result.success) {
         setSavedConfig(config);
+        const p = getProfile();
+        if (p) {
+          p.avatar_config = config;
+          saveProfile(p);
+        }
         showToast("success", "Avatar saved!");
       } else {
         showToast("error", result.error ?? "Failed to save.");

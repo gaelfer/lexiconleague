@@ -27,7 +27,7 @@ export async function updateAvatarConfig(
   const supabase = createClient();
   const { error } = await supabase
     .from("profiles")
-    .update({ avatar_config: config })
+    .update({ avatar_config: config, updated_at: new Date().toISOString() })
     .eq("id", userId);
 
   if (error) {

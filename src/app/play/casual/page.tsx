@@ -21,6 +21,7 @@ import {
   generateBotOpponents,
   generateBotScore,
   generateBotScore3v3,
+  generateBotScore3v3Seeded,
   generateMatchSeed,
   MATCHMAKING_TIMEOUT_MS,
 } from "@/lib/game/matchmaking";
@@ -491,11 +492,14 @@ export default function CasualPage() {
     }
   }, [isLeader, members.length, mode, user]);
 
+  type BotResult3v3 = { correct: number; total: number; finishTimeMs: number };
+
   const apply3v3Match = useCallback(async (
     players: MatchPlayer[],
     seed: string,
     queueSubject: Subject,
-    queueGrade: VocabLevel | undefined
+    queueGrade: VocabLevel | undefined,
+    broadcastBotResults?: { teamA: (BotResult3v3 | null)[]; teamB: (BotResult3v3 | null)[] }
   ) => {
     if (!user || matchedRef.current) return;
     const me = players.find((p) => p.id === user.id);
@@ -519,8 +523,27 @@ export default function CasualPage() {
       isBot: p.isBot ?? false,
     }));
     const hasAnyBot = [...opps, ...tms].some((p) => p.isBot);
-    if (hasAnyBot) {
-      // 3v3: use 3v3-specific scoring (15 questions, includes finishTimeMs)
+    if (hasAnyBot && broadcastBotResults) {
+      // Use shared bot results from coordinator so all players see the same outcome
+      const teamA = players.slice(0, 3);
+      const teamB = players.slice(3, 6);
+      if (me.team === "A") {
+        botResultsRef.current = {
+          opponents: broadcastBotResults.teamB.map((r) => r ?? { correct: 0, total: 15, finishTimeMs: 60000 }),
+          teammates: [broadcastBotResults.teamA[1], broadcastBotResults.teamA[2]].map(
+            (r) => r ?? { correct: 0, total: 15, finishTimeMs: 60000 }
+          ),
+        };
+      } else {
+        botResultsRef.current = {
+          opponents: broadcastBotResults.teamA.map((r) => r ?? { correct: 0, total: 15, finishTimeMs: 60000 }),
+          teammates: [broadcastBotResults.teamB[1], broadcastBotResults.teamB[2]].map(
+            (r) => r ?? { correct: 0, total: 15, finishTimeMs: 60000 }
+          ),
+        };
+      }
+    } else if (hasAnyBot) {
+      // Fallback: generate locally (legacy; may differ per player if multiple humans)
       const oppResults = opps.map(() => generateBotScore3v3(profile.rank_tier));
       const tmResults = tms.map(() => generateBotScore3v3(profile.rank_tier));
       botResultsRef.current = {
@@ -746,9 +769,14 @@ export default function CasualPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     channel.on("broadcast", { event: "match-found-3v3" }, async (msg: any) => {
       if (mode !== "3v3" || matchedRef.current) return;
-      const payload = msg.payload as { to?: string[]; seed?: string; players?: MatchPlayer[] };
+      const payload = msg.payload as {
+        to?: string[];
+        seed?: string;
+        players?: MatchPlayer[];
+        botResults?: { teamA: (BotResult3v3 | null)[]; teamB: (BotResult3v3 | null)[] };
+      };
       if (!payload?.to?.includes(user.id) || !payload.seed || !Array.isArray(payload.players)) return;
-      await apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade);
+      await apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade, payload.botResults);
     });
 
     channel.subscribe(async (status: string) => {
@@ -812,17 +840,30 @@ export default function CasualPage() {
       }
 
       const mixedPlayers = buildMixedTeamsWithBots(participants, profile.rank_tier);
+      const seed = generateMatchSeed();
+      // Generate deterministic bot scores once so all players see the same match outcome
+      const teamA = mixedPlayers.slice(0, 3);
+      const teamB = mixedPlayers.slice(3, 6);
+      const botResults = {
+        teamA: teamA.map((p, i) =>
+          p.isBot ? generateBotScore3v3Seeded(seed, i, p.rank_tier ?? profile.rank_tier) : null
+        ),
+        teamB: teamB.map((p, i) =>
+          p.isBot ? generateBotScore3v3Seeded(seed, 3 + i, p.rank_tier ?? profile.rank_tier) : null
+        ),
+      };
       const payload = {
         to: participants.map((p) => p.leaderId),
-        seed: generateMatchSeed(),
+        seed,
         players: mixedPlayers,
+        botResults,
       };
       channel.send({
         type: "broadcast",
         event: "match-found-3v3",
         payload,
       });
-      void apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade);
+      void apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade, payload.botResults);
     }, mode === "3v3" ? THREE_VS_THREE_TIMEOUT_MS : MATCHMAKING_TIMEOUT_MS);
   }
 
@@ -1297,7 +1338,6 @@ export default function CasualPage() {
   if (phase === "results" && result) {
     const br = botResultsRef.current;
     const hasBotResults = !!br && br.opponents.length > 0;
-    const hasBotResults3v3 = !!br && br.opponents.length === 3 && br.teammates.length === 2;
     const is3v3 = mode === "3v3" && opponents.length === 3 && teamMembers.length === 2;
 
     // Tiebreaker: whoever finishes their 15 questions faster wins a tied matchup.
@@ -1315,31 +1355,31 @@ export default function CasualPage() {
     const playerCorrect = result.correct;
     const playerFinishMs = playerFinishTimeRef.current;
 
-    // 3v3: individual matchups (best of 3)
+    // 3v3: individual matchups (best of 3). Use bot results for bots, opponentScores for humans.
     const matchups = is3v3
       ? (() => {
           const allyScore0 = result.score;
           const allyCorrect0 = playerCorrect;
           const allyFinishMs0 = playerFinishMs;
-          const oppCorrect0 = hasBotResults3v3 && br ? br.opponents[0].correct : Math.round((opponentScores[0] ?? 0) / 10);
-          const oppFinishMs0 = hasBotResults3v3 && br ? (br.opponents[0].finishTimeMs ?? 60000) : 60000;
-          const oppScore0 = hasBotResults3v3 && br ? calculateScore(br.opponents[0].correct) : opponentScores[0] ?? 0;
+          const oppCorrect0 = opponents[0].isBot && br?.opponents[0] ? br.opponents[0].correct : Math.round((opponentScores[0] ?? 0) / 10);
+          const oppFinishMs0 = opponents[0].isBot && br?.opponents[0] ? (br.opponents[0].finishTimeMs ?? 60000) : 60000;
+          const oppScore0 = opponents[0].isBot && br?.opponents[0] ? calculateScore(br.opponents[0].correct) : (opponentScores[0] ?? 0);
           const w0 = matchupWinner(allyCorrect0, allyFinishMs0, oppCorrect0, oppFinishMs0);
 
-          const allyCorrect1 = hasBotResults3v3 && br ? br.teammates[0].correct : Math.round((teammateScores[0] ?? 0) / 10);
-          const allyFinishMs1 = hasBotResults3v3 && br ? (br.teammates[0].finishTimeMs ?? 60000) : 60000;
-          const allyScore1 = hasBotResults3v3 && br ? calculateScore(br.teammates[0].correct) : teammateScores[0] ?? 0;
-          const oppCorrect1 = hasBotResults3v3 && br ? br.opponents[1].correct : Math.round((opponentScores[1] ?? 0) / 10);
-          const oppFinishMs1 = hasBotResults3v3 && br ? (br.opponents[1].finishTimeMs ?? 60000) : 60000;
-          const oppScore1 = hasBotResults3v3 && br ? calculateScore(br.opponents[1].correct) : opponentScores[1] ?? 0;
+          const allyCorrect1 = teamMembers[0]?.isBot && br?.teammates[0] ? br.teammates[0].correct : Math.round((teammateScores[0] ?? 0) / 10);
+          const allyFinishMs1 = teamMembers[0]?.isBot && br?.teammates[0] ? (br.teammates[0].finishTimeMs ?? 60000) : 60000;
+          const allyScore1 = teamMembers[0]?.isBot && br?.teammates[0] ? calculateScore(br.teammates[0].correct) : (teammateScores[0] ?? 0);
+          const oppCorrect1 = opponents[1].isBot && br?.opponents[1] ? br.opponents[1].correct : Math.round((opponentScores[1] ?? 0) / 10);
+          const oppFinishMs1 = opponents[1].isBot && br?.opponents[1] ? (br.opponents[1].finishTimeMs ?? 60000) : 60000;
+          const oppScore1 = opponents[1].isBot && br?.opponents[1] ? calculateScore(br.opponents[1].correct) : (opponentScores[1] ?? 0);
           const w1 = matchupWinner(allyCorrect1, allyFinishMs1, oppCorrect1, oppFinishMs1);
 
-          const allyCorrect2 = hasBotResults3v3 && br ? br.teammates[1].correct : Math.round((teammateScores[1] ?? 0) / 10);
-          const allyFinishMs2 = hasBotResults3v3 && br ? (br.teammates[1].finishTimeMs ?? 60000) : 60000;
-          const allyScore2 = hasBotResults3v3 && br ? calculateScore(br.teammates[1].correct) : teammateScores[1] ?? 0;
-          const oppCorrect2 = hasBotResults3v3 && br ? br.opponents[2].correct : Math.round((opponentScores[2] ?? 0) / 10);
-          const oppFinishMs2 = hasBotResults3v3 && br ? (br.opponents[2].finishTimeMs ?? 60000) : 60000;
-          const oppScore2 = hasBotResults3v3 && br ? calculateScore(br.opponents[2].correct) : opponentScores[2] ?? 0;
+          const allyCorrect2 = teamMembers[1]?.isBot && br?.teammates[1] ? br.teammates[1].correct : Math.round((teammateScores[1] ?? 0) / 10);
+          const allyFinishMs2 = teamMembers[1]?.isBot && br?.teammates[1] ? (br.teammates[1].finishTimeMs ?? 60000) : 60000;
+          const allyScore2 = teamMembers[1]?.isBot && br?.teammates[1] ? calculateScore(br.teammates[1].correct) : (teammateScores[1] ?? 0);
+          const oppCorrect2 = opponents[2].isBot && br?.opponents[2] ? br.opponents[2].correct : Math.round((opponentScores[2] ?? 0) / 10);
+          const oppFinishMs2 = opponents[2].isBot && br?.opponents[2] ? (br.opponents[2].finishTimeMs ?? 60000) : 60000;
+          const oppScore2 = opponents[2].isBot && br?.opponents[2] ? calculateScore(br.opponents[2].correct) : (opponentScores[2] ?? 0);
           const w2 = matchupWinner(allyCorrect2, allyFinishMs2, oppCorrect2, oppFinishMs2);
 
           return [
