@@ -6,7 +6,7 @@ import {
   ensureRankRewardsUnlocked,
   getLocalProfileUpdatedAtMs,
 } from "./storage";
-import { fetchProfile, upsertProfile, updateProfileGameProgress } from "@/lib/supabase/profile";
+import { fetchProfile, upsertProfile } from "@/lib/supabase/profile";
 import { getTierFromTrophies } from "@/lib/game/rank";
 
 /**
@@ -23,29 +23,14 @@ export async function syncCurrentProfile(userId: string): Promise<void> {
     ...profile,
     id: userId,
   };
-  const progressResult = await updateProfileGameProgress(userId, {
-    trophies: normalized.trophies ?? 0,
-    xp: normalized.xp ?? 0,
-    rank_tier: normalized.rank_tier,
-    ink_drops: normalized.ink_drops ?? 0,
-    unlocked_items: normalized.unlocked_items ?? [],
-    ranked_win_streak: normalized.ranked_win_streak ?? 0,
-    placement_completed: normalized.placement_completed,
-    placement_vocab_grade: normalized.placement_vocab_grade,
-    mmr: normalized.mmr,
-  });
-  const upsertResult = await upsertProfile(userId, normalized);
-  if (!progressResult.success || !upsertResult.success) {
-    const errors = [progressResult.error, upsertResult.error].filter(Boolean).join(" | ");
-    const err = errors || "Failed to sync profile";
-    console.error("[ProfileSync] Partial/failed sync:", err, {
-      progressSuccess: progressResult.success,
-      upsertSuccess: upsertResult.success,
+  const result = await upsertProfile(userId, normalized);
+  if (!result.success) {
+    console.error("[ProfileSync] Failed to push profile to Supabase:", result.error, {
       trophies: normalized.trophies,
+      ink_drops: normalized.ink_drops,
+      xp: normalized.xp,
     });
-    if (!progressResult.success && !upsertResult.success) {
-      throw new Error(err);
-    }
+    throw new Error(result.error || "Failed to sync profile");
   }
 }
 
@@ -120,7 +105,11 @@ export async function syncProfileForUser(
       emitSyncEvent: true,
     });
     if (localIsNewer || !remoteIsNewer) {
-      await syncCurrentProfile(userId);
+      try {
+        await syncCurrentProfile(userId);
+      } catch (e) {
+        console.warn("[ProfileSync] Push after merge failed (local state is correct):", e);
+      }
     }
     return merged;
   }

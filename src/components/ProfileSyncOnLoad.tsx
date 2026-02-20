@@ -50,8 +50,17 @@ export default function ProfileSyncOnLoad() {
       const customEvent = event as CustomEvent<{ source?: "local" | "remote" }>;
       if (customEvent.detail?.source !== "local") return;
       if (pushDebounceRef.current) clearTimeout(pushDebounceRef.current);
-      pushDebounceRef.current = setTimeout(() => {
-        syncCurrentProfile(user.id).catch(() => {});
+      pushDebounceRef.current = setTimeout(async () => {
+        try {
+          await syncCurrentProfile(user.id);
+        } catch (e) {
+          console.warn("[ProfileSyncOnLoad] Push failed, retrying in 2s:", e);
+          setTimeout(() => {
+            syncCurrentProfile(user.id).catch((e2) => {
+              console.error("[ProfileSyncOnLoad] Retry also failed:", e2);
+            });
+          }, 2000);
+        }
       }, 600);
     };
     window.addEventListener("ll-profile-updated", onLocalProfileUpdated);

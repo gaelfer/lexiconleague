@@ -138,9 +138,10 @@ export default function ShopPage() {
     setProfile({ ...updatedProfile });
     setClaimedReward(reward);
     setClaimAnimating(false);
-    if (user?.id) {
-      const { syncCurrentProfile } = await import("@/lib/user/profile-sync");
-      await syncCurrentProfile(user.id);
+    try {
+      await syncToSupabase();
+    } catch {
+      showToast("info", "Saved locally. Sync when online.");
     }
   }
 

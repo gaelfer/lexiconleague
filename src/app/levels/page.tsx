@@ -504,7 +504,11 @@ export default function LevelsPage() {
       const updated = getProfile();
       if (updated) setProfile(updated);
       if (user && updated) {
-        await syncCurrentProfile(user.id);
+        try {
+          await syncCurrentProfile(user.id);
+        } catch (e) {
+          console.warn("[Levels] Sync failed after claim:", e);
+        }
       }
     } finally {
       setClaimingLevel(null);

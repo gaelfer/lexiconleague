@@ -148,6 +148,7 @@ function Home() {
   const { light } = useTheme();
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<UserProfile>(INITIAL_PROFILE);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
@@ -155,9 +156,10 @@ function Home() {
   useEffect(() => {
     const p = getProfile() ?? createGuestProfile();
     setProfile(p);
+    setProfileLoaded(true);
     if (!user) return;
     syncProfileForUser(user.id, user.email ?? "")
-      .then(setProfile)
+      .then((synced) => { setProfile(synced); setProfileLoaded(true); })
       .catch((e) => console.warn("[Home] Profile sync failed:", e));
   }, [user]);
 
@@ -184,13 +186,15 @@ function Home() {
   }, [user]);
 
   useEffect(() => {
-    if (!user || !profile) return;
+    if (!profileLoaded || !user || !profile) return;
     if (tutorialDismissed) return;
     const forceTutorial = searchParams.get("tutorial") === "1";
     if (forceTutorial || !profile.tutorial_completed) {
       setShowTutorial(true);
+    } else {
+      setShowTutorial(false);
     }
-  }, [user, profile, searchParams, tutorialDismissed]);
+  }, [profileLoaded, user, profile, searchParams, tutorialDismissed]);
 
   async function handleTutorialFinish() {
     setShowTutorial(false);

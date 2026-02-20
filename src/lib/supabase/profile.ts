@@ -89,6 +89,12 @@ export async function upsertProfile(
   profile: Partial<UserProfile>
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient();
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    return { success: false, error: "Not authenticated — session expired or missing" };
+  }
+
   const trophies = profile.trophies;
   const rankTier = trophies != null ? getTierFromTrophies(trophies) : profile.rank_tier;
 
@@ -115,41 +121,26 @@ export async function upsertProfile(
   if (profile.claimed_level_rewards !== undefined) payload.claimed_level_rewards = profile.claimed_level_rewards;
   if (profile.ranked_win_streak !== undefined) payload.ranked_win_streak = profile.ranked_win_streak;
 
-  const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+  const { data, error } = await supabase
+    .from("profiles")
+    .upsert(payload, { onConflict: "id" })
+    .select("id")
+    .single();
 
   if (error) return { success: false, error: error.message };
+  if (!data) return { success: false, error: "Upsert returned no data — RLS may have blocked the write" };
   return { success: true };
 }
 
 /**
- * Direct update of game progress (trophies, xp, rank_tier, ink_drops, placement, mmr).
- * Use this after ranked games to ensure Supabase gets the latest values.
+ * @deprecated Use upsertProfile instead — this function is redundant.
+ * Kept temporarily for backward compatibility; all callers should migrate.
  */
 export async function updateProfileGameProgress(
   userId: string,
   profile: Pick<UserProfile, "trophies" | "xp" | "rank_tier" | "ink_drops" | "unlocked_items" | "ranked_win_streak" | "placement_completed" | "placement_vocab_grade" | "mmr">
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = createClient();
-  const rankTier = getTierFromTrophies(profile.trophies);
-  const payload: Record<string, unknown> = {
-    id: userId,
-    trophies: profile.trophies,
-    xp: profile.xp ?? 0,
-    rank_tier: rankTier,
-    ink_drops: profile.ink_drops ?? 0,
-    unlocked_items: profile.unlocked_items ?? [],
-    ranked_win_streak: profile.ranked_win_streak ?? 0,
-    updated_at: new Date().toISOString(),
-  };
-  if (profile.placement_completed !== undefined) payload.placement_completed = profile.placement_completed;
-  if (profile.placement_vocab_grade !== undefined) payload.placement_vocab_grade = profile.placement_vocab_grade;
-  if (profile.mmr !== undefined) payload.mmr = profile.mmr;
-  const { error } = await supabase
-    .from("profiles")
-    .upsert(payload, { onConflict: "id" });
-
-  if (error) return { success: false, error: error.message };
-  return { success: true };
+  return upsertProfile(userId, profile);
 }
 
 export async function claimLevelRewardRemote(level: number): Promise<{ success: boolean; error?: string }> {
