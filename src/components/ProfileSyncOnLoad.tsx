@@ -61,10 +61,13 @@ export default function ProfileSyncOnLoad() {
     const onLocalProfileUpdated = (event: Event) => {
       const customEvent = event as CustomEvent<{ source?: "local" | "remote" }>;
       if (customEvent.detail?.source !== "local") return;
+      console.log("[ProfileSyncOnLoad] ll-profile-updated (local) received, debouncing push");
       if (pushDebounceRef.current) clearTimeout(pushDebounceRef.current);
       pushDebounceRef.current = setTimeout(async () => {
+        console.log("[ProfileSyncOnLoad] Debounced push triggered");
         try {
           await syncCurrentProfile(user.id);
+          console.log("[ProfileSyncOnLoad] Push completed");
         } catch (e) {
           console.warn("[ProfileSyncOnLoad] Push failed, retrying in 2s:", e);
           setTimeout(() => {

@@ -24,15 +24,26 @@ export async function syncCurrentProfile(userId: string): Promise<void> {
     id: userId,
   };
 
+  console.log("[ProfileSync] Pushing to Supabase…", {
+    trophies: normalized.trophies,
+    ink_drops: normalized.ink_drops,
+    xp: normalized.xp,
+  });
+
   const updateResult = await updateProfileProgress(userId, normalized);
-  if (updateResult.success) return;
+  if (updateResult.success) {
+    console.log("[ProfileSync] Update succeeded");
+    return;
+  }
 
   if (updateResult.rowExists === false) {
+    console.log("[ProfileSync] Row missing, upserting…");
     const upsertResult = await upsertProfile(userId, normalized);
     if (!upsertResult.success) {
       console.error("[ProfileSync] Upsert fallback failed:", upsertResult.error);
       throw new Error(upsertResult.error || "Failed to sync profile");
     }
+    console.log("[ProfileSync] Upsert succeeded");
     return;
   }
 

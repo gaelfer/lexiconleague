@@ -94,9 +94,9 @@ export async function updateProfileProgress(
 ): Promise<{ success: boolean; error?: string; rowExists?: boolean }> {
   const supabase = createClient();
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return { success: false, error: "Not authenticated — session expired or missing" };
+  const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+  if (sessionError || !session) {
+    return { success: false, error: sessionError?.message ?? "Not authenticated — session expired or missing" };
   }
 
   const trophies = profile.trophies;
@@ -136,9 +136,9 @@ export async function upsertProfile(
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient();
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return { success: false, error: "Not authenticated — session expired or missing" };
+  const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+  if (sessionError || !session) {
+    return { success: false, error: sessionError?.message ?? "Not authenticated — session expired or missing" };
   }
 
   const trophies = profile.trophies;
