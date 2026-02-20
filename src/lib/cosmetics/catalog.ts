@@ -36,12 +36,18 @@ export const COLORS: ColorItem[] = [
   { id: "color_#06B6D4", hex: "#06B6D4", label: "Cyan", price: 80, category: "color" },
   { id: "color_#F8FAFC", hex: "#F8FAFC", label: "Ghost White", price: 250, category: "color" },
   // Rank rewards (price -1 = unlock via ranked only)
-  { id: "color_#CD7F32", hex: "#CD7F32", label: "Bronze Ink", price: -1, category: "color" },
-  { id: "color_#C0C0C0", hex: "#C0C0C0", label: "Silver Ink", price: -1, category: "color" },
-  { id: "color_#D4AF37", hex: "#D4AF37", label: "Gold Ink", price: -1, category: "color" },
+  // Rank rewards (price -1 = unlock via ranked progression only)
+  { id: "color_#CD7F32", hex: "#CD7F32", label: "Bronze Ink",   price: -1, category: "color" },
+  { id: "color_#C0C0C0", hex: "#C0C0C0", label: "Silver Ink",   price: -1, category: "color" },
+  { id: "color_#D4AF37", hex: "#D4AF37", label: "Gold Ink",     price: -1, category: "color" },
   { id: "color_#7DD3FC", hex: "#7DD3FC", label: "Platinum Ink", price: -1, category: "color" },
-  { id: "color_#A78BFA", hex: "#A78BFA", label: "Diamond Ink", price: -1, category: "color" },
-  { id: "color_#10B981", hex: "#10B981", label: "Emerald Ink", price: -1, category: "color" },
+  { id: "color_#A78BFA", hex: "#A78BFA", label: "Diamond Ink",  price: -1, category: "color" },
+  { id: "color_#10B981", hex: "#10B981", label: "Emerald Ink",  price: -1, category: "color" },
+  // Level rewards (price -3 = unlock via levelling only, not purchasable)
+  { id: "color_#FB7185", hex: "#FB7185", label: "Rose Ink",     price: -3, category: "color" },
+  { id: "color_#84CC16", hex: "#84CC16", label: "Lime Ink",     price: -3, category: "color" },
+  { id: "color_#0EA5E9", hex: "#0EA5E9", label: "Sky Ink",      price: -3, category: "color" },
+  { id: "color_#6366F1", hex: "#6366F1", label: "Indigo Ink",   price: -3, category: "color" },
 ];
 
 // ── Eyes ─────────────────────────────────────────────────────────────────────
@@ -182,12 +188,27 @@ function buildAuraVariants(): AuraVariant[] {
 
 export const AURA_VARIANTS: AuraVariant[] = buildAuraVariants();
 
+/**
+ * Aura variants that are only obtainable via level rewards (never from packs).
+ * They use colors not present in the standard AURA_COLORS pool.
+ */
+export const LEVEL_EXCLUSIVE_AURA_VARIANTS: AuraVariant[] = [
+  { id: "aura_glow_01:#FB7185", auraId: "aura_glow_01", color: "#FB7185", colorLabel: "Rose",      label: "Soft Glow (Rose)",   rarity: "uncommon" },
+  { id: "aura_glow_02:#FB7185", auraId: "aura_glow_02", color: "#FB7185", colorLabel: "Rose",      label: "Sparkle (Rose)",     rarity: "uncommon" },
+  { id: "aura_glow_03:#0EA5E9", auraId: "aura_glow_03", color: "#0EA5E9", colorLabel: "Sky",       label: "Flame (Sky)",        rarity: "rare"     },
+  { id: "aura_glow_04:#84CC16", auraId: "aura_glow_04", color: "#84CC16", colorLabel: "Lime",      label: "Pulse (Lime)",       rarity: "rare"     },
+  { id: "aura_glow_05:#6366F1", auraId: "aura_glow_05", color: "#6366F1", colorLabel: "Indigo",    label: "Frost (Indigo)",     rarity: "rare"     },
+];
+
 export function getAuraVariant(id: string): AuraVariant | undefined {
-  return AURA_VARIANTS.find((v) => v.id === id);
+  return AURA_VARIANTS.find((v) => v.id === id)
+    ?? LEVEL_EXCLUSIVE_AURA_VARIANTS.find((v) => v.id === id);
 }
 
 export function getOwnedAuraVariants(unlockedItems: string[]): AuraVariant[] {
-  return AURA_VARIANTS.filter((v) => unlockedItems.includes(v.id));
+  return [...AURA_VARIANTS, ...LEVEL_EXCLUSIVE_AURA_VARIANTS].filter((v) =>
+    unlockedItems.includes(v.id)
+  );
 }
 
 /** Decode an aura variant ID into its shape and color. */
@@ -303,4 +324,9 @@ export function isRankReward(item: CosmeticItem | ColorItem): boolean {
 /** Pack-only items (auras). Price -2. */
 export function isPackOnly(item: CosmeticItem | ColorItem): boolean {
   return item.price === -2;
+}
+
+/** Level-exclusive cosmetics. Price -3 = unlock via levelling only. */
+export function isLevelExclusive(item: CosmeticItem | ColorItem): boolean {
+  return item.price === -3;
 }

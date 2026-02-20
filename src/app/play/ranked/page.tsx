@@ -687,45 +687,58 @@ export default function RankedPage() {
           </div>
         )}
 
-        {/* Win streak card — shown whenever streak > 0 */}
-        {currentStreak > 0 && (
-          <div
-            className={`rounded-2xl p-4 border-2 ${
-              light ? "bg-amber-50 border-amber-200" : "bg-amber-500/10 border-amber-500/30"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <FlameIcon className="w-5 h-5" color="#F59E0B" />
-                <span className="font-extrabold text-amber-600" style={{ color: "#D97706" }}>
-                  {currentStreak} Win Streak
-                </span>
-              </div>
+        {/* Win streak card — always visible so players know the mechanic */}
+        <div
+          className={`rounded-2xl p-4 border-2 ${
+            currentStreak > 0
+              ? light ? "bg-amber-50 border-amber-300" : "bg-amber-500/10 border-amber-500/40"
+              : light ? "bg-[#F8FAFC] border-[#E2E8F0]" : "bg-[#1E293B] border-white/10"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <FlameIcon className="w-5 h-5" color={currentStreak > 0 ? "#F59E0B" : (light ? "#CBD5E1" : "#475569")} />
               <span
-                className="font-extrabold text-sm px-2 py-0.5 rounded-lg"
-                style={{ color: "#D97706", backgroundColor: "rgba(245,158,11,0.15)" }}
+                className="font-extrabold"
+                style={{ color: currentStreak > 0 ? "#D97706" : (light ? "#94A3B8" : "#64748B") }}
               >
-                {streakMultiplier === 1 ? "1×" : `${streakMultiplier.toFixed(1)}×`} trophies
+                {currentStreak > 0 ? `${currentStreak} Win Streak` : "No Streak Yet"}
               </span>
             </div>
-            {/* Progress bar to next milestone */}
-            <div className="flex items-center gap-2">
-              <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${light ? "bg-amber-100" : "bg-amber-500/20"}`}>
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, streakProgress)}%`, backgroundColor: "#F59E0B" }}
-                />
-              </div>
-              {currentStreak < 10 ? (
-                <span className="text-[10px] font-bold shrink-0" style={{ color: "#D97706" }}>
-                  {nextMilestone - currentStreak} to {getWinStreakMultiplier(nextMilestone).toFixed(1)}×
-                </span>
-              ) : (
-                <span className="text-[10px] font-extrabold shrink-0" style={{ color: "#D97706" }}>MAX 3×</span>
-              )}
-            </div>
+            <span
+              className="font-extrabold text-sm px-2 py-0.5 rounded-lg"
+              style={{
+                color: currentStreak > 0 ? "#D97706" : (light ? "#94A3B8" : "#64748B"),
+                backgroundColor: currentStreak > 0 ? "rgba(245,158,11,0.15)" : "transparent",
+              }}
+            >
+              {currentStreak > 0
+                ? `${streakMultiplier === 1 ? "1×" : streakMultiplier.toFixed(1)}× trophies`
+                : "Win to start"}
+            </span>
           </div>
-        )}
+          {/* Progress bar to next milestone */}
+          <div className="flex items-center gap-2">
+            <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${light ? "bg-amber-100" : "bg-amber-500/20"}`}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, streakProgress)}%`, backgroundColor: "#F59E0B" }}
+              />
+            </div>
+            {currentStreak < 10 ? (
+              <span className="text-[10px] font-bold shrink-0" style={{ color: currentStreak > 0 ? "#D97706" : (light ? "#94A3B8" : "#64748B") }}>
+                {currentStreak === 0 ? "3 wins → 1.2×" : `${nextMilestone - currentStreak} to ${getWinStreakMultiplier(nextMilestone).toFixed(1)}×`}
+              </span>
+            ) : (
+              <span className="text-[10px] font-extrabold shrink-0" style={{ color: "#D97706" }}>MAX 3×</span>
+            )}
+          </div>
+          {currentStreak === 0 && (
+            <p className={`text-[10px] mt-2 font-semibold ${light ? "text-[#94A3B8]" : "text-white/30"}`}>
+              Consecutive ranked wins multiply your trophy gains — up to 3× at 10 wins
+            </p>
+          )}
+        </div>
 
         <div className="flex items-center gap-3">
           <button

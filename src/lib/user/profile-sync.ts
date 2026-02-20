@@ -34,10 +34,12 @@ export async function syncProfileForUser(
       ]),
     ];
 
-    // ink_drops: local is the canonical session state. If a local profile
-    // exists we trust its ink_drops (purchases decrement it, games increment
-    // it). Only fall back to remote when there is no local session.
-    const mergedInkDrops = local != null ? (local.ink_drops ?? 0) : remote.ink_drops;
+    // ink_drops: trust the local profile ONLY when it actually belongs to this
+    // user (i.e. it was previously synced). A freshly-created guest profile has
+    // a "guest_…" id, meaning there has been no prior sync — in that case we
+    // must use the remote balance so we don't overwrite the player's real drops.
+    const localBelongsToUser = local?.id === userId;
+    const mergedInkDrops = localBelongsToUser ? (local!.ink_drops ?? 0) : remote.ink_drops;
 
     const merged: UserProfile = {
       ...remote,

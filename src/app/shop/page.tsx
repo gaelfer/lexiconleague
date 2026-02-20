@@ -23,6 +23,7 @@ import {
   ColorItem,
   FREE_ITEM_IDS,
   isRankReward,
+  isLevelExclusive,
   AURA_PACKS,
   AuraPack,
   AuraVariant,
@@ -205,6 +206,9 @@ export default function ShopPage() {
   }
 
   function renderItemCard(item: CosmeticItem | ColorItem) {
+    // Level-exclusive items are not purchasable — hide them from the shop entirely
+    if (isLevelExclusive(item)) return null;
+
     const owned = isItemUnlocked(item.id, profile);
     const canAfford = (profile?.ink_drops ?? 0) >= item.price && item.price > 0;
     const isFree = item.price === 0;
