@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { getProfile, createGuestProfile } from "@/lib/user/storage";
-import { syncProfileForUser } from "@/lib/user/profile-sync";
+import { syncCurrentProfile, syncProfileForUser } from "@/lib/user/profile-sync";
 import { fetchLeaderboard, LeaderboardEntry } from "@/lib/supabase/profile";
 import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, getWinStreakMultiplier } from "@/lib/game/rank";
 import { getLevel } from "@/lib/user/levels";
@@ -126,14 +126,20 @@ export default function RankedScreenPage() {
     load();
   }, [user, authLoading]);
 
-  // Refetch leaderboard when page becomes visible (e.g. user returns from playing a game)
+  // Sync local profile and refetch leaderboard when tab becomes visible
   useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === "visible") loadLeaderboard();
+    const onVisible = async () => {
+      if (document.visibilityState !== "visible") return;
+      if (user) {
+        await syncCurrentProfile(user.id).catch(() => {});
+        const p = getProfile() ?? createGuestProfile();
+        setProfile(p);
+      }
+      loadLeaderboard();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, []);
+  }, [user]);
 
   const displayTier = getTierFromTrophies(profile.trophies);
   const tierProgress = getTierProgress(profile.trophies, displayTier);

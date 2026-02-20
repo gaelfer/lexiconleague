@@ -1,6 +1,20 @@
 import { UserProfile } from "@/types";
 import { getProfile, saveProfile, createGuestProfile, ensureRankRewardsUnlocked } from "./storage";
-import { fetchProfile, upsertProfile } from "@/lib/supabase/profile";
+import { fetchProfile, upsertProfile, updateProfileGameProgress } from "@/lib/supabase/profile";
+
+function isEmptyGuestProfile(profile: UserProfile): boolean {
+  const isGuest = profile.id?.startsWith("guest_");
+  if (!isGuest) return false;
+  return (
+    (profile.trophies ?? 0) === 0 &&
+    (profile.xp ?? 0) === 0 &&
+    (profile.ink_drops ?? 0) === 0 &&
+    (profile.ranked_win_streak ?? 0) === 0 &&
+    (profile.placement_completed ?? false) === false &&
+    (profile.mmr ?? 1000) === 1000 &&
+    (profile.username ?? "Challenger") === "Challenger"
+  );
+}
 
 /**
  * Push the current localStorage profile to Supabase.
@@ -9,7 +23,25 @@ import { fetchProfile, upsertProfile } from "@/lib/supabase/profile";
 export async function syncCurrentProfile(userId: string): Promise<void> {
   const profile = getProfile();
   if (!profile) return;
-  await upsertProfile(userId, profile);
+  const normalized: UserProfile = {
+    ...profile,
+    id: userId,
+  };
+  const progressResult = await updateProfileGameProgress(userId, {
+    trophies: normalized.trophies ?? 0,
+    xp: normalized.xp ?? 0,
+    rank_tier: normalized.rank_tier,
+    ink_drops: normalized.ink_drops ?? 0,
+    unlocked_items: normalized.unlocked_items ?? [],
+    ranked_win_streak: normalized.ranked_win_streak ?? 0,
+    placement_completed: normalized.placement_completed,
+    placement_vocab_grade: normalized.placement_vocab_grade,
+    mmr: normalized.mmr,
+  });
+  const upsertResult = await upsertProfile(userId, normalized);
+  if (!progressResult.success && !upsertResult.success) {
+    throw new Error(upsertResult.error ?? progressResult.error ?? "Failed to sync profile");
+  }
 }
 
 /**
@@ -20,58 +52,49 @@ export async function syncProfileForUser(
   userId: string,
   email: string
 ): Promise<UserProfile> {
-  const remote = await fetchProfile(userId);
   const local = getProfile();
+  const remote = await fetchProfile(userId);
 
-  if (remote) {
-    const localClaim = local?.daily_reward_claimed_at ? new Date(local.daily_reward_claimed_at) : null;
-    const remoteClaim = remote.daily_reward_claimed_at ? new Date(remote.daily_reward_claimed_at) : null;
-    const useLocalDaily = localClaim && (!remoteClaim || localClaim > remoteClaim);
+  // Canonical rule: if local website values are meaningful, treat local as
+  // source of truth and push them to Supabase.
+  if (local && !(remote && isEmptyGuestProfile(local))) {
     const mergedUnlocked = [
       ...new Set([
-        ...(remote.unlocked_items ?? []),
-        ...(local?.unlocked_items ?? []),
+        ...(remote?.unlocked_items ?? []),
+        ...(local.unlocked_items ?? []),
       ]),
     ];
-
-    // ink_drops: trust the local profile ONLY when it actually belongs to this
-    // user (i.e. it was previously synced). A freshly-created guest profile has
-    // a "guest_…" id, meaning there has been no prior sync — in that case we
-    // must use the remote balance so we don't overwrite the player's real drops.
-    const localBelongsToUser = local?.id === userId;
-    const mergedInkDrops = localBelongsToUser ? (local!.ink_drops ?? 0) : remote.ink_drops;
-
+    const mergedClaimedRewards = [
+      ...new Set([
+        ...(remote?.claimed_level_rewards ?? []),
+        ...(local.claimed_level_rewards ?? []),
+      ]),
+    ];
     const merged: UserProfile = {
-      ...remote,
-      email: email || remote.email,
-      trophies: Math.max(remote.trophies ?? 0, local?.trophies ?? 0),
-      xp: Math.max(remote.xp ?? 0, local?.xp ?? 0),
-      ink_drops: mergedInkDrops,
+      ...(remote ?? local),
+      ...local,
+      id: userId,
+      email: email || local.email || remote?.email || "",
+      username:
+        local.username && local.username !== "Challenger"
+          ? local.username
+          : remote?.username || email?.split("@")[0] || "Challenger",
       unlocked_items: mergedUnlocked,
-      daily_reward_claimed_at: useLocalDaily ? local!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
-      daily_streak: useLocalDaily ? (local!.daily_streak ?? 0) : (remote.daily_streak ?? 0),
-      vocab_grade: remote.vocab_grade ?? local?.vocab_grade,
-      // Once placement is done, it stays done (either side can have completed it)
-      placement_completed: (remote.placement_completed ?? false) || (local?.placement_completed ?? false),
-      placement_vocab_grade: remote.placement_vocab_grade ?? local?.placement_vocab_grade,
-      tutorial_completed: (remote.tutorial_completed ?? false) || (local?.tutorial_completed ?? false),
-      claimed_level_rewards: [
-        ...new Set([
-          ...(remote.claimed_level_rewards ?? []),
-          ...(local?.claimed_level_rewards ?? []),
-        ]),
-      ],
-      ranked_win_streak: Math.max(remote.ranked_win_streak ?? 0, local?.ranked_win_streak ?? 0),
-      // MMR: use local when it belongs to this user (just played); otherwise remote
-      mmr: localBelongsToUser ? (local!.mmr ?? remote.mmr ?? 1000) : (remote.mmr ?? 1000),
+      claimed_level_rewards: mergedClaimedRewards,
     };
     ensureRankRewardsUnlocked(merged);
     saveProfile(merged);
-    await upsertProfile(userId, merged);
+    await syncCurrentProfile(userId);
     return merged;
   }
 
-  // No remote profile yet (new OAuth user) — create from local or default
+  if (remote) {
+    ensureRankRewardsUnlocked(remote);
+    saveProfile(remote);
+    return remote;
+  }
+
+  // No remote profile yet — create from local or default
   const base = local ?? createGuestProfile();
   const newProfile: UserProfile = {
     ...base,
@@ -81,6 +104,6 @@ export async function syncProfileForUser(
     onboarding_completed: false,
   };
   saveProfile(newProfile);
-  await upsertProfile(userId, newProfile);
+  await syncCurrentProfile(userId);
   return newProfile;
 }

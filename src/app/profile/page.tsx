@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile, saveProfile, createGuestProfile } from "@/lib/user/storage";
-import { syncProfileForUser } from "@/lib/user/profile-sync";
+import { syncCurrentProfile, syncProfileForUser } from "@/lib/user/profile-sync";
 import { updateUsername, upsertProfile } from "@/lib/supabase/profile";
 import { VocabLevel } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
@@ -38,6 +38,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(() => getProfile() ?? createGuestProfile());
   const [loading, setLoading] = useState(true);
   const [savingGrade, setSavingGrade] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const showToast = useCallback((type: "success" | "error", msg: string) => {
     setToast({ type, msg });
@@ -81,6 +82,24 @@ export default function ProfilePage() {
       showToast("error", result.error ?? "Failed to update username.");
     }
     setSavingUsername(false);
+  }
+
+  async function handleSyncToCloud() {
+    if (!user) return;
+    setSyncing(true);
+    const local = getProfile();
+    if (!local) {
+      showToast("error", "No local profile to sync.");
+      setSyncing(false);
+      return;
+    }
+    try {
+      await syncCurrentProfile(user.id);
+      showToast("success", `Synced! ${local.trophies} trophies saved to cloud.`);
+    } catch {
+      showToast("error", "Failed to sync to cloud.");
+    }
+    setSyncing(false);
   }
 
   async function handleVocabGradeChange(level: VocabLevel) {
@@ -227,6 +246,21 @@ export default function ProfilePage() {
 
         {user && (
           <>
+            <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} shadow-lg`}>
+              <h2 className={`${text} font-bold text-base mb-2`}>Sync to cloud</h2>
+              <p className={`${textMuted} text-xs mb-4`}>
+                Push your local progress (trophies, XP, ink drops) to Supabase so it appears on the leaderboard.
+              </p>
+              <button
+                onClick={handleSyncToCloud}
+                disabled={syncing}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition-colors"
+                style={{ backgroundColor: "#22C55E" }}
+              >
+                {syncing ? "Syncing..." : "Sync now"}
+              </button>
+            </div>
+
             <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} shadow-lg`}>
               <h2 className={`${text} font-bold text-base mb-2`}>Tutorial</h2>
               <p className={`${textMuted} text-xs mb-4`}>
