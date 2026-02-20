@@ -1,5 +1,5 @@
 import { UserProfile } from "@/types";
-import { getProfile, saveProfile, createGuestProfile } from "./storage";
+import { getProfile, saveProfile, createGuestProfile, ensureRankRewardsUnlocked } from "./storage";
 import { fetchProfile, upsertProfile } from "@/lib/supabase/profile";
 
 /**
@@ -44,6 +44,7 @@ export async function syncProfileForUser(
         ]),
       ],
     };
+    ensureRankRewardsUnlocked(merged);
     saveProfile(merged);
     // Persist merged state to Supabase
     await upsertProfile(userId, merged);

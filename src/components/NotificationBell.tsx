@@ -75,10 +75,15 @@ export default function NotificationBell() {
     () =>
       pending.filter((n) => {
         if (n.type === "rank_up" && (pathname === "/ranked" || pathname === "/play/ranked")) return false;
-        if (n.type === "level_up" && pathname === "/levels") return false;
+        if (n.type === "level_up") {
+          if (pathname === "/levels") return false;
+          if (n.level == null) return false;
+          if (!LEVEL_REWARDS.some((r) => r.level === n.level)) return false;
+          if (unclaimedLevelRewards.length === 0) return false;
+        }
         return true;
       }),
-    [pending, pathname]
+    [pending, pathname, unclaimedLevelRewards.length]
   );
 
   const total =

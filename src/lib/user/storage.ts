@@ -152,6 +152,23 @@ export function isLevelRewardClaimed(level: number, profile: UserProfile | null)
   return (profile.claimed_level_rewards ?? []).includes(level);
 }
 
+/** Ensure profile has all rank-reward skins for tiers reached by current trophies. */
+export function ensureRankRewardsUnlocked(profile: UserProfile): void {
+  if (!profile.unlocked_items) profile.unlocked_items = [...FREE_ITEM_IDS];
+  const trophies = profile.trophies ?? 0;
+  for (const tier of RANK_TIERS) {
+    const threshold = RANK_THRESHOLDS[tier];
+    const reached = tier === "Bronze" ? true : trophies >= threshold;
+    if (reached) {
+      for (const itemId of RANK_REWARD_ITEM_IDS[tier]) {
+        if (!profile.unlocked_items.includes(itemId)) {
+          profile.unlocked_items.push(itemId);
+        }
+      }
+    }
+  }
+}
+
 export function isItemUnlocked(itemId: string, profile: UserProfile | null): boolean {
   if (!profile) return FREE_ITEM_IDS.includes(itemId);
   const unlocked = profile.unlocked_items ?? FREE_ITEM_IDS;

@@ -49,7 +49,9 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
 
   function dismissLevelUpPopup() {
     if (levelUpPopup) {
-      addPendingNotification("level_up", { level: levelUpPopup.newLevel });
+      if (levelUpPopup.hasUnclaimedRewards) {
+        addPendingNotification("level_up", { level: levelUpPopup.newLevel });
+      }
       setLevelUpPopup(null);
     }
   }
