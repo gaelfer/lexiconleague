@@ -442,9 +442,9 @@ export default function CasualPage() {
       setOpponents(opps);
       setTeamMembers(tms);
     } else {
-      // 3v3: all bots answer exactly 15 questions with a simulated finish time
+      // 3v3: use seeded bot scores so all party members see the same outcome
       const bots = generateBotOpponents(tier, 3);
-      const oppResults = bots.map(() => generateBotScore3v3(tier));
+      const oppResults = [0, 1, 2].map((i) => generateBotScore3v3Seeded(seed, i, tier));
       const partyTeammates = members.slice(0, 2).map((m: PartyMember) => ({
         id: m.id,
         username: m.username,
@@ -456,7 +456,7 @@ export default function CasualPage() {
         return { username: bot.username, avatar_config: bot.avatar_config, isBot: true };
       });
       const allTeammates = [...partyTeammates, ...botTeammates];
-      const teammateResults = allTeammates.map(() => generateBotScore3v3(tier));
+      const teammateResults = allTeammates.map((_, i) => generateBotScore3v3Seeded(seed, 3 + i, tier));
       botResultsRef.current = {
         opponents: oppResults.map((r) => ({ correct: r.correct, total: r.total, finishTimeMs: r.finishTimeMs })),
         teammates: teammateResults.map((r) => ({ correct: r.correct, total: r.total, finishTimeMs: r.finishTimeMs })),
@@ -869,19 +869,21 @@ export default function CasualPage() {
 
   async function doQueue(queueSubject: Subject, queueGrade: VocabLevel | undefined) {
     if (!canQueue) return;
-    // 1v1 party flow stays instant and coordinated through party broadcast
-    if (mode === "1v1" && members.length > 0 && user) {
+    // 1v1 and 3v3 party flow: instant match with bots, broadcast so all party members get same game
+    if ((mode === "1v1" || mode === "3v3") && members.length > 0 && user && isLeader) {
       const { opps, tms, seed, botResults } = matchWithBots(queueSubject, queueGrade);
-      await broadcastPartyQueue(user.id, {
-        mode,
-        subject: queueSubject,
-        vocabGrade: queueGrade,
-        seed,
-        startedAt: Date.now(),
-        opponents: opps,
-        teamMembers: tms,
-        botResults: botResults!,
-      });
+      if (botResults) {
+        await broadcastPartyQueue(user.id, {
+          mode,
+          subject: queueSubject,
+          vocabGrade: queueGrade,
+          seed,
+          startedAt: Date.now(),
+          opponents: opps,
+          teamMembers: tms,
+          botResults,
+        });
+      }
       return;
     }
     await startSearch(queueSubject, queueGrade);

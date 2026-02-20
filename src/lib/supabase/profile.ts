@@ -217,18 +217,24 @@ export async function fetchLeaderboard(
     .order("trophies", { ascending: false })
     .limit(limit);
 
-  if (error) return [];
+  if (error) {
+    console.warn("[Leaderboard] fetch failed:", error.message);
+    return [];
+  }
 
-  return (data ?? []).map((row, i) => {
-    const trophies = row.trophies ?? 0;
-    return {
-      id: row.id,
-      username: row.username ?? "Challenger",
-      rank_tier: getTierFromTrophies(trophies),
-      trophies,
-      xp: row.xp ?? 0,
-      avatar_config: (row.avatar_config as Record<string, unknown>) ?? {},
-      rank: i + 1,
-    };
-  });
+  const rows = Array.isArray(data) ? data : [];
+  return rows
+    .filter((row) => row?.id != null)
+    .map((row, i) => {
+      const trophies = Number(row.trophies) ?? 0;
+      return {
+        id: String(row.id),
+        username: row.username ?? "Challenger",
+        rank_tier: getTierFromTrophies(trophies),
+        trophies,
+        xp: Number(row.xp) || 0,
+        avatar_config: (row.avatar_config as Record<string, unknown>) ?? {},
+        rank: i + 1,
+      };
+    });
 }
