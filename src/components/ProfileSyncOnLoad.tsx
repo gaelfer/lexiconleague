@@ -4,16 +4,18 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { syncCurrentProfile, syncProfileForUser } from "@/lib/user/profile-sync";
 
+const POLL_MS = 60_000;
+
 /**
- * Syncs local profile to Supabase when the app loads and when the tab becomes
- * visible. Ensures local progress (trophies, xp, etc.) is pushed to the database.
+ * Central sync hub: pulls from Supabase on load + tab focus,
+ * pushes local changes when ll-profile-updated fires.
+ * No other component should register its own visibility/sync listeners.
  */
 export default function ProfileSyncOnLoad() {
   const { user, loading } = useAuth();
   const syncedRef = useRef(false);
-  const pushDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Initial sync on load
   useEffect(() => {
     if (loading || !user) return;
     if (syncedRef.current) return;
@@ -23,68 +25,53 @@ export default function ProfileSyncOnLoad() {
     });
   }, [user, loading]);
 
-  // Pull from Supabase when tab visible: immediate sync + 45s interval when focused
   useEffect(() => {
     if (!user) return;
+
     let interval: ReturnType<typeof setInterval> | null = null;
-    const sync = () => syncProfileForUser(user.id, user.email ?? "").catch(() => {});
+    const pull = () => syncProfileForUser(user.id, user.email ?? "").catch(() => {});
+
     const startPolling = () => {
       if (document.visibilityState !== "visible") return;
-      sync();
+      pull();
       if (interval) return;
       interval = setInterval(() => {
-        if (document.visibilityState !== "visible") return;
-        sync();
-      }, 45_000);
+        if (document.visibilityState === "visible") pull();
+      }, POLL_MS);
     };
+
     const stopPolling = () => {
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
-      }
+      if (interval) { clearInterval(interval); interval = null; }
     };
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") startPolling();
-      else stopPolling();
+
+    const onVisibility = () => {
+      document.visibilityState === "visible" ? startPolling() : stopPolling();
     };
+
     if (document.visibilityState === "visible") startPolling();
-    document.addEventListener("visibilitychange", onVisibilityChange);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      document.removeEventListener("visibilitychange", onVisibility);
       stopPolling();
     };
   }, [user]);
 
-  // Push local writes (purchases, rewards, etc.) shortly after they happen
   useEffect(() => {
     if (!user) return;
-    const onLocalProfileUpdated = (event: Event) => {
-      const customEvent = event as CustomEvent<{ source?: "local" | "remote" }>;
-      if (customEvent.detail?.source !== "local") return;
-      console.log("[ProfileSyncOnLoad] ll-profile-updated (local) received, debouncing push");
-      if (pushDebounceRef.current) clearTimeout(pushDebounceRef.current);
-      pushDebounceRef.current = setTimeout(async () => {
-        console.log("[ProfileSyncOnLoad] Debounced push triggered");
-        try {
-          await syncCurrentProfile(user.id);
-          console.log("[ProfileSyncOnLoad] Push completed");
-        } catch (e) {
-          console.warn("[ProfileSyncOnLoad] Push failed, retrying in 2s:", e);
-          setTimeout(() => {
-            syncCurrentProfile(user.id).catch((e2) => {
-              console.error("[ProfileSyncOnLoad] Retry also failed:", e2);
-            });
-          }, 2000);
-        }
-      }, 600);
+    const onLocal = (event: Event) => {
+      const detail = (event as CustomEvent<{ source?: string }>).detail;
+      if (detail?.source !== "local") return;
+      if (pushTimer.current) clearTimeout(pushTimer.current);
+      pushTimer.current = setTimeout(() => {
+        syncCurrentProfile(user.id).catch(() => {
+          setTimeout(() => syncCurrentProfile(user.id).catch(() => {}), 3000);
+        });
+      }, 800);
     };
-    window.addEventListener("ll-profile-updated", onLocalProfileUpdated);
+    window.addEventListener("ll-profile-updated", onLocal);
     return () => {
-      window.removeEventListener("ll-profile-updated", onLocalProfileUpdated);
-      if (pushDebounceRef.current) {
-        clearTimeout(pushDebounceRef.current);
-        pushDebounceRef.current = null;
-      }
+      window.removeEventListener("ll-profile-updated", onLocal);
+      if (pushTimer.current) { clearTimeout(pushTimer.current); pushTimer.current = null; }
     };
   }, [user]);
 

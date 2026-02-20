@@ -7,7 +7,6 @@ import { useTheme } from "@/context/ThemeContext";
 import { InkAvatarConfig, DEFAULT_AVATAR_CONFIG, UserProfile } from "@/types";
 import { getProfile, saveProfile, isItemUnlocked } from "@/lib/user/storage";
 import { fetchAvatarConfig, updateAvatarConfig } from "@/lib/supabase/avatar";
-import { syncProfileForUser } from "@/lib/user/profile-sync";
 import {
   BASES,
   COLORS,
@@ -57,18 +56,17 @@ export default function LockerPage() {
       return;
     }
     async function load() {
+      const p = getProfile();
+      setProfile(p);
       try {
-        const synced = await syncProfileForUser(user!.id, user!.email ?? "");
-        setProfile(synced);
         const remote = await fetchAvatarConfig(user!.id);
         setConfig(remote);
         setSavedConfig(remote);
       } catch {
-        const p = getProfile();
-        setProfile(p);
-        const remote = await fetchAvatarConfig(user!.id);
-        setConfig(remote);
-        setSavedConfig(remote);
+        if (p?.avatar_config) {
+          setConfig(p.avatar_config);
+          setSavedConfig(p.avatar_config);
+        }
       }
       setLoading(false);
     }
@@ -84,33 +82,17 @@ export default function LockerPage() {
 
   async function handleSave() {
     setSaving(true);
+    const p = getProfile();
+    if (p) {
+      p.avatar_config = config;
+      saveProfile(p);
+    }
+    setSavedConfig(config);
     if (user) {
-      const p = getProfile();
-      if (p) {
-        p.avatar_config = config;
-        saveProfile(p);
-      }
-      setSavedConfig(config);
       const result = await updateAvatarConfig(user.id, config);
-      if (result.success) {
-        try {
-          const { syncCurrentProfile } = await import("@/lib/user/profile-sync");
-          await syncCurrentProfile(user.id);
-        } catch {
-          // updateAvatarConfig succeeded; sync is backup
-        }
-        showToast("success", "Avatar saved!");
-      } else {
-        showToast("error", result.error ?? "Failed to save.");
-      }
+      showToast(result.success ? "success" : "error", result.success ? "Avatar saved!" : (result.error ?? "Failed to save."));
     } else {
-      const p = getProfile();
-      if (p) {
-        p.avatar_config = config;
-        saveProfile(p);
-        setSavedConfig(config);
-        showToast("success", "Avatar saved locally!");
-      }
+      showToast("success", "Avatar saved locally!");
     }
     setSaving(false);
   }

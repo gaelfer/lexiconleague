@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile, saveProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
-import { syncCurrentProfile, syncProfileForUser } from "@/lib/user/profile-sync";
+import { syncCurrentProfile } from "@/lib/user/profile-sync";
 import { updateUsername } from "@/lib/supabase/profile";
 import { VocabLevel } from "@/types";
 import InkAvatar from "@/components/InkAvatar";
@@ -47,22 +47,11 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      const p = getProfile() ?? createGuestProfile();
-      setProfile(p);
-      setUsername(p.username);
-      setLoading(false);
-      return;
-    }
-    async function load() {
-      const u = user!;
-      const synced = await syncProfileForUser(u.id, u.email ?? "");
-      setProfile(synced);
-      setUsername(synced.username);
-      setLoading(false);
-    }
-    load();
-  }, [user, authLoading]);
+    const p = getProfile() ?? createGuestProfile();
+    setProfile(p);
+    setUsername(p.username);
+    setLoading(false);
+  }, [authLoading]);
 
   useEffect(() => {
     const onProfileUpdated = () => {
@@ -106,8 +95,9 @@ export default function ProfilePage() {
     try {
       await syncCurrentProfile(user.id);
       showToast("success", `Synced! ${local.trophies} trophies saved to cloud.`);
-    } catch {
-      showToast("error", "Failed to sync to cloud.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to sync to cloud.";
+      showToast("error", msg);
     }
     setSyncing(false);
   }

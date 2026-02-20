@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { getProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
-import { syncProfileForUser } from "@/lib/user/profile-sync";
+import { syncCurrentProfile } from "@/lib/user/profile-sync";
 import { fetchLeaderboard, LeaderboardEntry } from "@/lib/supabase/profile";
 import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, getWinStreakMultiplier } from "@/lib/game/rank";
 import { getLevel } from "@/lib/user/levels";
@@ -112,16 +112,21 @@ export default function RankedScreenPage() {
   useEffect(() => {
     if (authLoading) return;
     setProfile(getProfile() ?? createGuestProfile());
-    if (user) {
-      syncProfileForUser(user.id, user.email ?? "")
-        .then(setProfile)
-        .catch(() => {});
+    async function init() {
+      if (user) {
+        try {
+          await syncCurrentProfile(user.id);
+        } catch {
+          // Local state is correct; leaderboard may show stale data
+        }
+      }
+      await Promise.race([
+        loadLeaderboard(),
+        new Promise<void>((r) => setTimeout(r, 8000)),
+      ]);
     }
-    Promise.race([
-      loadLeaderboard(),
-      new Promise<void>((r) => setTimeout(r, 8000)),
-    ]).finally(() => setLoading(false));
-  }, [user, authLoading]);
+    init().finally(() => setLoading(false));
+  }, [authLoading, user]);
 
   useEffect(() => {
     const onProfileUpdated = () => {
@@ -130,20 +135,6 @@ export default function RankedScreenPage() {
     window.addEventListener("ll-profile-updated", onProfileUpdated);
     return () => window.removeEventListener("ll-profile-updated", onProfileUpdated);
   }, []);
-
-  // Pull latest profile and refetch leaderboard when tab becomes visible
-  useEffect(() => {
-    const onVisible = async () => {
-      if (document.visibilityState !== "visible") return;
-      if (user) {
-        const refreshed = await syncProfileForUser(user.id, user.email ?? "").catch(() => null);
-        if (refreshed) setProfile(refreshed);
-      }
-      loadLeaderboard();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [user]);
 
   const displayTier = getTierFromTrophies(profile.trophies);
   const tierProgress = getTierProgress(profile.trophies, displayTier);
@@ -422,11 +413,9 @@ export default function RankedScreenPage() {
             <div className="max-h-[50vh] sm:max-h-[420px] overflow-y-auto p-3 sm:p-4 space-y-2 min-h-0">
               {leaderboard.map((entry) => {
                 const isCurrentUser = user && entry.id === user.id;
-                const tier = isCurrentUser
-                  ? getTierFromTrophies(profile.trophies)
-                  : RANK_TIERS.includes(entry.rank_tier as RankTier)
+                const tier = RANK_TIERS.includes(entry.rank_tier as RankTier)
                   ? (entry.rank_tier as RankTier)
-                  : "Bronze";
+                  : getTierFromTrophies(entry.trophies);
                 return (
                   <div
                     key={entry.id}
@@ -459,7 +448,7 @@ export default function RankedScreenPage() {
                       </div>
                     </div>
                     <span className="font-bold tabular-nums shrink-0" style={{ color: MINT }}>
-                      {isCurrentUser ? profile.trophies : entry.trophies}
+                      {entry.trophies}
                     </span>
                   </div>
                 );

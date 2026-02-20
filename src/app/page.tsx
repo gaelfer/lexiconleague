@@ -19,7 +19,6 @@ import HomeTutorialOverlay from "@/components/HomeTutorialOverlay";
 import { getTierProgress, getTrophiesInTier, getTrophiesToNextTier, getTierFromTrophies } from "@/lib/game/rank";
 import { getLevelProgress, getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
 import { canClaimDailyReward } from "@/lib/user/daily-rewards";
-import { syncProfileForUser } from "@/lib/user/profile-sync";
 import { RANK_TIERS, RANK_COLORS } from "@/types";
 
 const BLUE = "#3B82F6";
@@ -157,33 +156,17 @@ function Home() {
     const p = getProfile() ?? createGuestProfile();
     setProfile(p);
     setProfileLoaded(true);
-    if (!user) return;
-    syncProfileForUser(user.id, user.email ?? "")
-      .then((synced) => { setProfile(synced); setProfileLoaded(true); })
-      .catch((e) => console.warn("[Home] Profile sync failed:", e));
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     const onProfileUpdated = () => {
       const fresh = getProfile() ?? createGuestProfile();
       setProfile(fresh);
+      setProfileLoaded(true);
     };
     window.addEventListener("ll-profile-updated", onProfileUpdated);
     return () => window.removeEventListener("ll-profile-updated", onProfileUpdated);
   }, []);
-
-  // Sync when user returns to tab (backup for missed post-game sync)
-  useEffect(() => {
-    if (!user) return;
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      syncProfileForUser(user.id, user.email ?? "")
-        .then(setProfile)
-        .catch(() => {});
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [user]);
 
   useEffect(() => {
     if (!profileLoaded || !user || !profile) return;
@@ -196,22 +179,13 @@ function Home() {
     }
   }, [profileLoaded, user, profile, searchParams, tutorialDismissed]);
 
-  async function handleTutorialFinish() {
+  function handleTutorialFinish() {
     setShowTutorial(false);
     setTutorialDismissed(true);
-    if (!profile) return;
-    if (profile.tutorial_completed) return;
+    if (!profile || profile.tutorial_completed) return;
     const updated = { ...profile, tutorial_completed: true };
     setProfile(updated);
     saveProfile(updated);
-    if (user) {
-      try {
-        const { syncCurrentProfile } = await import("@/lib/user/profile-sync");
-        await syncCurrentProfile(user.id);
-      } catch {
-        // Local save succeeded; cloud will catch up on next load
-      }
-    }
   }
 
   const displayTier = profile ? getTierFromTrophies(profile.trophies) : "Bronze";

@@ -84,19 +84,11 @@ export default function ShopPage() {
       window.location.href = "/auth/signup?from=shop";
       return;
     }
-    // Show shop immediately with local profile — don't block on network
     let p = getProfile();
     if (!p) p = createGuestProfile();
     if (!p.unlocked_items) p.unlocked_items = [...FREE_ITEM_IDS];
     if (p.ink_drops === undefined) p.ink_drops = 0;
     setProfile({ ...p });
-
-    // Sync in background and update when done
-    if (user?.id) {
-      import("@/lib/user/profile-sync").then(({ syncProfileForUser }) =>
-        syncProfileForUser(user.id, user.email ?? "")
-      ).then((synced) => setProfile(synced)).catch(() => {});
-    }
   }, [user, authLoading]);
 
   useEffect(() => {
@@ -118,14 +110,7 @@ export default function ShopPage() {
     if (p) setProfile({ ...p });
   }
 
-  async function syncToSupabase() {
-    if (user?.id) {
-      const { syncCurrentProfile } = await import("@/lib/user/profile-sync");
-      await syncCurrentProfile(user.id);
-    }
-  }
-
-  async function handleClaim() {
+  function handleClaim() {
     const fresh = getProfile();
     if (!fresh || !canClaimDailyReward(fresh)) return;
     setClaimAnimating(true);
@@ -138,11 +123,6 @@ export default function ShopPage() {
     setProfile({ ...updatedProfile });
     setClaimedReward(reward);
     setClaimAnimating(false);
-    try {
-      await syncToSupabase();
-    } catch {
-      showToast("info", "Saved locally. Sync when online.");
-    }
   }
 
   function handleBuy(item: CosmeticItem | ColorItem) {
@@ -158,18 +138,13 @@ export default function ShopPage() {
     setConfirmItem(item);
   }
 
-  async function confirmPurchase() {
+  function confirmPurchase() {
     if (!confirmItem || !profile) return;
     const success = spendInkDrops(confirmItem.price);
     if (success) {
       unlockItem(confirmItem.id);
       refreshProfile();
       showToast("success", `${confirmItem.label} unlocked!`);
-      try {
-        await syncToSupabase();
-      } catch {
-        showToast("info", "Saved locally. Sync when online.");
-      }
     } else {
       showToast("error", "Purchase failed.");
     }
@@ -205,16 +180,10 @@ export default function ShopPage() {
     }
     refreshProfile();
 
-    // Brief delay for suspense
     await new Promise((r) => setTimeout(r, 800));
     setPackOpening(false);
     setPackResult(result);
     setPackDuplicate(isDuplicate);
-    try {
-      await syncToSupabase();
-    } catch {
-      showToast("info", "Saved locally. Sync when online.");
-    }
   }
 
   function getRankForItem(itemId: string): string | null {

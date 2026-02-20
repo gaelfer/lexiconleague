@@ -94,7 +94,10 @@ export async function updateProfileProgress(
 ): Promise<{ success: boolean; error?: string; rowExists?: boolean }> {
   const supabase = createClient();
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError && typeof window !== "undefined") {
+    console.error("[ProfileSync] getSession error:", sessionError.message);
+  }
   if (!session) {
     return { success: false, error: "Not authenticated — session expired or missing" };
   }
@@ -104,11 +107,11 @@ export async function updateProfileProgress(
 
   const payload: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
+    trophies: profile.trophies ?? 0,
+    xp: profile.xp ?? 0,
+    ink_drops: profile.ink_drops ?? 0,
+    rank_tier: rankTier ?? profile.rank_tier ?? "Bronze",
   };
-  if (profile.trophies !== undefined) payload.trophies = profile.trophies;
-  if (profile.xp !== undefined) payload.xp = profile.xp;
-  if (profile.ink_drops !== undefined) payload.ink_drops = profile.ink_drops;
-  if ((rankTier ?? profile.rank_tier) !== undefined) payload.rank_tier = rankTier ?? profile.rank_tier;
   if (profile.unlocked_items !== undefined) payload.unlocked_items = profile.unlocked_items;
   if (profile.ranked_win_streak !== undefined) payload.ranked_win_streak = profile.ranked_win_streak;
   if (profile.placement_completed !== undefined) payload.placement_completed = profile.placement_completed;
@@ -125,8 +128,14 @@ export async function updateProfileProgress(
     .select("id")
     .maybeSingle();
 
-  if (error) return { success: false, error: error.message };
-  if (!data) return { success: false, error: "Update affected no rows — RLS may have blocked the write", rowExists: false };
+  if (error) {
+    if (typeof window !== "undefined") console.error("[ProfileSync] update error:", error.message);
+    return { success: false, error: error.message };
+  }
+  if (!data) {
+    if (typeof window !== "undefined") console.warn("[ProfileSync] update affected 0 rows — row may not exist, trying upsert");
+    return { success: false, error: "Update affected no rows — RLS may have blocked the write", rowExists: false };
+  }
   return { success: true, rowExists: true };
 }
 
@@ -173,8 +182,14 @@ export async function upsertProfile(
     .select("id")
     .single();
 
-  if (error) return { success: false, error: error.message };
-  if (!data) return { success: false, error: "Upsert returned no data — RLS may have blocked the write" };
+  if (error) {
+    if (typeof window !== "undefined") console.error("[ProfileSync] upsert error:", error.message);
+    return { success: false, error: error.message };
+  }
+  if (!data) {
+    if (typeof window !== "undefined") console.error("[ProfileSync] upsert returned no data — RLS may have blocked the write");
+    return { success: false, error: "Upsert returned no data — RLS may have blocked the write" };
+  }
   return { success: true };
 }
 

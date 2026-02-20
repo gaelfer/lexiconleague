@@ -5,8 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { getProfile, saveProfile, createGuestProfile } from "@/lib/user/storage";
-import { syncProfileForUser } from "@/lib/user/profile-sync";
-import { syncCurrentProfile } from "@/lib/user/profile-sync";
+import { syncProfileForUser, syncCurrentProfile } from "@/lib/user/profile-sync";
 import { VocabLevel } from "@/types";
 import ThemeToggle from "@/components/ThemeToggle";
 

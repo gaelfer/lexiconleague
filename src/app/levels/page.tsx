@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import {
   getProfile,
@@ -11,7 +10,6 @@ import {
   isLevelRewardClaimed,
   INITIAL_PROFILE,
 } from "@/lib/user/storage";
-import { syncCurrentProfile } from "@/lib/user/profile-sync";
 import { getLevelProgress, getXPForLevel, LEVEL_REWARDS, LevelReward } from "@/lib/user/levels";
 import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
@@ -460,7 +458,6 @@ function BattlePassTrack({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LevelsPage() {
-  const { user } = useAuth();
   const { light } = useTheme();
   const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [claimingLevel, setClaimingLevel] = useState<number | null>(null);
@@ -468,17 +465,8 @@ export default function LevelsPage() {
   const currentLevel = levelProgress.level;
 
   useEffect(() => {
-    async function load() {
-      if (user) {
-        const { syncProfileForUser } = await import("@/lib/user/profile-sync");
-        const synced = await syncProfileForUser(user.id, user.email ?? "");
-        setProfile(synced);
-      } else {
-        setProfile(getProfile() ?? createGuestProfile());
-      }
-    }
-    load();
-  }, [user]);
+    setProfile(getProfile() ?? createGuestProfile());
+  }, []);
 
   useEffect(() => {
     const onProfileUpdated = () => {
@@ -503,13 +491,6 @@ export default function LevelsPage() {
       if (!result.success) return;
       const updated = getProfile();
       if (updated) setProfile(updated);
-      if (user && updated) {
-        try {
-          await syncCurrentProfile(user.id);
-        } catch (e) {
-          console.warn("[Levels] Sync failed after claim:", e);
-        }
-      }
     } finally {
       setClaimingLevel(null);
     }
