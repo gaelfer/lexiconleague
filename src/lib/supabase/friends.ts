@@ -57,7 +57,8 @@ export async function searchUsersByUsername(
   if (error) return [];
 
   const { getLevel } = await import("@/lib/user/levels");
-  return (data ?? []).map((row) => ({
+  type ProfileRow = { id: string; username?: string; avatar_config?: unknown; xp?: number };
+  return (data ?? []).map((row: ProfileRow) => ({
     id: row.id,
     username: row.username ?? "Challenger",
     avatar_config: (row.avatar_config as Record<string, unknown>) ?? {},
@@ -153,10 +154,12 @@ export async function getAcceptedFriendRequestsAsSender(userId: string): Promise
     .order("created_at", { ascending: false });
 
   if (error || !data?.length) return [];
-  const ids = data.map((r) => r.to_user_id);
+  type ReqRow = { id: string; to_user_id: string; created_at: string };
+  type ProfileRow = { id: string; username?: string; avatar_config?: unknown };
+  const ids = data.map((r: ReqRow) => r.to_user_id);
   const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_config").in("id", ids);
-  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
-  return data.map((r) => ({
+  const byId = new Map<string, ProfileRow>((profiles ?? []).map((p: ProfileRow) => [p.id, p]));
+  return data.map((r: ReqRow) => ({
     id: r.id,
     to_user_id: r.to_user_id,
     created_at: r.created_at,
@@ -176,10 +179,12 @@ export async function getIncomingFriendRequests(userId: string): Promise<FriendR
     .order("created_at", { ascending: false });
 
   if (error || !data?.length) return [];
-  const ids = data.map((r) => r.from_user_id);
+  type ReqRow = { id: string; from_user_id: string; to_user_id: string; status: string; created_at: string };
+  type ProfileRow = { id: string; username?: string; avatar_config?: unknown };
+  const ids = data.map((r: ReqRow) => r.from_user_id);
   const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_config").in("id", ids);
-  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
-  return data.map((r) => ({
+  const byId = new Map<string, ProfileRow>((profiles ?? []).map((p: ProfileRow) => [p.id, p]));
+  return data.map((r: ReqRow) => ({
     id: r.id,
     from_user_id: r.from_user_id,
     to_user_id: r.to_user_id,
@@ -201,10 +206,12 @@ export async function getSentFriendRequests(userId: string): Promise<FriendReque
     .order("created_at", { ascending: false });
 
   if (error || !data?.length) return [];
-  const ids = data.map((r) => r.to_user_id);
+  type ReqRow = { id: string; from_user_id: string; to_user_id: string; status: string; created_at: string };
+  type ProfileRow = { id: string; username?: string; avatar_config?: unknown };
+  const ids = data.map((r: ReqRow) => r.to_user_id);
   const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_config").in("id", ids);
-  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
-  return data.map((r) => ({
+  const byId = new Map<string, ProfileRow>((profiles ?? []).map((p: ProfileRow) => [p.id, p]));
+  return data.map((r: ReqRow) => ({
     ...r,
     to_username: byId.get(r.to_user_id)?.username ?? "Challenger",
     to_avatar_config: (byId.get(r.to_user_id)?.avatar_config as Record<string, unknown>) ?? {},
@@ -285,7 +292,8 @@ export async function getFriends(userId: string): Promise<FriendEntry[]> {
     .select("id, username, avatar_config")
     .in("id", Array.from(ids));
 
-  return (profiles ?? []).map((p) => ({
+  type ProfileRow = { id: string; username?: string; avatar_config?: unknown };
+  return (profiles ?? []).map((p: ProfileRow) => ({
     id: p.id,
     username: p.username ?? "Challenger",
     avatar_config: (p.avatar_config as Record<string, unknown>) ?? {},

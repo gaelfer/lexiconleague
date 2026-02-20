@@ -31,7 +31,7 @@ export async function broadcastPartyQueue(
   const supabase = createClient();
   const channel = supabase.channel(getPartyChannelName(leaderId));
   return new Promise<boolean>((resolve) => {
-    channel.subscribe((status) => {
+    channel.subscribe((status: string) => {
       if (status === "SUBSCRIBED") {
         channel.send({
           type: "broadcast",
@@ -56,8 +56,8 @@ export function subscribeToPartyQueue(
 ): () => void {
   const supabase = createClient();
   const channel = supabase.channel(getPartyChannelName(leaderId));
-  channel.on("broadcast", { event: PARTY_QUEUE_EVENT }, ({ payload }) => {
-    onPayload(payload as PartyQueuePayload);
+  channel.on("broadcast", { event: PARTY_QUEUE_EVENT }, ({ payload }: { payload: PartyQueuePayload }) => {
+    onPayload(payload);
   });
   channel.subscribe();
   return () => {

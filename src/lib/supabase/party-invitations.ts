@@ -74,10 +74,12 @@ export async function getIncomingPartyInvitations(userId: string): Promise<Party
     .order("created_at", { ascending: false });
 
   if (error || !data?.length) return [];
-  const ids = data.map((r) => r.inviter_id);
+  type InvRow = { id: string; inviter_id: string; invitee_id: string; status: string; created_at: string };
+  type ProfileRow = { id: string; username?: string; avatar_config?: unknown };
+  const ids = data.map((r: InvRow) => r.inviter_id);
   const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_config").in("id", ids);
-  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
-  return data.map((r) => ({
+  const byId = new Map<string, ProfileRow>((profiles ?? []).map((p: ProfileRow) => [p.id, p]));
+  return data.map((r: InvRow) => ({
     id: r.id,
     inviter_id: r.inviter_id,
     invitee_id: r.invitee_id,
@@ -138,10 +140,12 @@ export async function getAcceptedPartyInvitesAsInviter(userId: string): Promise<
     .order("created_at", { ascending: false });
 
   if (error || !data?.length) return [];
-  const ids = data.map((r) => r.invitee_id);
+  type InvRow = { id: string; inviter_id: string; invitee_id: string; status: string; created_at: string };
+  type ProfileRow = { id: string; username?: string; avatar_config?: unknown };
+  const ids = data.map((r: InvRow) => r.invitee_id);
   const { data: profiles } = await supabase.from("profiles").select("id, username, avatar_config").in("id", ids);
-  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
-  return data.map((r) => ({
+  const byId = new Map<string, ProfileRow>((profiles ?? []).map((p: ProfileRow) => [p.id, p]));
+  return data.map((r: InvRow) => ({
     id: r.id,
     inviter_id: r.inviter_id,
     invitee_id: r.invitee_id,
