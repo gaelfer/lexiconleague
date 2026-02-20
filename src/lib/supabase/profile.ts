@@ -39,6 +39,28 @@ export interface DbProfile {
 }
 
 const VALID_VOCAB_LEVELS: VocabLevel[] = [3, 4, 5, 6, 7, 8, "psat", "sat"];
+const unsupportedProfileColumns = new Set<string>();
+
+function getMissingColumnFromError(message: string): string | null {
+  // PostgREST schema cache error: Could not find the 'ranked_win_streak' column ...
+  const schemaCacheMatch = message.match(/Could not find the '([a-zA-Z0-9_]+)' column/i);
+  if (schemaCacheMatch?.[1]) return schemaCacheMatch[1];
+
+  // Postgres error: column "ranked_win_streak" of relation "profiles" does not exist
+  const postgresMatch = message.match(/column ["']?([a-zA-Z0-9_]+)["']?.*does not exist/i);
+  if (postgresMatch?.[1]) return postgresMatch[1];
+
+  return null;
+}
+
+function omitUnsupportedColumns(payload: Record<string, unknown>): Record<string, unknown> {
+  if (unsupportedProfileColumns.size === 0) return payload;
+  const next: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(payload)) {
+    if (!unsupportedProfileColumns.has(k)) next[k] = v;
+  }
+  return next;
+}
 
 export function dbProfileToUserProfile(row: DbProfile): UserProfile {
   const raw = row.vocab_grade;
@@ -105,38 +127,54 @@ export async function updateProfileProgress(
   const trophies = profile.trophies;
   const rankTier = trophies != null ? getTierFromTrophies(trophies) : profile.rank_tier;
 
-  const payload: Record<string, unknown> = {
+  const basePayload: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
     trophies: profile.trophies ?? 0,
     xp: profile.xp ?? 0,
     ink_drops: profile.ink_drops ?? 0,
     rank_tier: rankTier ?? profile.rank_tier ?? "Bronze",
   };
-  if (profile.unlocked_items !== undefined) payload.unlocked_items = profile.unlocked_items;
-  if (profile.ranked_win_streak !== undefined) payload.ranked_win_streak = profile.ranked_win_streak;
-  if (profile.placement_completed !== undefined) payload.placement_completed = profile.placement_completed;
-  if (profile.placement_vocab_grade !== undefined) payload.placement_vocab_grade = profile.placement_vocab_grade;
-  if (profile.mmr !== undefined) payload.mmr = profile.mmr;
-  if (profile.daily_reward_claimed_at !== undefined) payload.daily_reward_claimed_at = profile.daily_reward_claimed_at;
-  if (profile.daily_streak !== undefined) payload.daily_streak = profile.daily_streak;
-  if (profile.claimed_level_rewards !== undefined) payload.claimed_level_rewards = profile.claimed_level_rewards;
+  if (profile.unlocked_items !== undefined) basePayload.unlocked_items = profile.unlocked_items;
+  if (profile.ranked_win_streak !== undefined) basePayload.ranked_win_streak = profile.ranked_win_streak;
+  if (profile.placement_completed !== undefined) basePayload.placement_completed = profile.placement_completed;
+  if (profile.placement_vocab_grade !== undefined) basePayload.placement_vocab_grade = profile.placement_vocab_grade;
+  if (profile.mmr !== undefined) basePayload.mmr = profile.mmr;
+  if (profile.daily_reward_claimed_at !== undefined) basePayload.daily_reward_claimed_at = profile.daily_reward_claimed_at;
+  if (profile.daily_streak !== undefined) basePayload.daily_streak = profile.daily_streak;
+  if (profile.claimed_level_rewards !== undefined) basePayload.claimed_level_rewards = profile.claimed_level_rewards;
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .update(payload)
-    .eq("id", userId)
-    .select("id")
-    .maybeSingle();
+  let payload = omitUnsupportedColumns(basePayload);
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(payload)
+      .eq("id", userId)
+      .select("id")
+      .maybeSingle();
 
-  if (error) {
+    if (!error) {
+      if (!data) {
+        if (typeof window !== "undefined") console.warn("[ProfileSync] update affected 0 rows — row may not exist, trying upsert");
+        return { success: false, error: "Update affected no rows — RLS may have blocked the write", rowExists: false };
+      }
+      return { success: true, rowExists: true };
+    }
+
+    const missingColumn = getMissingColumnFromError(error.message);
+    if (missingColumn && Object.prototype.hasOwnProperty.call(payload, missingColumn)) {
+      unsupportedProfileColumns.add(missingColumn);
+      if (typeof window !== "undefined") {
+        console.warn(`[ProfileSync] skipping unsupported profiles.${missingColumn}; apply missing migration to persist it.`);
+      }
+      payload = omitUnsupportedColumns(basePayload);
+      continue;
+    }
+
     if (typeof window !== "undefined") console.error("[ProfileSync] update error:", error.message);
     return { success: false, error: error.message };
   }
-  if (!data) {
-    if (typeof window !== "undefined") console.warn("[ProfileSync] update affected 0 rows — row may not exist, trying upsert");
-    return { success: false, error: "Update affected no rows — RLS may have blocked the write", rowExists: false };
-  }
-  return { success: true, rowExists: true };
+
+  return { success: false, error: "Could not update profile after retrying unsupported columns" };
 }
 
 export async function upsertProfile(
@@ -153,44 +191,60 @@ export async function upsertProfile(
   const trophies = profile.trophies;
   const rankTier = trophies != null ? getTierFromTrophies(trophies) : profile.rank_tier;
 
-  const payload: Record<string, unknown> = {
+  const basePayload: Record<string, unknown> = {
     id: userId,
     updated_at: new Date().toISOString(),
   };
-  if (profile.username !== undefined) payload.username = profile.username;
-  if (profile.email !== undefined) payload.email = profile.email;
-  if ((rankTier ?? profile.rank_tier) !== undefined) payload.rank_tier = rankTier ?? profile.rank_tier;
-  if (profile.trophies !== undefined) payload.trophies = profile.trophies;
-  if (profile.xp !== undefined) payload.xp = profile.xp;
-  if (profile.ink_drops !== undefined) payload.ink_drops = profile.ink_drops;
-  if (profile.unlocked_items !== undefined) payload.unlocked_items = profile.unlocked_items;
-  if (profile.daily_reward_claimed_at !== undefined) payload.daily_reward_claimed_at = profile.daily_reward_claimed_at;
-  if (profile.daily_streak !== undefined) payload.daily_streak = profile.daily_streak;
-  if (profile.avatar_config !== undefined) payload.avatar_config = profile.avatar_config;
-  if (profile.vocab_grade !== undefined) payload.vocab_grade = profile.vocab_grade != null ? String(profile.vocab_grade) : null;
-  if (profile.mmr !== undefined) payload.mmr = profile.mmr;
-  if (profile.placement_vocab_grade !== undefined) payload.placement_vocab_grade = profile.placement_vocab_grade;
-  if (profile.placement_completed !== undefined) payload.placement_completed = profile.placement_completed;
-  if (profile.tutorial_completed !== undefined) payload.tutorial_completed = profile.tutorial_completed;
-  if (profile.onboarding_completed !== undefined) payload.onboarding_completed = profile.onboarding_completed;
-  if (profile.claimed_level_rewards !== undefined) payload.claimed_level_rewards = profile.claimed_level_rewards;
-  if (profile.ranked_win_streak !== undefined) payload.ranked_win_streak = profile.ranked_win_streak;
+  if (profile.username !== undefined) basePayload.username = profile.username;
+  if (profile.email !== undefined) basePayload.email = profile.email;
+  if ((rankTier ?? profile.rank_tier) !== undefined) basePayload.rank_tier = rankTier ?? profile.rank_tier;
+  if (profile.trophies !== undefined) basePayload.trophies = profile.trophies;
+  if (profile.xp !== undefined) basePayload.xp = profile.xp;
+  if (profile.ink_drops !== undefined) basePayload.ink_drops = profile.ink_drops;
+  if (profile.unlocked_items !== undefined) basePayload.unlocked_items = profile.unlocked_items;
+  if (profile.daily_reward_claimed_at !== undefined) basePayload.daily_reward_claimed_at = profile.daily_reward_claimed_at;
+  if (profile.daily_streak !== undefined) basePayload.daily_streak = profile.daily_streak;
+  if (profile.avatar_config !== undefined) basePayload.avatar_config = profile.avatar_config;
+  if (profile.vocab_grade !== undefined) basePayload.vocab_grade = profile.vocab_grade != null ? String(profile.vocab_grade) : null;
+  if (profile.mmr !== undefined) basePayload.mmr = profile.mmr;
+  if (profile.placement_vocab_grade !== undefined) basePayload.placement_vocab_grade = profile.placement_vocab_grade;
+  if (profile.placement_completed !== undefined) basePayload.placement_completed = profile.placement_completed;
+  if (profile.tutorial_completed !== undefined) basePayload.tutorial_completed = profile.tutorial_completed;
+  if (profile.onboarding_completed !== undefined) basePayload.onboarding_completed = profile.onboarding_completed;
+  if (profile.claimed_level_rewards !== undefined) basePayload.claimed_level_rewards = profile.claimed_level_rewards;
+  if (profile.ranked_win_streak !== undefined) basePayload.ranked_win_streak = profile.ranked_win_streak;
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .upsert(payload, { onConflict: "id" })
-    .select("id")
-    .single();
+  let payload = omitUnsupportedColumns(basePayload);
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert(payload, { onConflict: "id" })
+      .select("id")
+      .single();
 
-  if (error) {
+    if (!error) {
+      if (!data) {
+        if (typeof window !== "undefined") console.error("[ProfileSync] upsert returned no data — RLS may have blocked the write");
+        return { success: false, error: "Upsert returned no data — RLS may have blocked the write" };
+      }
+      return { success: true };
+    }
+
+    const missingColumn = getMissingColumnFromError(error.message);
+    if (missingColumn && Object.prototype.hasOwnProperty.call(payload, missingColumn)) {
+      unsupportedProfileColumns.add(missingColumn);
+      if (typeof window !== "undefined") {
+        console.warn(`[ProfileSync] skipping unsupported profiles.${missingColumn}; apply missing migration to persist it.`);
+      }
+      payload = omitUnsupportedColumns(basePayload);
+      continue;
+    }
+
     if (typeof window !== "undefined") console.error("[ProfileSync] upsert error:", error.message);
     return { success: false, error: error.message };
   }
-  if (!data) {
-    if (typeof window !== "undefined") console.error("[ProfileSync] upsert returned no data — RLS may have blocked the write");
-    return { success: false, error: "Upsert returned no data — RLS may have blocked the write" };
-  }
-  return { success: true };
+
+  return { success: false, error: "Could not upsert profile after retrying unsupported columns" };
 }
 
 export async function claimLevelRewardRemote(level: number): Promise<{ success: boolean; error?: string }> {
