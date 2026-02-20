@@ -161,6 +161,8 @@ export interface InkAvatarConfig {
   color: string;
   eyes: string;
   accessory: string;
+  /** Optional second accessory slot. */
+  accessory2?: string;
   aura: string;
   /** Separate color for the aura effect. Falls back to body color if unset. */
   aura_color?: string;
@@ -171,6 +173,7 @@ export const DEFAULT_AVATAR_CONFIG: InkAvatarConfig = {
   color: "#1E293B",
   eyes: "eyes_01",
   accessory: "none",
+  accessory2: "none",
   aura: "none",
 };
 

@@ -48,6 +48,7 @@ export default function LockerPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeSlot, setActiveSlot] = useState<1 | 2>(1);
 
   useEffect(() => {
     if (authLoading) return;
@@ -319,21 +320,102 @@ export default function LockerPage() {
               </div>
             )}
 
-            {tab === "accessory" && (
-              <div className="space-y-3">
-                <p className={`text-xs font-bold uppercase tracking-wider ${textMuted}`}>Accessory</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {ACCESSORIES.map((a) =>
-                    renderLockerItem(
-                      a,
-                      config.accessory === a.id,
-                      () => update({ accessory: a.id }),
-                      <InkAvatar config={{ ...config, accessory: a.id }} size="sm" />
-                    )
-                  )}
+            {tab === "accessory" && (() => {
+              const slot1 = config.accessory;
+              const slot2 = config.accessory2 ?? "none";
+
+              function handleAccessoryClick(id: string) {
+                if (activeSlot === 1) {
+                  if (id === slot2 && id !== "none") {
+                    update({ accessory: id, accessory2: "none" });
+                  } else {
+                    update({ accessory: id });
+                  }
+                } else {
+                  if (id === slot1 && id !== "none") {
+                    update({ accessory: "none", accessory2: id });
+                  } else {
+                    update({ accessory2: id });
+                  }
+                }
+              }
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className={`text-xs font-bold uppercase tracking-wider ${textMuted}`}>Gear</p>
+                    <div className="flex gap-1.5">
+                      {([1, 2] as const).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setActiveSlot(s)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            activeSlot === s
+                              ? "bg-[#3B82F6] text-white"
+                              : light ? "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]" : "bg-white/10 text-white/60 hover:bg-white/15"
+                          }`}
+                        >
+                          Slot {s}
+                          {s === 1 && slot1 !== "none" && <span className="ml-1 opacity-70">•</span>}
+                          {s === 2 && slot2 !== "none" && <span className="ml-1 opacity-70">•</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {ACCESSORIES.map((a) => {
+                      const inSlot1 = slot1 === a.id;
+                      const inSlot2 = slot2 === a.id;
+                      const isSelected = activeSlot === 1 ? inSlot1 : inSlot2;
+                      const inOtherSlot = activeSlot === 1 ? inSlot2 : inSlot1;
+                      const unlocked = checkUnlocked(a.id);
+                      return (
+                        <button
+                          key={a.id}
+                          onClick={unlocked ? () => handleAccessoryClick(a.id) : undefined}
+                          className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                            !unlocked
+                              ? light ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-50 cursor-not-allowed" : "border-white/10 bg-[#0F172A]/50 opacity-50 cursor-not-allowed"
+                              : isSelected
+                              ? light ? "border-[#3B82F6] bg-[#DBEAFE] shadow-md" : "border-[#3B82F6] bg-[#3B82F6]/20 shadow-md"
+                              : light ? "border-[#E2E8F0] bg-white hover:border-[#3B82F6]/50" : "border-white/10 bg-[#0F172A]/50 hover:border-[#3B82F6]/50"
+                          }`}
+                        >
+                          {!unlocked && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10">
+                              <Link
+                                href="/shop"
+                                onClick={(e) => e.stopPropagation()}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${light ? "bg-[#0F172A]/90 text-white hover:bg-[#0F172A]" : "bg-[#0F172A]/80 text-white hover:bg-[#0F172A]"}`}
+                              >
+                                <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                </svg>
+                                Shop
+                              </Link>
+                            </div>
+                          )}
+                          <div className={`w-14 h-14 rounded-full border flex items-center justify-center shadow-inner ${previewSurface}`}>
+                            <InkAvatar config={{ ...config, accessory: a.id, accessory2: "none" }} size="sm" />
+                          </div>
+                          <span className={`text-xs font-bold ${text}`}>{a.label}</span>
+                          {unlocked && a.id !== "none" && (inSlot1 || inSlot2) && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                              light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#3B82F6]"
+                            }`}>
+                              {inSlot1 && inSlot2 ? "Slot 1 & 2" : inSlot1 ? "Slot 1" : "Slot 2"}
+                            </span>
+                          )}
+                          {inOtherSlot && a.id !== "none" && (
+                            <span className={`text-[9px] ${textMuted}`}>(other slot)</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {tab === "aura" && (() => {
               const ownedVariants = getOwnedAuraVariants(profile?.unlocked_items ?? []);

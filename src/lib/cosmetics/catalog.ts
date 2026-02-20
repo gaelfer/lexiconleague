@@ -73,7 +73,7 @@ const MEDIEVAL_ACCESSORIES: CosmeticItem[] = [
   { id: "helmet_01", label: "Knight Helm", price: 280, category: "accessory", collection: "medieval" },
   { id: "sword_01", label: "Sword", price: 320, category: "accessory", collection: "medieval" },
   { id: "shield_01", label: "Shield", price: 300, category: "accessory", collection: "medieval" },
-  { id: "cape_01", label: "Royal Cape", price: 350, category: "accessory", collection: "medieval" },
+  { id: "axe_01", label: "Battle Axe", price: 350, category: "accessory", collection: "medieval" },
 ];
 
 // Fancy Collection

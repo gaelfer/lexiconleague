@@ -22,14 +22,14 @@ const BOT_NAMES = [
 ];
 
 const BOT_AVATARS: InkAvatarConfig[] = [
-  { base: "droplet_01", color: "#EF4444", eyes: "eyes_02", accessory: "crown_01", aura: "none" },
+  { base: "droplet_01", color: "#EF4444", eyes: "eyes_02", accessory: "crown_01", accessory2: "sword_01", aura: "none" },
   { base: "droplet_02", color: "#8B5CF6", eyes: "eyes_04", accessory: "glasses_01", aura: "aura_glow_01" },
   { base: "droplet_03", color: "#22C55E", eyes: "eyes_03", accessory: "wizard_01", aura: "none" },
-  { base: "droplet_04", color: "#3B82F6", eyes: "eyes_05", accessory: "monocle_01", aura: "aura_glow_02" },
+  { base: "droplet_04", color: "#3B82F6", eyes: "eyes_05", accessory: "monocle_01", accessory2: "cane_01", aura: "aura_glow_02" },
   { base: "droplet_05", color: "#EC4899", eyes: "eyes_06", accessory: "bow_01", aura: "none" },
   { base: "droplet_01", color: "#F97316", eyes: "eyes_07", accessory: "tophat_01", aura: "aura_glow_03" },
   { base: "droplet_02", color: "#06B6D4", eyes: "eyes_08", accessory: "scarf_01", aura: "none" },
-  { base: "droplet_03", color: "#EAB308", eyes: "eyes_01", accessory: "halo_01", aura: "aura_glow_01" },
+  { base: "droplet_03", color: "#EAB308", eyes: "eyes_01", accessory: "helmet_01", accessory2: "axe_01", aura: "aura_glow_01" },
 ];
 
 export function generateBotOpponent(playerTier: RankTier): OpponentInfo {

@@ -105,8 +105,9 @@ export default function InkAvatar({
         />
       </div>
 
-      {/* Accessory overlay — shifted and scaled per body shape */}
-      {c.accessory !== "none" && (() => {
+      {/* Accessory overlays — up to 2 slots, shifted and scaled per body shape */}
+      {[c.accessory, c.accessory2 ?? "none"].map((accId, idx) => {
+        if (accId === "none") return null;
         const parts: string[] = [];
         if (offsets.accX) parts.push(`translateX(${offsets.accX}%)`);
         if (offsets.accY) parts.push(`translateY(${offsets.accY}%)`);
@@ -114,6 +115,7 @@ export default function InkAvatar({
         const transform = parts.length > 0 ? parts.join(" ") : undefined;
         return (
           <div
+            key={`acc-${idx}`}
             className="absolute"
             style={{
               top: "10%",
@@ -124,14 +126,14 @@ export default function InkAvatar({
             }}
           >
             <img
-              src={`/ink/accessories/${c.accessory}.svg`}
+              src={`/ink/accessories/${accId}.svg`}
               alt=""
               className="w-full h-full"
               draggable={false}
             />
           </div>
         );
-      })()}
+      })}
     </div>
   );
 }
