@@ -11,7 +11,7 @@ import {
   isLevelRewardClaimed,
 } from "@/lib/user/storage";
 import { upsertProfile } from "@/lib/supabase/profile";
-import { getLevelProgress, LEVEL_REWARDS, LevelReward } from "@/lib/user/levels";
+import { getLevelProgress, getXPForLevel, LEVEL_REWARDS, LevelReward } from "@/lib/user/levels";
 import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -23,7 +23,7 @@ const MINT = "#34D399";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
-function CrownIcon({ size = 20, color = "currentColor" }: { size?: number; color?: string }) {
+function CrownIcon({ size = 24, color = "currentColor" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
@@ -31,7 +31,7 @@ function CrownIcon({ size = 20, color = "currentColor" }: { size?: number; color
   );
 }
 
-function StarIcon({ size = 20, color = "currentColor" }: { size?: number; color?: string }) {
+function StarIcon({ size = 24, color = "currentColor" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none">
       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -39,9 +39,9 @@ function StarIcon({ size = 20, color = "currentColor" }: { size?: number; color?
   );
 }
 
-// ── Reward icon (used in track nodes + detail panel) ──────────────────────────
+// ── Reward icon ───────────────────────────────────────────────────────────────
 
-function RewardIcon({ reward, size = 24 }: { reward: LevelReward; size?: number }) {
+function RewardIcon({ reward, size = 40 }: { reward: LevelReward; size?: number }) {
   if (reward.type === "ink_drops") {
     return (
       <span style={{ display: "inline-flex", width: size, height: size }}>
@@ -56,22 +56,18 @@ function RewardIcon({ reward, size = 24 }: { reward: LevelReward; size?: number 
       const hex = reward.itemId.replace("color_", "");
       return (
         <div
-          className="rounded-full border-2 border-white/20"
-          style={{ width: size, height: size, backgroundColor: hex, boxShadow: `0 0 8px ${hex}80` }}
+          className="rounded-full border-2 border-white/30"
+          style={{ width: size, height: size, backgroundColor: hex, boxShadow: `0 0 12px ${hex}90, 0 0 24px ${hex}40` }}
         />
       );
     }
     if (reward.itemId.includes(":")) {
       const [auraId, color] = reward.itemId.split(":");
-      return (
-        <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, aura: auraId, aura_color: color }} size={size} />
-      );
+      return <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, aura: auraId, aura_color: color }} size={size} />;
     }
   }
   return null;
 }
-
-// ── Reward accent color ───────────────────────────────────────────────────────
 
 function rewardAccent(reward: LevelReward): string {
   if (reward.type === "title") return "#D4AF37";
@@ -83,269 +79,378 @@ function rewardAccent(reward: LevelReward): string {
   return MINT;
 }
 
-// ── Interactive reward track ──────────────────────────────────────────────────
+// ── Battle-pass track layout constants ───────────────────────────────────────
+// Rewards alternate above (even index) and below (odd index) the track bar.
 
-const NODE_STEP = 96;
-const TRACK_PAD = 56;
-const TRACK_H = 160;
-const NODE_CY = 80;
-const NODE_R = 20;
+const STEP = 108;      // px between reward centers
+const PAD = 64;        // left/right padding
+const CARD_W = 84;     // reward card width
+const CARD_H = 136;    // reward card height
+const NODE_R = 13;     // small node dot on the track bar
+const TRACK_BAR_H = 6; // height of the progress bar line
+const STEM_H = 12;     // gap between track bar edge and card
+// vertical layout (from top of absolute container)
+const ABOVE_TOP = 0;
+const ABOVE_H = CARD_H + STEM_H;          // 148
+const TRACK_CY = ABOVE_H + NODE_R;        // 161  ← center of track bar
+const BELOW_TOP = TRACK_CY + NODE_R + STEM_H; // 186
+const TOTAL_H = BELOW_TOP + CARD_H + 4;  // 326
 
-function RewardTrack({
+// ── Reward card component (positioned inside the absolute track) ──────────────
+
+function TrackCard({
+  reward,
+  cx,
+  above,
+  claimed,
+  claimable,
+  locked,
+  claimingLevel,
+  light,
+  onClaim,
+}: {
+  reward: LevelReward;
+  cx: number;         // center x
+  above: boolean;     // above vs below track
+  claimed: boolean;
+  claimable: boolean;
+  locked: boolean;
+  claimingLevel: number | null;
+  light: boolean;
+  onClaim: (level: number) => Promise<void>;
+}) {
+  const accent = rewardAccent(reward);
+  const isExclusive = reward.type === "cosmetic";
+  const top = above ? ABOVE_TOP : BELOW_TOP;
+
+  let cardBg = light ? "#ffffff" : "#1E293B";
+  let cardBorder = light ? "#E2E8F0" : "rgba(255,255,255,0.09)";
+  let cardShadow = "none";
+  let opacity = locked ? 0.45 : 1;
+
+  if (claimed) {
+    cardBg = light ? "#ECFDF5" : "rgba(52,211,153,0.1)";
+    cardBorder = `${MINT}45`;
+  } else if (claimable) {
+    cardBorder = BLUE;
+    cardShadow = `0 0 18px ${BLUE}45, 0 4px 12px rgba(0,0,0,0.15)`;
+    opacity = 1;
+  }
+
+  // Short name (max 12 chars with ellipsis if needed)
+  const shortLabel = reward.label.length > 14 ? reward.label.slice(0, 13) + "…" : reward.label;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: cx - CARD_W / 2,
+        top,
+        width: CARD_W,
+        height: CARD_H,
+        borderRadius: 16,
+        border: `2px solid ${cardBorder}`,
+        backgroundColor: cardBg,
+        boxShadow: cardShadow,
+        opacity,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        overflow: "hidden",
+        zIndex: claimable ? 15 : claimed ? 12 : 10,
+        transition: "opacity 0.2s",
+      }}
+    >
+      {/* Level tag */}
+      <div style={{
+        marginTop: 8,
+        fontSize: 9,
+        fontWeight: 800,
+        color: claimed ? MINT : claimable ? BLUE : (light ? "#94A3B8" : "rgba(255,255,255,0.35)"),
+        letterSpacing: "0.04em",
+      }}>
+        LV.{reward.level}
+      </div>
+
+      {/* Exclusive dot */}
+      {isExclusive && (
+        <div style={{
+          position: "absolute", top: 6, right: 6,
+          width: 6, height: 6, borderRadius: "50%",
+          backgroundColor: accent, boxShadow: `0 0 5px ${accent}`,
+        }} />
+      )}
+
+      {/* Icon area */}
+      <div style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "4px 8px",
+      }}>
+        {locked ? (
+          <svg width={28} height={28} viewBox="0 0 24 24" fill="none"
+            stroke={light ? "#CBD5E1" : "rgba(255,255,255,0.2)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        ) : (
+          <RewardIcon reward={reward} size={46} />
+        )}
+      </div>
+
+      {/* Name */}
+      <div style={{
+        fontSize: 10,
+        fontWeight: 700,
+        color: claimed ? "#22C55E" : claimable ? (light ? "#0F172A" : "#ffffff") : (light ? "#64748B" : "rgba(255,255,255,0.5)"),
+        textAlign: "center",
+        lineHeight: 1.25,
+        padding: "0 6px",
+        maxWidth: CARD_W,
+        wordBreak: "break-word",
+      }}>
+        {shortLabel}
+      </div>
+
+      {/* Action row */}
+      <div style={{ paddingBottom: 8, paddingTop: 5, width: "100%", display: "flex", justifyContent: "center" }}>
+        {claimed ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 3,
+            backgroundColor: `${MINT}20`, borderRadius: 8, padding: "3px 8px",
+          }}>
+            <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={MINT} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span style={{ fontSize: 9, fontWeight: 800, color: "#22C55E" }}>Claimed</span>
+          </div>
+        ) : claimable ? (
+          <button
+            disabled={claimingLevel !== null}
+            onClick={() => onClaim(reward.level)}
+            style={{
+              backgroundColor: BLUE,
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "4px 14px",
+              fontSize: 10,
+              fontWeight: 800,
+              cursor: "pointer",
+              boxShadow: `0 2px 8px ${BLUE}60`,
+              transition: "opacity 0.15s, transform 0.1s",
+              opacity: claimingLevel !== null ? 0.5 : 1,
+            }}
+            className="active:scale-95 hover:opacity-90"
+          >
+            {claimingLevel === reward.level ? "…" : "Claim"}
+          </button>
+        ) : locked ? (
+          <span style={{
+            fontSize: 9, fontWeight: 700,
+            color: light ? "#CBD5E1" : "rgba(255,255,255,0.2)",
+          }}>
+            {reward.level} needed
+          </span>
+        ) : null}
+      </div>
+
+      {/* Claimable pulse border */}
+      {claimable && (
+        <div
+          className="absolute inset-0 rounded-2xl animate-ping"
+          style={{ border: `2px solid ${BLUE}50`, pointerEvents: "none" }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Main battle-pass track ────────────────────────────────────────────────────
+
+function BattlePassTrack({
   currentLevel,
   profile,
   light,
-  selectedLevel,
-  onSelect,
+  claimingLevel,
+  onClaim,
 }: {
   currentLevel: number;
   profile: UserProfile;
   light: boolean;
-  selectedLevel: number | null;
-  onSelect: (level: number) => void;
+  claimingLevel: number | null;
+  onClaim: (level: number) => Promise<void>;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Player position on track
   const leftIdx = LEVEL_REWARDS.reduce((best, r, i) => (r.level <= currentLevel ? i : best), 0);
   const rightIdx = Math.min(leftIdx + 1, LEVEL_REWARDS.length - 1);
   const leftNode = LEVEL_REWARDS[leftIdx];
   const rightNode = LEVEL_REWARDS[rightIdx];
-  const t =
-    leftNode.level === rightNode.level
-      ? 1
-      : Math.min(1, (currentLevel - leftNode.level) / (rightNode.level - leftNode.level));
-  const playerX = TRACK_PAD + leftIdx * NODE_STEP + t * NODE_STEP;
+  const t = leftNode.level === rightNode.level
+    ? 1
+    : Math.min(1, (currentLevel - leftNode.level) / (rightNode.level - leftNode.level));
+  const playerX = PAD + leftIdx * STEP + t * STEP;
+
+  const totalWidth = PAD * 2 + (LEVEL_REWARDS.length - 1) * STEP;
 
   useEffect(() => {
     if (!scrollRef.current) return;
-    const container = scrollRef.current;
-    // Scroll to selected node, or player position
-    const targetIdx = selectedLevel
-      ? LEVEL_REWARDS.findIndex((r) => r.level === selectedLevel)
-      : -1;
-    const targetX = targetIdx >= 0
-      ? TRACK_PAD + targetIdx * NODE_STEP
+    const c = scrollRef.current;
+    // Find first claimable or current position
+    const firstClaimableIdx = LEVEL_REWARDS.findIndex(
+      (r) => currentLevel >= r.level && !isLevelRewardClaimed(r.level, profile)
+    );
+    const scrollToX = firstClaimableIdx >= 0
+      ? PAD + firstClaimableIdx * STEP
       : playerX;
-    container.scrollLeft = Math.max(0, targetX - container.clientWidth / 2);
+    c.scrollLeft = Math.max(0, scrollToX - c.clientWidth / 2);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const totalWidth = TRACK_PAD * 2 + (LEVEL_REWARDS.length - 1) * NODE_STEP;
   const trackBg = light ? "#E2E8F0" : "rgba(255,255,255,0.08)";
 
   return (
     <div
       ref={scrollRef}
-      className="overflow-x-auto"
-      style={{ scrollbarWidth: "thin", scrollbarColor: light ? "#CBD5E1 transparent" : "rgba(255,255,255,0.15) transparent" }}
+      style={{
+        overflowX: "auto",
+        overflowY: "visible",
+        scrollbarWidth: "thin",
+        scrollbarColor: light ? "#CBD5E1 transparent" : "rgba(255,255,255,0.12) transparent",
+      }}
     >
-      <div style={{ width: totalWidth, height: TRACK_H, position: "relative" }}>
+      <div style={{ width: totalWidth, height: TOTAL_H, position: "relative", paddingTop: 2 }}>
 
-        {/* Base track */}
+        {/* ── Base track bar ── */}
         <div style={{
-          position: "absolute", top: NODE_CY - 2, left: TRACK_PAD,
-          right: TRACK_PAD, height: 4, borderRadius: 4, backgroundColor: trackBg,
+          position: "absolute",
+          top: TRACK_CY - TRACK_BAR_H / 2,
+          left: PAD,
+          right: PAD,
+          height: TRACK_BAR_H,
+          borderRadius: TRACK_BAR_H,
+          backgroundColor: trackBg,
         }} />
 
-        {/* Filled track */}
+        {/* ── Filled progress bar ── */}
         <div style={{
-          position: "absolute", top: NODE_CY - 2, left: TRACK_PAD,
-          width: Math.max(0, playerX - TRACK_PAD), height: 4, borderRadius: 4,
+          position: "absolute",
+          top: TRACK_CY - TRACK_BAR_H / 2,
+          left: PAD,
+          width: Math.max(0, playerX - PAD),
+          height: TRACK_BAR_H,
+          borderRadius: TRACK_BAR_H,
           background: `linear-gradient(90deg, ${MINT}, ${BLUE})`,
-          boxShadow: `0 0 8px ${BLUE}50`,
+          boxShadow: `0 0 10px ${BLUE}60`,
         }} />
 
-        {/* Player marker */}
+        {/* ── Player avatar ── */}
         <div style={{
-          position: "absolute", left: playerX, top: NODE_CY - NODE_R - 42,
-          transform: "translateX(-50%)", display: "flex", flexDirection: "column",
-          alignItems: "center", gap: 2, zIndex: 20, pointerEvents: "none",
+          position: "absolute",
+          left: playerX,
+          top: TRACK_CY - NODE_R - 44,
+          transform: "translateX(-50%)",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+          zIndex: 30, pointerEvents: "none",
         }}>
           <div style={{
             background: `linear-gradient(135deg, ${BLUE}, ${MINT})`,
-            borderRadius: 10, padding: 2,
-            boxShadow: `0 0 10px ${BLUE}70`,
+            borderRadius: 12, padding: 2.5,
+            boxShadow: `0 0 14px ${BLUE}80`,
           }}>
-            <InkAvatar config={profile.avatar_config} size={28} />
+            <InkAvatar config={profile.avatar_config} size={34} />
           </div>
-          <div style={{ width: 2, height: 10, backgroundColor: BLUE, borderRadius: 2, opacity: 0.7 }} />
+          <div style={{
+            fontSize: 10, fontWeight: 800, color: "#fff",
+            backgroundColor: BLUE, borderRadius: 10,
+            padding: "1px 7px", boxShadow: `0 2px 6px ${BLUE}70`,
+          }}>
+            Lv.{currentLevel}
+          </div>
+          <div style={{ width: 2, height: 8, backgroundColor: BLUE, borderRadius: 2, opacity: 0.7 }} />
         </div>
 
-        {/* Nodes */}
+        {/* ── Reward cards + nodes ── */}
         {LEVEL_REWARDS.map((reward, idx) => {
-          const cx = TRACK_PAD + idx * NODE_STEP;
+          const cx = PAD + idx * STEP;
           const claimed = isLevelRewardClaimed(reward.level, profile);
           const reachable = currentLevel >= reward.level;
           const claimable = reachable && !claimed;
-          const isSelected = selectedLevel === reward.level;
+          const locked = !reachable;
+          const above = idx % 2 === 0;
           const accent = rewardAccent(reward);
 
-          let bg = light ? "#E8EDF2" : "rgba(255,255,255,0.07)";
-          let border = light ? "#CBD5E1" : "rgba(255,255,255,0.1)";
-          let shadow = "none";
+          // Stem connecting card to node
+          const stemTop = above ? ABOVE_H : TRACK_CY + NODE_R;
+          const stemColor = claimed ? MINT : claimable ? BLUE : (light ? "#E2E8F0" : "rgba(255,255,255,0.1)");
 
-          if (claimed) { bg = `${MINT}20`; border = `${MINT}55`; }
-          else if (claimable) { bg = `${BLUE}18`; border = BLUE; shadow = `0 0 12px ${BLUE}55`; }
-
-          if (isSelected) {
-            border = claimable ? BLUE : claimed ? MINT : accent;
-            shadow = `0 0 0 3px ${claimable ? BLUE : claimed ? MINT : accent}35`;
-          }
+          // Node dot color
+          let nodeBg = light ? "#E2E8F0" : "rgba(255,255,255,0.1)";
+          let nodeBorder = light ? "#CBD5E1" : "rgba(255,255,255,0.15)";
+          if (claimed) { nodeBg = `${MINT}30`; nodeBorder = `${MINT}70`; }
+          else if (claimable) { nodeBg = `${BLUE}25`; nodeBorder = BLUE; }
 
           return (
-            <div
-              key={reward.level}
-              style={{
-                position: "absolute", left: cx, top: NODE_CY - NODE_R,
-                width: NODE_R * 2, transform: "translateX(-50%)",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 5, zIndex: 10,
-              }}
-            >
-              <button
-                onClick={() => onSelect(reward.level)}
-                title={reward.label}
-                style={{
-                  width: NODE_R * 2, height: NODE_R * 2, borderRadius: "50%",
-                  border: `2px solid ${border}`, backgroundColor: bg, boxShadow: shadow,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", transition: "transform 0.12s, box-shadow 0.12s",
-                  position: "relative",
-                }}
-                className="hover:scale-110 active:scale-95"
-              >
-                {claimed ? (
-                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={MINT} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <div key={reward.level}>
+              {/* Stem */}
+              <div style={{
+                position: "absolute",
+                left: cx - 1,
+                top: stemTop,
+                width: 2,
+                height: STEM_H,
+                backgroundColor: stemColor,
+                borderRadius: 2,
+                zIndex: 8,
+              }} />
+
+              {/* Node circle */}
+              <div style={{
+                position: "absolute",
+                left: cx - NODE_R,
+                top: TRACK_CY - NODE_R,
+                width: NODE_R * 2,
+                height: NODE_R * 2,
+                borderRadius: "50%",
+                backgroundColor: nodeBg,
+                border: `2px solid ${nodeBorder}`,
+                zIndex: 20,
+                boxShadow: claimable ? `0 0 10px ${BLUE}60` : "none",
+              }}>
+                {claimed && (
+                  <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={MINT}
+                    strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }}>
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                ) : !reachable ? (
-                  <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke={light ? "#94A3B8" : "rgba(255,255,255,0.25)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                ) : (
-                  <div style={{ opacity: claimable ? 1 : 0.7 }}>
-                    <RewardIcon reward={reward} size={14} />
-                  </div>
                 )}
                 {claimable && (
                   <span
                     className="absolute inset-0 rounded-full animate-ping"
-                    style={{ backgroundColor: `${BLUE}25`, border: `1.5px solid ${BLUE}50` }}
+                    style={{ backgroundColor: `${BLUE}30`, border: `1.5px solid ${BLUE}60` }}
                   />
                 )}
-              </button>
+              </div>
 
-              {/* Level label */}
-              <span style={{
-                fontSize: 8, fontWeight: 800,
-                color: claimed ? MINT : claimable ? BLUE : (light ? "#94A3B8" : "rgba(255,255,255,0.3)"),
-                letterSpacing: "0.03em",
-              }}>
-                {reward.level}
-              </span>
+              {/* Card */}
+              <TrackCard
+                reward={reward}
+                cx={cx}
+                above={above}
+                claimed={claimed}
+                claimable={claimable}
+                locked={locked}
+                claimingLevel={claimingLevel}
+                light={light}
+                onClaim={onClaim}
+              />
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-// ── Reward detail panel ───────────────────────────────────────────────────────
-
-function RewardDetailPanel({
-  reward,
-  currentLevel,
-  profile,
-  light,
-  onClaim,
-  claiming,
-}: {
-  reward: LevelReward;
-  currentLevel: number;
-  profile: UserProfile;
-  light: boolean;
-  onClaim: (level: number) => Promise<void>;
-  claiming: boolean;
-}) {
-  const text = light ? "text-[#0F172A]" : "text-white";
-  const textMuted = light ? "text-[#64748B]" : "text-white/60";
-  const textFaint = light ? "text-[#94A3B8]" : "text-white/40";
-  const divider = light ? "border-[#E2E8F0]" : "border-white/10";
-
-  const claimed = isLevelRewardClaimed(reward.level, profile);
-  const reachable = currentLevel >= reward.level;
-  const claimable = reachable && !claimed;
-  const accent = rewardAccent(reward);
-  const isExclusive = reward.type === "cosmetic";
-
-  return (
-    <div className={`border-t ${divider} px-4 py-4 flex items-center gap-4`}>
-      {/* Icon */}
-      <div
-        className="shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
-        style={{ backgroundColor: `${accent}15`, border: `1.5px solid ${accent}30` }}
-      >
-        <RewardIcon reward={reward} size={32} />
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className={`font-extrabold text-sm ${text}`}>{reward.label}</p>
-          {isExclusive && (
-            <span
-              className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
-              style={{ backgroundColor: `${accent}20`, color: accent }}
-            >
-              Exclusive
-            </span>
-          )}
-        </div>
-        <p className={`text-xs font-semibold mt-0.5 ${textMuted}`}>
-          {claimed ? "Already claimed" : reachable ? "Ready to claim" : `Unlocks at level ${reward.level} · ${reward.level - currentLevel} away`}
-        </p>
-        {reward.type === "ink_drops" && (
-          <p className={`text-[10px] font-semibold mt-0.5 ${textFaint}`}>+{reward.amount} ink drops added to your balance</p>
-        )}
-        {isExclusive && (
-          <p className={`text-[10px] font-semibold mt-0.5 ${textFaint}`}>Not available in the shop or from packs</p>
-        )}
-      </div>
-
-      {/* Action */}
-      <div className="shrink-0">
-        {claimed ? (
-          <div
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
-            style={{ backgroundColor: `${MINT}15` }}
-          >
-            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={MINT} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            <span className="text-xs font-bold text-[#22C55E]">Claimed</span>
-          </div>
-        ) : claimable ? (
-          <button
-            disabled={claiming}
-            onClick={() => onClaim(reward.level)}
-            className="px-4 py-2 rounded-xl font-extrabold text-xs text-white transition-all active:scale-95 hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: BLUE, boxShadow: `0 2px 10px ${BLUE}50` }}
-          >
-            {claiming ? "…" : "Claim"}
-          </button>
-        ) : (
-          <div
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
-            style={{ backgroundColor: light ? "#F1F5F9" : "rgba(255,255,255,0.05)" }}
-          >
-            <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke={light ? "#94A3B8" : "rgba(255,255,255,0.25)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            <span className={`text-xs font-bold ${textFaint}`}>Lv.{reward.level}</span>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -360,18 +465,6 @@ export default function LevelsPage() {
   const [claimingLevel, setClaimingLevel] = useState<number | null>(null);
   const levelProgress = getLevelProgress(profile.xp);
   const currentLevel = levelProgress.level;
-
-  // Auto-select the first claimable reward, else the one at/just before player level
-  const defaultSelected = (() => {
-    const firstClaimable = LEVEL_REWARDS.find(
-      (r) => currentLevel >= r.level && !isLevelRewardClaimed(r.level, profile)
-    );
-    if (firstClaimable) return firstClaimable.level;
-    const firstUpcoming = LEVEL_REWARDS.find((r) => r.level > currentLevel);
-    return firstUpcoming?.level ?? LEVEL_REWARDS[0].level;
-  })();
-
-  const [selectedLevel, setSelectedLevel] = useState<number>(defaultSelected);
 
   useEffect(() => {
     setProfile(getProfile() ?? createGuestProfile());
@@ -391,14 +484,7 @@ export default function LevelsPage() {
       const result = claimLevelReward(level);
       if (!result.success) return;
       const updated = getProfile();
-      if (updated) {
-        setProfile(updated);
-        // After claiming, auto-advance selection to next claimable
-        const next = LEVEL_REWARDS.find(
-          (r) => r.level > level && updated && currentLevel >= r.level && !isLevelRewardClaimed(r.level, updated)
-        );
-        if (next) setSelectedLevel(next.level);
-      }
+      if (updated) setProfile(updated);
       if (user && updated) {
         await upsertProfile(user.id, {
           ink_drops: updated.ink_drops,
@@ -416,17 +502,8 @@ export default function LevelsPage() {
   ).length;
   const claimedCount = LEVEL_REWARDS.filter((r) => isLevelRewardClaimed(r.level, profile)).length;
 
-  const selectedReward = LEVEL_REWARDS.find((r) => r.level === selectedLevel) ?? LEVEL_REWARDS[0];
-
-  // Next reward the player hasn't reached yet
   const nextReward = LEVEL_REWARDS.find((r) => r.level > currentLevel);
-  const xpToNextReward = nextReward
-    ? (() => {
-        const { getXPForLevel } = require("@/lib/user/levels");
-        const xpNeeded = getXPForLevel(nextReward.level) - profile.xp;
-        return Math.max(0, xpNeeded);
-      })()
-    : null;
+  const xpToNextReward = nextReward ? Math.max(0, getXPForLevel(nextReward.level) - profile.xp) : null;
 
   return (
     <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
@@ -447,36 +524,35 @@ export default function LevelsPage() {
         </div>
       </header>
 
-      <div className="flex-1 px-4 sm:px-5 py-4 max-w-2xl mx-auto w-full space-y-4">
+      <div className="flex-1 px-4 sm:px-5 py-4 max-w-3xl mx-auto w-full space-y-5">
 
-        {/* ── Level progress ── */}
-        <div className={`rounded-2xl p-4 ${cardBg} border ${cardBorder} relative overflow-hidden`}>
-          {/* Decorative inkling */}
-          <div className="absolute -right-3 -top-3 opacity-20 pointer-events-none">
+        {/* ── Level progress card ── */}
+        <div className={`rounded-2xl p-5 ${cardBg} border ${cardBorder} relative overflow-hidden`}>
+          <div className="absolute -right-4 -top-4 opacity-20 pointer-events-none">
             <InkAvatar
               config={{ base: "droplet_03", color: BLUE, eyes: "eyes_05", accessory: "wizard_01", aura: "aura_glow_02", aura_color: BLUE }}
-              size={72}
+              size={88}
             />
           </div>
 
-          <div className="flex items-center gap-3 mb-3">
-            {/* Level badge */}
+          {/* Level + XP row */}
+          <div className="flex items-center gap-4 mb-4">
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-extrabold text-lg text-white"
-              style={{ backgroundColor: BLUE, boxShadow: `0 3px 12px ${BLUE}50` }}
+              className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 font-extrabold text-2xl text-white"
+              style={{ backgroundColor: BLUE, boxShadow: `0 4px 16px ${BLUE}55` }}
             >
               {currentLevel}
             </div>
             <div className="flex-1 min-w-0">
-              <p className={`font-extrabold ${text}`}>Level {currentLevel}</p>
-              <p className={`text-xs font-semibold ${textMuted}`}>
-                {levelProgress.xpInLevel} / {levelProgress.xpNeededForLevel} XP
-                <span className={`ml-1 ${textFaint}`}>· {Math.round(levelProgress.progressPercent)}%</span>
+              <p className={`text-lg font-extrabold ${text}`}>Level {currentLevel}</p>
+              <p className={`text-sm font-semibold ${textMuted}`}>
+                {levelProgress.xpInLevel.toLocaleString()} / {levelProgress.xpNeededForLevel.toLocaleString()} XP
+                <span className={`ml-2 ${textFaint}`}>to Lv.{currentLevel + 1}</span>
               </p>
             </div>
             {claimableCount > 0 && (
               <span
-                className="shrink-0 text-xs font-extrabold px-2.5 py-1 rounded-full animate-pulse"
+                className="shrink-0 text-sm font-extrabold px-3 py-1.5 rounded-full animate-pulse"
                 style={{ backgroundColor: `${BLUE}20`, color: BLUE }}
               >
                 {claimableCount} ready
@@ -484,59 +560,55 @@ export default function LevelsPage() {
             )}
           </div>
 
-          {/* XP bar */}
-          <div className={`w-full h-2.5 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
+          {/* XP progress bar — large */}
+          <div className={`w-full h-4 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
                 width: `${levelProgress.progressPercent}%`,
                 background: `linear-gradient(90deg, ${MINT}, ${BLUE})`,
-                boxShadow: `0 0 8px ${BLUE}50`,
+                boxShadow: `0 0 10px ${BLUE}60`,
               }}
             />
           </div>
 
-          {/* Footer row */}
-          <div className="flex items-center justify-between mt-2.5">
-            <p className={`text-[11px] font-semibold ${textFaint}`}>
+          {/* Footer stats */}
+          <div className="flex items-center justify-between mt-3">
+            <p className={`text-xs font-semibold ${textFaint}`}>
               {claimedCount} / {LEVEL_REWARDS.length} rewards claimed
             </p>
             {nextReward && xpToNextReward !== null && (
-              <p className={`text-[11px] font-semibold ${textFaint}`}>
-                {xpToNextReward > 0 ? `${xpToNextReward} XP to Lv.${nextReward.level} reward` : `Lv.${nextReward.level} reward ready`}
+              <p className={`text-xs font-semibold ${textFaint}`}>
+                {xpToNextReward > 0
+                  ? `${xpToNextReward.toLocaleString()} XP to Lv.${nextReward.level} reward`
+                  : `Lv.${nextReward.level} reward ready!`}
               </p>
             )}
           </div>
         </div>
 
-        {/* ── Reward track ── */}
+        {/* ── Battle-pass reward track ── */}
         <div className={`rounded-2xl ${cardBg} border ${cardBorder} overflow-hidden`}>
-          {/* Track header */}
-          <div className={`px-4 pt-3.5 pb-2.5 flex items-center justify-between`}>
-            <p className={`text-sm font-extrabold ${text}`}>Rewards</p>
-            <p className={`text-[11px] font-semibold ${textMuted}`}>
-              Tap a node · scroll to explore
+          <div className={`px-5 pt-4 pb-3 flex items-center justify-between border-b ${cardBorder}`}>
+            <div>
+              <p className={`text-sm font-extrabold ${text}`}>Reward Track</p>
+              <p className={`text-xs font-semibold ${textMuted}`}>
+                Exclusive cosmetics marked with a colored dot · scroll to explore
+              </p>
+            </div>
+            <p className={`text-xs font-semibold ${textFaint}`}>
+              Lv.1 → Lv.50
             </p>
           </div>
-
-          {/* Scrollable track */}
-          <RewardTrack
-            currentLevel={currentLevel}
-            profile={profile}
-            light={light}
-            selectedLevel={selectedLevel}
-            onSelect={setSelectedLevel}
-          />
-
-          {/* Detail panel for selected reward */}
-          <RewardDetailPanel
-            reward={selectedReward}
-            currentLevel={currentLevel}
-            profile={profile}
-            light={light}
-            onClaim={handleClaim}
-            claiming={claimingLevel === selectedLevel}
-          />
+          <div className="px-0 py-4" style={{ overflowX: "clip" }}>
+            <BattlePassTrack
+              currentLevel={currentLevel}
+              profile={profile}
+              light={light}
+              claimingLevel={claimingLevel}
+              onClaim={handleClaim}
+            />
+          </div>
         </div>
 
         <p className={`text-center text-xs font-semibold pb-4 ${textFaint}`}>
@@ -544,7 +616,6 @@ export default function LevelsPage() {
         </p>
       </div>
 
-      {/* Claim loading overlay */}
       {claimingLevel !== null && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 pointer-events-none">
           <div className={`rounded-2xl px-6 py-4 ${cardBg} shadow-2xl border ${cardBorder}`}>
