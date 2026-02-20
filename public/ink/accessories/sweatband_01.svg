@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Athletic sweatband/wristband style headband -->
+  <!-- Main band - wraps around upper area -->
+  <path d="M24 38C24 32 34 26 50 26C66 26 76 32 76 38C76 42 66 46 50 46C34 46 24 42 24 38z" fill="#EF4444"/>
+  <!-- Stripe details -->
+  <path d="M26 36C26 32 36 28 50 28C64 28 74 32 74 36" fill="none" stroke="white" stroke-width="2" opacity="0.4"/>
+  <path d="M28 40C28 38 36 42 50 42C64 42 72 38 72 40" fill="none" stroke="#DC2626" stroke-width="1.5" opacity="0.5"/>
+  <!-- Brand logo area -->
+  <rect x="46" y="32" width="8" height="6" rx="1" fill="white" opacity="0.2"/>
+  <!-- Sweat drip for fun -->
+  <path d="M76 40C77 44 76 48 74 46C72 44 75 42 76 40z" fill="#60A5FA" opacity="0.5"/>
+</svg>

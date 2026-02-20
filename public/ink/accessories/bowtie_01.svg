@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Bowtie — positioned at the "neck" just below the mouth (~y73) -->
+  <!-- Left wing -->
+  <path d="M50 74L36 68C32 66 32 80 36 78L50 74z" fill="#1E40AF"/>
+  <!-- Right wing -->
+  <path d="M50 74L64 68C68 66 68 80 64 78L50 74z" fill="#1E40AF"/>
+  <!-- Lighter overlays -->
+  <path d="M50 74L38 70C36 69 36 75 38 74L50 74z" fill="#3B82F6" opacity="0.35"/>
+  <path d="M50 74L62 70C64 69 64 75 62 74L50 74z" fill="#3B82F6" opacity="0.35"/>
+  <!-- Center knot -->
+  <circle cx="50" cy="74" r="3" fill="#1E3A8A"/>
+  <circle cx="50" cy="74" r="1.8" fill="#2563EB"/>
+  <!-- Polka dots -->
+  <circle cx="41" cy="72" r="0.8" fill="white" opacity="0.3"/>
+  <circle cx="59" cy="72" r="0.8" fill="white" opacity="0.3"/>
+  <circle cx="43" cy="76" r="0.6" fill="white" opacity="0.25"/>
+  <circle cx="57" cy="76" r="0.6" fill="white" opacity="0.25"/>
+</svg>

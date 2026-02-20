@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Whistle on lanyard — cord from neck area, whistle to one side -->
+  <!-- Lanyard cord (loops around neck/below mouth, hangs right) -->
+  <path d="M42 70C44 74 50 76 56 74C62 72 66 74 68 78" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/>
+  <!-- Whistle body (angled, at right-lower area) -->
+  <rect x="62" y="74" width="14" height="7" rx="2.5" fill="#C0C0C0" transform="rotate(-8 69 77)"/>
+  <!-- Whistle highlight -->
+  <rect x="62" y="74" width="14" height="3" rx="2.5" fill="#E5E7EB" transform="rotate(-8 69 77)" opacity="0.7"/>
+  <!-- Mouthpiece -->
+  <rect x="74" y="75.5" width="6" height="4" rx="1.5" fill="#9CA3AF" transform="rotate(-8 77 77)"/>
+  <!-- Sound hole -->
+  <circle cx="66" cy="77.5" r="1.8" fill="#4B5563"/>
+  <!-- Ring at attachment point -->
+  <circle cx="63" cy="77" r="1.5" fill="none" stroke="#9CA3AF" stroke-width="1"/>
+</svg>

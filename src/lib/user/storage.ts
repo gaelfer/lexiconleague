@@ -73,6 +73,13 @@ export function applyGameResult(result: GameResult): UserProfile {
     profile.rank_tier = getTierFromTrophies(profile.trophies);
     const dropsEarned = result.correct * 2 + (result.trophiesChange > 0 ? 5 : 0);
     profile.ink_drops = (profile.ink_drops ?? 0) + dropsEarned;
+    if (result.mode === "ranked") {
+      if (result.trophiesChange > 0) {
+        profile.ranked_win_streak = (profile.ranked_win_streak ?? 0) + 1;
+      } else {
+        profile.ranked_win_streak = 0;
+      }
+    }
   }
 
   // Unlock ranked reward skins per tier

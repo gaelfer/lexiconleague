@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Knight helmet -->
+  <path d="M28 42C28 26 38 14 50 14C62 14 72 26 72 42V50H28V42z" fill="#9CA3AF"/>
+  <path d="M28 42C28 26 38 14 50 14C62 14 72 26 72 42V44H28V42z" fill="#D1D5DB"/>
+  <!-- Visor slit -->
+  <rect x="32" y="38" width="36" height="4" rx="2" fill="#374151"/>
+  <!-- Nose guard -->
+  <rect x="48" y="34" width="4" height="14" rx="1" fill="#9CA3AF"/>
+  <!-- Plume -->
+  <path d="M50 14C50 14 52 4 58 2C64 0 66 6 64 10C62 14 56 14 50 14z" fill="#DC2626"/>
+  <path d="M50 14C50 14 54 6 58 4" fill="none" stroke="#FCA5A5" stroke-width="1" opacity="0.5"/>
+</svg>

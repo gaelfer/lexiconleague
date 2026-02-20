@@ -10,15 +10,21 @@ export const RANK_REWARD_ITEM_IDS: Record<RankTier, string[]> = {
   Emerald: ["color_#10B981", "droplet_05", "aura_glow_03", "crown_01", "eyes_05"],
 };
 
-// ── Trophy deltas: 4-5 games for early ranks, Plat threshold 1k, harder at top ──
+// ── Trophy deltas: raised base values; win streak multiplies wins up to 3x at 10 ──
 export const TROPHY_WIN: Record<RankTier, number> = {
-  Bronze: 25,
-  Silver: 22,
-  Gold: 16,
-  Platinum: 12,
-  Diamond: 8,
-  Emerald: 4,
+  Bronze: 35,
+  Silver: 32,
+  Gold: 26,
+  Platinum: 22,
+  Diamond: 18,
+  Emerald: 14,
 };
+
+/** Win streak multiplier: 1x at 0, up to 3x at 10+ wins in a row. */
+export function getWinStreakMultiplier(streak: number): number {
+  if (streak <= 0) return 1;
+  return Math.min(3, 1 + (streak / 10) * 2);
+}
 
 export const TROPHY_LOSS: Record<RankTier, number> = {
   Bronze: -10,
@@ -62,11 +68,16 @@ export function determineResult(
 export function calculateTrophyChange(
   result: "win" | "loss" | "draw",
   tier: RankTier,
-  mode: GameMode
+  mode: GameMode,
+  winStreak = 0
 ): number {
   if (mode === "casual") return 0; // No trophy impact for casual
 
-  if (result === "win") return TROPHY_WIN[tier];
+  if (result === "win") {
+    const base = TROPHY_WIN[tier];
+    const mult = getWinStreakMultiplier(winStreak);
+    return Math.round(base * mult);
+  }
   if (result === "loss") return TROPHY_LOSS[tier];
   return 0; // draw
 }

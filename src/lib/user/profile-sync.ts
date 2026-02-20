@@ -19,18 +19,24 @@ export async function syncProfileForUser(
     const localClaim = local?.daily_reward_claimed_at ? new Date(local.daily_reward_claimed_at) : null;
     const remoteClaim = remote.daily_reward_claimed_at ? new Date(remote.daily_reward_claimed_at) : null;
     const useLocalDaily = localClaim && (!remoteClaim || localClaim > remoteClaim);
+    const mergedUnlocked = [
+      ...new Set([
+        ...(remote.unlocked_items ?? []),
+        ...(local?.unlocked_items ?? []),
+      ]),
+    ];
+    const localHasMoreItems =
+      local?.unlocked_items &&
+      local.unlocked_items.some((id) => !(remote.unlocked_items ?? []).includes(id));
     const merged: UserProfile = {
       ...remote,
       email: email || remote.email,
       trophies: Math.max(remote.trophies, local?.trophies ?? 0),
       xp: Math.max(remote.xp, local?.xp ?? 0),
-      ink_drops: Math.max(remote.ink_drops, local?.ink_drops ?? 0),
-      unlocked_items: [
-        ...new Set([
-          ...(remote.unlocked_items ?? []),
-          ...(local?.unlocked_items ?? []),
-        ]),
-      ],
+      ink_drops: localHasMoreItems
+        ? (local?.ink_drops ?? 0)
+        : Math.max(remote.ink_drops, local?.ink_drops ?? 0),
+      unlocked_items: mergedUnlocked,
       daily_reward_claimed_at: useLocalDaily ? local!.daily_reward_claimed_at : remote.daily_reward_claimed_at,
       daily_streak: useLocalDaily ? (local!.daily_streak ?? 0) : (remote.daily_streak ?? 0),
       vocab_grade: remote.vocab_grade ?? local?.vocab_grade,
@@ -43,6 +49,7 @@ export async function syncProfileForUser(
           ...(local?.claimed_level_rewards ?? []),
         ]),
       ],
+      ranked_win_streak: local?.ranked_win_streak ?? remote?.ranked_win_streak ?? 0,
     };
     ensureRankRewardsUnlocked(merged);
     saveProfile(merged);

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Medal hanging from chest — ribbon from below mouth, disc on chest -->
+  <!-- Ribbon (V-shape from neck down to medal) -->
+  <path d="M44 70L50 82L56 70" fill="#3B82F6"/>
+  <path d="M44 70L50 82" fill="#2563EB"/>
+  <!-- Ribbon stripes -->
+  <line x1="46" y1="72" x2="49" y2="80" stroke="white" stroke-width="1" opacity="0.3"/>
+  <line x1="54" y1="72" x2="51" y2="80" stroke="white" stroke-width="1" opacity="0.3"/>
+  <!-- Medal disc -->
+  <circle cx="50" cy="85" r="8" fill="#D4AF37"/>
+  <circle cx="50" cy="85" r="6" fill="#EAB308"/>
+  <circle cx="50" cy="85" r="4.5" fill="#D4AF37" stroke="#EAB308" stroke-width="0.3"/>
+  <!-- Star emblem on medal -->
+  <path d="M50 81L51.2 83.5H53.8L51.8 85L52.6 87.5L50 86L47.4 87.5L48.2 85L46.2 83.5H48.8z" fill="#FDE68A"/>
+  <!-- Shine -->
+  <ellipse cx="47" cy="82.5" rx="1.5" ry="2" fill="white" opacity="0.25"/>
+</svg>

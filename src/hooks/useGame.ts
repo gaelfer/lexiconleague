@@ -54,7 +54,8 @@ export function useGame({ mode, subject, questions, onComplete, onAnswerProgress
             : "draw"
           : determineResult(correct, total);
       const profile = getProfile() ?? createGuestProfile();
-      const trophiesChange = calculateTrophyChange(result, profile.rank_tier, mode);
+      const winStreak = mode === "ranked" ? (profile.ranked_win_streak ?? 0) : 0;
+      const trophiesChange = calculateTrophyChange(result, profile.rank_tier, mode, winStreak);
 
       const gameResult: GameResult = {
         score,

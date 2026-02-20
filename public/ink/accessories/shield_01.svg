@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Shield — held at left side, slightly larger -->
+  <!-- Hand nub at body edge -->
+  <ellipse cx="27" cy="64" rx="4.5" ry="4" fill="#475569" opacity="0.45"/>
+  <!-- Shield body -->
+  <path d="M19 52L9 57V69C9 76 14 81 19 84C24 81 29 76 29 69V57L19 52z" fill="#1E40AF"/>
+  <path d="M19 55L12 58.5V69C12 75 15.5 79 19 81C22.5 79 26 75 26 69V58.5L19 55z" fill="#2563EB"/>
+  <!-- Cross emblem -->
+  <rect x="18" y="59" width="2.5" height="14" rx="0.5" fill="#D4AF37"/>
+  <rect x="13" y="64.5" width="12" height="2.5" rx="0.5" fill="#D4AF37"/>
+  <!-- Top shine -->
+  <path d="M19 52L9 57V59L19 54L29 59V57L19 52z" fill="white" opacity="0.2"/>
+</svg>

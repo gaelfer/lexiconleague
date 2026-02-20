@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Frost: ice crystal / snowflake particles -->
+  <!-- Large crystals -->
+  <path d="M20 22L24 18L22 24z" fill="currentColor" opacity="0.35"/>
+  <path d="M78 20L82 16L80 22z" fill="currentColor" opacity="0.3"/>
+  <path d="M12 55L16 50L14 56z" fill="currentColor" opacity="0.25"/>
+  <path d="M86 52L90 48L88 54z" fill="currentColor" opacity="0.3"/>
+  <path d="M22 80L26 76L24 82z" fill="currentColor" opacity="0.2"/>
+  <path d="M76 82L80 78L78 84z" fill="currentColor" opacity="0.25"/>
+  <!-- Small sparkle dots -->
+  <circle cx="30" cy="12" r="1.5" fill="currentColor" opacity="0.4"/>
+  <circle cx="70" cy="10" r="1" fill="currentColor" opacity="0.35"/>
+  <circle cx="8" cy="40" r="1" fill="currentColor" opacity="0.3"/>
+  <circle cx="92" cy="38" r="1.5" fill="currentColor" opacity="0.35"/>
+  <circle cx="50" cy="4" r="1.5" fill="currentColor" opacity="0.3"/>
+  <circle cx="15" cy="70" r="1" fill="currentColor" opacity="0.25"/>
+  <circle cx="85" cy="68" r="1" fill="currentColor" opacity="0.3"/>
+  <!-- Tiny cross sparkles -->
+  <path d="M40 8V4M38 6H42" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+  <path d="M62 6V2M60 4H64" stroke="currentColor" stroke-width="0.8" opacity="0.25"/>
+  <path d="M6 48V44M4 46H8" stroke="currentColor" stroke-width="0.8" opacity="0.2"/>
+  <path d="M94 46V42M92 44H96" stroke="currentColor" stroke-width="0.8" opacity="0.2"/>
+</svg>

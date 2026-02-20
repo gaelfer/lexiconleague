@@ -104,6 +104,8 @@ export interface UserProfile {
   tutorial_completed?: boolean;
   /** True after completing onboarding (username + default vocab grade). */
   onboarding_completed?: boolean;
+  /** Consecutive ranked wins; resets on loss/draw. Used for trophy multiplier. */
+  ranked_win_streak?: number;
   created_at: string;
 }
 
@@ -160,6 +162,8 @@ export interface InkAvatarConfig {
   eyes: string;
   accessory: string;
   aura: string;
+  /** Separate color for the aura effect. Falls back to body color if unset. */
+  aura_color?: string;
 }
 
 export const DEFAULT_AVATAR_CONFIG: InkAvatarConfig = {

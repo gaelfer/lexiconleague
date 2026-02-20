@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Cane — small, held at right side of body -->
+  <!-- Curved handle -->
+  <path d="M82 52C82 48 80 46 77 46C74 46 73 48 73 50" fill="none" stroke="#D4AF37" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Shaft (straight down) -->
+  <line x1="73" y1="50" x2="73" y2="88" stroke="#1C1917" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Gold band top -->
+  <line x1="73" y1="53" x2="73" y2="56" stroke="#D4AF37" stroke-width="3" stroke-linecap="round"/>
+  <!-- Gold band bottom -->
+  <line x1="73" y1="82" x2="73" y2="85" stroke="#D4AF37" stroke-width="3" stroke-linecap="round"/>
+  <!-- Tip -->
+  <circle cx="73" cy="89" r="1.8" fill="#D4AF37"/>
+  <!-- Handle shine -->
+  <path d="M81 50C81 48 79 47 77.5 47" fill="none" stroke="white" stroke-width="0.7" opacity="0.4"/>
+</svg>

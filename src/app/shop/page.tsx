@@ -16,12 +16,21 @@ import {
   BASES,
   COLORS,
   EYES,
-  ACCESSORIES,
   AURAS,
+  AURA_COLORS,
+  GEAR_COLLECTIONS,
   CosmeticItem,
   ColorItem,
   FREE_ITEM_IDS,
   isRankReward,
+  AURA_PACKS,
+  AuraPack,
+  AuraVariant,
+  AuraRarity,
+  rollAuraPack,
+  getOwnedAuraVariants,
+  RARITY_COLORS,
+  RARITY_LABELS,
 } from "@/lib/cosmetics/catalog";
 import { RANK_REWARD_ITEM_IDS } from "@/lib/game/rank";
 import { RANK_COLORS, RANK_TIERS, RankTier } from "@/types";
@@ -39,17 +48,16 @@ import SparkIcon from "@/components/icons/SparkIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 
-type ShopTab = "daily" | "bases" | "colors" | "eyes" | "accessories" | "auras";
+type ShopTab = "bases" | "colors" | "eyes" | "gear" | "auras";
 
 const TABS: { id: ShopTab; label: string }[] = [
   { id: "bases", label: "Shapes" },
   { id: "colors", label: "Colors" },
   { id: "eyes", label: "Eyes" },
-  { id: "accessories", label: "Gear" },
+  { id: "gear", label: "Gear" },
   { id: "auras", label: "Auras" },
 ];
 
-const BLUE = "#3B82F6";
 const MINT = "#34D399";
 
 export default function ShopPage() {
@@ -61,6 +69,12 @@ export default function ShopPage() {
   const [claimAnimating, setClaimAnimating] = useState(false);
   const [claimedReward, setClaimedReward] = useState<DailyReward | null>(null);
   const [confirmItem, setConfirmItem] = useState<(CosmeticItem | ColorItem) | null>(null);
+
+  // Aura pack state
+  const [confirmPack, setConfirmPack] = useState<AuraPack | null>(null);
+  const [packOpening, setPackOpening] = useState(false);
+  const [packResult, setPackResult] = useState<AuraVariant | null>(null);
+  const [packDuplicate, setPackDuplicate] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -90,6 +104,14 @@ export default function ShopPage() {
   function refreshProfile() {
     const p = getProfile();
     if (p) setProfile({ ...p });
+  }
+
+  async function syncToSupabase() {
+    if (user?.id) {
+      const { upsertProfile } = await import("@/lib/supabase/profile");
+      const updated = getProfile();
+      if (updated) await upsertProfile(user.id, updated);
+    }
   }
 
   async function handleClaim() {
@@ -124,17 +146,55 @@ export default function ShopPage() {
     setConfirmItem(item);
   }
 
-  function confirmPurchase() {
+  async function confirmPurchase() {
     if (!confirmItem || !profile) return;
     const success = spendInkDrops(confirmItem.price);
     if (success) {
       unlockItem(confirmItem.id);
       refreshProfile();
       showToast("success", `${confirmItem.label} unlocked!`);
+      await syncToSupabase();
     } else {
       showToast("error", "Purchase failed.");
     }
     setConfirmItem(null);
+  }
+
+  function handleOpenPack(pack: AuraPack) {
+    if (!profile) return;
+    if ((profile.ink_drops ?? 0) < pack.price) {
+      showToast("error", "Not enough Ink Drops!");
+      return;
+    }
+    setConfirmPack(pack);
+  }
+
+  async function confirmPackPurchase() {
+    if (!confirmPack || !profile) return;
+    const success = spendInkDrops(confirmPack.price);
+    if (!success) {
+      showToast("error", "Purchase failed.");
+      setConfirmPack(null);
+      return;
+    }
+    setPackOpening(true);
+    setConfirmPack(null);
+
+    const result = rollAuraPack(confirmPack);
+    const freshProfile = getProfile();
+    const isDuplicate = freshProfile?.unlocked_items?.includes(result.id) ?? false;
+
+    if (!isDuplicate) {
+      unlockItem(result.id);
+    }
+    refreshProfile();
+
+    // Brief delay for suspense
+    await new Promise((r) => setTimeout(r, 800));
+    setPackOpening(false);
+    setPackResult(result);
+    setPackDuplicate(isDuplicate);
+    await syncToSupabase();
   }
 
   function getRankForItem(itemId: string): string | null {
@@ -181,9 +241,6 @@ export default function ShopPage() {
             {item.category === "accessory" && (
               <InkAvatar config={{ base: "droplet_01", color: "#1E293B", eyes: "eyes_01", accessory: item.id, aura: "none" }} size="lg" />
             )}
-            {item.category === "aura" && (
-              <InkAvatar config={{ base: "droplet_01", color: "#3B82F6", eyes: "eyes_01", accessory: "none", aura: item.id }} size="lg" />
-            )}
           </div>
         )}
         <span className={`text-sm font-extrabold ${light ? "text-[#0F172A]" : "text-white"}`}>{item.label}</span>
@@ -224,8 +281,9 @@ export default function ShopPage() {
   const text = light ? "text-[#0F172A]" : "text-white";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
   const textFaint = light ? "text-[#94A3B8]" : "text-white/40";
-  const cardBg = light ? "bg-white" : "bg-[#1E293B]/80";
   const cardBorder = light ? "border-[#E2E8F0]" : "border-[#334155]";
+
+  const ownedAuras = getOwnedAuraVariants(profile.unlocked_items ?? []);
 
   return (
     <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
@@ -255,7 +313,7 @@ export default function ShopPage() {
       </header>
 
       <div className="relative flex-1 max-w-4xl mx-auto w-full px-4 py-4 space-y-4">
-        {/* Daily rewards — compact strip (less major) */}
+        {/* Daily rewards */}
         <div
           className={`rounded-2xl border-2 overflow-hidden ${
             light ? "bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] border-[#34D399]/40" : "bg-gradient-to-r from-[#34D399]/15 to-[#34D399]/10 border-[#34D399]/30"
@@ -292,9 +350,9 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {/* Shop tabs — cartoony pills */}
+        {/* Shop tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1 min-w-0">
-          {TABS.filter(t => t.id !== "daily").map((t) => (
+          {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -311,8 +369,9 @@ export default function ShopPage() {
           ))}
         </div>
 
-        {/* Shop sections — each in its own card, more separated, cartoony */}
+        {/* Shop sections */}
         <div className="space-y-5">
+          {/* ── Shapes ───────────────────────────────────────────── */}
           {tab === "bases" && (
             <div
               className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
@@ -321,13 +380,14 @@ export default function ShopPage() {
               <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"} flex items-center justify-between gap-3`}>
                 <p className={`text-sm font-extrabold ${text}`}>🫧 Ink Shapes</p>
                 <div className="shrink-0 -rotate-[8deg]">
-                  <InkAvatar config={{ base: "droplet_01", color: "#EC4899", eyes: "eyes_06", accessory: "bow_01", aura: "aura_glow_02" }} size={36} />
+                  <InkAvatar config={{ base: "droplet_01", color: "#EC4899", eyes: "eyes_06", accessory: "bow_01", aura: "aura_glow_02", aura_color: "#EC4899" }} size={36} />
                 </div>
               </div>
               <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">{BASES.map(renderItemCard)}</div>
             </div>
           )}
 
+          {/* ── Colors ───────────────────────────────────────────── */}
           {tab === "colors" && (
             <div
               className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
@@ -340,6 +400,7 @@ export default function ShopPage() {
             </div>
           )}
 
+          {/* ── Eyes ─────────────────────────────────────────────── */}
           {tab === "eyes" && (
             <div
               className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
@@ -352,33 +413,141 @@ export default function ShopPage() {
             </div>
           )}
 
-          {tab === "accessories" && (
+          {/* ── Gear Collections ─────────────────────────────────── */}
+          {tab === "gear" && GEAR_COLLECTIONS.map((coll) => (
             <div
+              key={coll.id}
               className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
               style={{ boxShadow: light ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.2)" }}
             >
-              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"}`}>
-                <p className={`text-sm font-extrabold ${text}`}>🎩 Gear & Accessories</p>
+              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"} flex items-center justify-between`}>
+                <p className={`text-sm font-extrabold ${text}`}>{coll.emoji} {coll.label} Collection</p>
+                <span className={`text-xs font-bold ${textMuted}`}>{coll.items.length} items</span>
               </div>
-              <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">{ACCESSORIES.map(renderItemCard)}</div>
+              <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {coll.items.map(renderItemCard)}
+              </div>
             </div>
-          )}
+          ))}
 
+          {/* ── Aura Packs ───────────────────────────────────────── */}
           {tab === "auras" && (
-            <div
-              className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
-              style={{ boxShadow: light ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.2)" }}
-            >
-              <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"}`}>
-                <p className={`text-sm font-extrabold ${text}`}>✨ Auras</p>
+            <>
+              {/* Pack cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {AURA_PACKS.map((pack) => {
+                  const canAfford = (profile.ink_drops ?? 0) >= pack.price;
+                  return (
+                    <button
+                      key={pack.id}
+                      onClick={() => canAfford && handleOpenPack(pack)}
+                      disabled={!canAfford}
+                      className={`relative group flex flex-col items-center gap-3 p-6 rounded-3xl border-[3px] transition-all duration-200 active:scale-[0.97] overflow-hidden ${
+                        canAfford
+                          ? light
+                            ? "border-[#E2E8F0] bg-white hover:shadow-xl cursor-pointer"
+                            : "border-[#334155] bg-[#1E293B] hover:shadow-xl cursor-pointer"
+                          : light
+                          ? "border-[#E2E8F0] bg-[#F8FAFC] opacity-60 cursor-not-allowed"
+                          : "border-[#334155] bg-[#0F172A]/50 opacity-60 cursor-not-allowed"
+                      }`}
+                      style={canAfford ? { borderColor: `${pack.accent}60` } : {}}
+                    >
+                      {/* Glow bg */}
+                      <div
+                        className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity"
+                        style={{ backgroundColor: pack.accent }}
+                      />
+                      {/* Icon */}
+                      <div
+                        className="relative w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
+                        style={{ backgroundColor: `${pack.accent}20`, border: `2px solid ${pack.accent}40` }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8">
+                          <rect x="3" y="6" width="18" height="14" rx="3" stroke={pack.accent} strokeWidth="2" />
+                          <path d="M3 10h18" stroke={pack.accent} strokeWidth="2" />
+                          <circle cx="12" cy="16" r="2" fill={pack.accent} />
+                        </svg>
+                      </div>
+                      <div className="relative text-center">
+                        <p className={`text-base font-extrabold ${text}`}>{pack.label}</p>
+                        <p className={`text-xs mt-1 ${textMuted}`}>{pack.description}</p>
+                      </div>
+                      <span
+                        className="relative inline-flex items-center gap-1.5 text-sm font-extrabold px-3 py-1.5 rounded-xl"
+                        style={{ color: pack.accent, backgroundColor: `${pack.accent}15` }}
+                      >
+                        <InkDropIcon className="w-4 h-4" color={pack.accent} />
+                        {pack.price}
+                      </span>
+                      {/* Rarity odds preview */}
+                      <div className="relative flex gap-1.5 flex-wrap justify-center">
+                        {(Object.entries(pack.weights) as [string, number][])
+                          .filter(([, w]) => w > 0)
+                          .map(([rarity, weight]) => (
+                            <span
+                              key={rarity}
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              style={{
+                                color: RARITY_COLORS[rarity as keyof typeof RARITY_COLORS],
+                                backgroundColor: `${RARITY_COLORS[rarity as keyof typeof RARITY_COLORS]}20`,
+                              }}
+                            >
+                              {RARITY_LABELS[rarity as keyof typeof RARITY_LABELS]} {weight}%
+                            </span>
+                          ))}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">{AURAS.map(renderItemCard)}</div>
-            </div>
+
+              {/* Owned auras gallery */}
+              {ownedAuras.length > 0 && (
+                <div
+                  className={`rounded-3xl overflow-hidden border-2 ${cardBorder}`}
+                  style={{ boxShadow: light ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.2)" }}
+                >
+                  <div className={`px-5 py-3 border-b-2 ${cardBorder} ${light ? "bg-[#F8FAFC]" : "bg-[#0F172A]/50"} flex items-center justify-between`}>
+                    <p className={`text-sm font-extrabold ${text}`}>✨ Your Aura Collection</p>
+                    <span className={`text-xs font-bold ${textMuted}`}>{ownedAuras.length} owned</span>
+                  </div>
+                  <div className="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {ownedAuras.map((v) => (
+                      <div
+                        key={v.id}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 ${
+                          light ? "border-[#E2E8F0] bg-white" : "border-[#334155] bg-[#1E293B]/60"
+                        }`}
+                      >
+                        <InkAvatar
+                          config={{ base: "droplet_01", color: "#1E293B", eyes: "eyes_01", accessory: "none", aura: v.auraId, aura_color: v.color }}
+                          size="lg"
+                        />
+                        <span className={`text-xs font-extrabold text-center ${text}`}>{v.label}</span>
+                        <span
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ color: RARITY_COLORS[v.rarity], backgroundColor: `${RARITY_COLORS[v.rarity]}20` }}
+                        >
+                          {RARITY_LABELS[v.rarity]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {ownedAuras.length === 0 && (
+                <p className={`text-center text-sm font-semibold py-6 ${textMuted}`}>
+                  Open packs to collect auras! Each aura comes in a unique color.
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      {/* Daily reward claimed popup — spacious, mobile-first */}
+      {/* Daily reward claimed popup */}
       {claimedReward && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-6 overscroll-contain"
@@ -406,7 +575,6 @@ export default function ShopPage() {
                 </div>
               </div>
 
-              {/* Upcoming rewards — claimed + 2 next */}
               <div className="p-4 sm:p-5 rounded-2xl shrink-0" style={{ backgroundColor: light ? "rgba(52,211,153,0.08)" : "rgba(52,211,153,0.12)", border: "2px solid rgba(52,211,153,0.3)" }}>
                 <p className={`text-xs font-extrabold uppercase tracking-wider ${textMuted} mb-3 text-center`}>Upcoming rewards</p>
                 <div className="flex gap-3 justify-center flex-wrap">
@@ -449,6 +617,7 @@ export default function ShopPage() {
         </div>
       )}
 
+      {/* Gear purchase confirm dialog */}
       {confirmItem && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
@@ -464,7 +633,7 @@ export default function ShopPage() {
               <span className={`text-sm font-bold ${textMuted}`}>Ink Drops</span>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmItem(null)} className={`flex-1 py-3 rounded-2xl font-extrabold border-2 transition-all active:scale-95 ${light ? "text-[#64748B] bg-[#F8FAFC] border-[#E2E8F0] hover:bg-[#F1F5F9]" : "text-[#94A3B8] bg-[#0F172A] border-[#334155] hover:bg-[#1E293B]"} `}>
+              <button onClick={() => setConfirmItem(null)} className={`flex-1 py-3 rounded-2xl font-extrabold border-2 transition-all active:scale-95 ${light ? "text-[#64748B] bg-[#F8FAFC] border-[#E2E8F0] hover:bg-[#F1F5F9]" : "text-[#94A3B8] bg-[#0F172A] border-[#334155] hover:bg-[#1E293B]"}`}>
                 Cancel
               </button>
               <button onClick={confirmPurchase} className="flex-1 py-3 rounded-2xl font-extrabold text-white transition-all active:scale-95" style={{ backgroundColor: MINT, boxShadow: "0 4px 12px rgba(52,211,153,0.4)" }}>
@@ -476,6 +645,222 @@ export default function ShopPage() {
         </div>
       )}
 
+      {/* Pack contents + confirm dialog */}
+      {confirmPack && (() => {
+        const auraShapes = AURAS.filter((a) => a.id !== "none");
+        const AURA_RARITY: Record<string, AuraRarity> = {
+          aura_glow_01: "common",
+          aura_glow_02: "uncommon",
+          aura_glow_03: "rare",
+          aura_glow_04: "uncommon",
+          aura_glow_05: "rare",
+        };
+        const legendaryHexes = new Set(["#EAB308", "#F8FAFC"]);
+        return (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 overscroll-contain"
+            onClick={() => setConfirmPack(null)}
+          >
+            <div
+              className={`rounded-t-3xl sm:rounded-3xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto border-t-[3px] sm:border-[3px] ${
+                light ? "bg-white" : "bg-[#1E293B]"
+              }`}
+              style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.25)", borderColor: `${confirmPack.accent}60` }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 sm:p-6 space-y-5">
+                {/* Header */}
+                <div className="text-center">
+                  <div
+                    className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3"
+                    style={{ backgroundColor: `${confirmPack.accent}20`, border: `2px solid ${confirmPack.accent}40` }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" className="w-7 h-7">
+                      <rect x="3" y="6" width="18" height="14" rx="3" stroke={confirmPack.accent} strokeWidth="2" />
+                      <path d="M3 10h18" stroke={confirmPack.accent} strokeWidth="2" />
+                      <circle cx="12" cy="16" r="2" fill={confirmPack.accent} />
+                    </svg>
+                  </div>
+                  <h3 className={`text-lg font-extrabold ${text}`}>{confirmPack.label}</h3>
+                  <p className={`text-xs mt-1 ${textMuted}`}>{confirmPack.description}</p>
+                </div>
+
+                {/* Drop rates */}
+                <div className={`rounded-2xl p-4 ${light ? "bg-[#F8FAFC] border border-[#E2E8F0]" : "bg-[#0F172A]/50 border border-[#334155]"}`}>
+                  <p className={`text-[10px] font-extrabold uppercase tracking-wider mb-2.5 ${textMuted}`}>Drop Rates</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {(Object.entries(confirmPack.weights) as [AuraRarity, number][])
+                      .filter(([, w]) => w > 0)
+                      .map(([rarity, weight]) => (
+                        <span
+                          key={rarity}
+                          className="text-xs font-bold px-2.5 py-1 rounded-lg"
+                          style={{ color: RARITY_COLORS[rarity], backgroundColor: `${RARITY_COLORS[rarity]}15`, border: `1.5px solid ${RARITY_COLORS[rarity]}30` }}
+                        >
+                          {RARITY_LABELS[rarity]} {weight}%
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Possible auras */}
+                <div>
+                  <p className={`text-[10px] font-extrabold uppercase tracking-wider mb-3 ${textMuted}`}>Possible Auras</p>
+                  <div className="space-y-2.5">
+                    {auraShapes.map((aura) => {
+                      const baseRarity = AURA_RARITY[aura.id] ?? "common";
+                      return (
+                        <div
+                          key={aura.id}
+                          className={`flex items-center gap-3 p-3 rounded-xl ${light ? "bg-[#F8FAFC] border border-[#E2E8F0]" : "bg-[#0F172A]/40 border border-[#334155]"}`}
+                        >
+                          <div className="shrink-0">
+                            <InkAvatar
+                              config={{ base: "droplet_01", color: "#1E293B", eyes: "eyes_01", accessory: "none", aura: aura.id, aura_color: "#3B82F6" }}
+                              size="sm"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-extrabold ${text}`}>{aura.label}</span>
+                              <span
+                                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                style={{ color: RARITY_COLORS[baseRarity], backgroundColor: `${RARITY_COLORS[baseRarity]}20` }}
+                              >
+                                {RARITY_LABELS[baseRarity]}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                              {AURA_COLORS.map((c) => {
+                                const isLegendary = legendaryHexes.has(c.hex);
+                                return (
+                                  <div
+                                    key={c.hex}
+                                    title={`${c.label}${isLegendary ? " (Legendary)" : ""}`}
+                                    className="relative"
+                                  >
+                                    <div
+                                      className={`w-5 h-5 rounded-full border-2 ${isLegendary ? "ring-1 ring-offset-1 ring-[#EAB308]" : ""}`}
+                                      style={{
+                                        backgroundColor: c.hex,
+                                        borderColor: isLegendary ? "#EAB308" : (light ? "#E2E8F0" : "#334155"),
+                                      }}
+                                    />
+                                    {isLegendary && (
+                                      <span className="absolute -top-1 -right-1 text-[7px]">&#9733;</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Legendary note */}
+                <p className={`text-[10px] font-semibold text-center ${textFaint}`}>
+                  &#9733; Gold &amp; Prismatic colors upgrade any aura to <span style={{ color: RARITY_COLORS.legendary }}>Legendary</span>
+                </p>
+
+                {/* Price + buttons */}
+                <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl" style={{ backgroundColor: `${confirmPack.accent}12`, border: `2px solid ${confirmPack.accent}30` }}>
+                  <InkDropIcon className="w-5 h-5" color={confirmPack.accent} />
+                  <span className="text-xl font-extrabold" style={{ color: confirmPack.accent }}>{confirmPack.price}</span>
+                  <span className={`text-sm font-bold ${textMuted}`}>Ink Drops</span>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirmPack(null)}
+                    className={`flex-1 py-3 rounded-2xl font-extrabold border-2 transition-all active:scale-95 ${light ? "text-[#64748B] bg-[#F8FAFC] border-[#E2E8F0] hover:bg-[#F1F5F9]" : "text-[#94A3B8] bg-[#0F172A] border-[#334155] hover:bg-[#1E293B]"}`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmPackPurchase}
+                    className="flex-1 py-3 rounded-2xl font-extrabold text-white transition-all active:scale-95"
+                    style={{ backgroundColor: confirmPack.accent, boxShadow: `0 4px 12px ${confirmPack.accent}66` }}
+                  >
+                    Open Pack
+                  </button>
+                </div>
+                <p className={`text-[10px] font-semibold text-center ${textFaint}`}>
+                  Balance after: {(profile.ink_drops ?? 0) - confirmPack.price}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Pack opening animation */}
+      {packOpening && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50">
+          <div className="flex flex-col items-center gap-6">
+            <div className="w-24 h-24 rounded-3xl animate-pulse flex items-center justify-center" style={{ backgroundColor: "rgba(139,92,246,0.3)", border: "3px solid rgba(139,92,246,0.5)" }}>
+              <svg viewBox="0 0 24 24" fill="none" className="w-12 h-12 animate-spin">
+                <rect x="3" y="6" width="18" height="14" rx="3" stroke="#8B5CF6" strokeWidth="2" />
+                <path d="M3 10h18" stroke="#8B5CF6" strokeWidth="2" />
+                <circle cx="12" cy="16" r="2" fill="#8B5CF6" />
+              </svg>
+            </div>
+            <p className="text-white font-extrabold text-lg animate-pulse">Opening pack...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Pack result reveal */}
+      {packResult && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => { setPackResult(null); setPackDuplicate(false); }}
+        >
+          <div
+            className={`rounded-3xl shadow-2xl p-8 max-w-sm w-full border-[3px] text-center ${
+              light ? "bg-white" : "bg-[#1E293B]"
+            }`}
+            style={{
+              boxShadow: `0 0 60px ${RARITY_COLORS[packResult.rarity]}40`,
+              borderColor: RARITY_COLORS[packResult.rarity],
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span
+              className="text-xs font-extrabold uppercase tracking-wider px-3 py-1 rounded-full"
+              style={{ color: RARITY_COLORS[packResult.rarity], backgroundColor: `${RARITY_COLORS[packResult.rarity]}20` }}
+            >
+              {RARITY_LABELS[packResult.rarity]}
+            </span>
+            <div className="mt-5 mb-4 flex justify-center">
+              <InkAvatar
+                config={{ base: "droplet_01", color: "#1E293B", eyes: "eyes_01", accessory: "none", aura: packResult.auraId, aura_color: packResult.color }}
+                size="xl"
+              />
+            </div>
+            <h3 className={`text-xl font-extrabold ${text}`}>{packResult.label}</h3>
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <div className="w-4 h-4 rounded-full border-2 border-white/30" style={{ backgroundColor: packResult.color }} />
+              <span className={`text-sm font-bold ${textMuted}`}>{packResult.colorLabel} aura</span>
+            </div>
+            {packDuplicate && (
+              <p className={`text-xs font-bold mt-3 ${textFaint}`}>
+                Duplicate — you already own this aura!
+              </p>
+            )}
+            <button
+              onClick={() => { setPackResult(null); setPackDuplicate(false); }}
+              className="mt-6 w-full py-3 rounded-2xl font-extrabold text-white transition-all active:scale-95"
+              style={{ backgroundColor: RARITY_COLORS[packResult.rarity], boxShadow: `0 4px 12px ${RARITY_COLORS[packResult.rarity]}66` }}
+            >
+              {packDuplicate ? "Unlucky! Try Again" : "Awesome!"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
       {toast && (
         <div
           className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl font-extrabold text-sm shadow-xl z-50 border-2 ${

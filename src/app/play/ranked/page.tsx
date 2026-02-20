@@ -22,11 +22,12 @@ import ResultsScreen from "@/components/ResultsScreen";
 import InkAvatar from "@/components/InkAvatar";
 import RankBadge from "@/components/RankBadge";
 import TrophyIcon from "@/components/icons/TrophyIcon";
+import FlameIcon from "@/components/icons/FlameIcon";
 import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
-import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, calculateScore, TROPHY_WIN, TROPHY_LOSS } from "@/lib/game/rank";
+import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, calculateScore, TROPHY_WIN, TROPHY_LOSS, getWinStreakMultiplier } from "@/lib/game/rank";
 import { getVocabGradeForRanked, PLACEMENT_VOCAB_GRADE } from "@/lib/game/questions";
 
 type Phase = "lobby" | "searching" | "prematch" | "playing" | "results";
@@ -675,15 +676,26 @@ export default function RankedPage() {
           </div>
         )}
 
-        <button
-          onClick={startSearch}
-          disabled={!canPlayRanked}
-          className="w-full py-4 rounded-2xl font-extrabold text-lg text-white transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-          style={{ backgroundColor: MINT }}
-        >
-          <TrophyIcon className="w-6 h-6" color="white" />
-          Find Match
-        </button>
+        <div className="flex items-center gap-3">
+          {profile.ranked_win_streak != null && profile.ranked_win_streak > 0 && (
+            <div
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl ${light ? "bg-amber-50 border border-amber-200" : "bg-amber-500/20 border border-amber-500/40"}`}
+              title={`${profile.ranked_win_streak} win streak · ${Math.round(getWinStreakMultiplier(profile.ranked_win_streak) * 100)}% trophy bonus`}
+            >
+              <FlameIcon className="w-5 h-5" color="#F59E0B" />
+              <span className="font-bold text-amber-600 dark:text-amber-400 tabular-nums">{profile.ranked_win_streak}</span>
+            </div>
+          )}
+          <button
+            onClick={startSearch}
+            disabled={!canPlayRanked}
+            className="flex-1 py-4 rounded-2xl font-extrabold text-lg text-white transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            style={{ backgroundColor: MINT }}
+          >
+            <TrophyIcon className="w-6 h-6" color="white" />
+            Find Match
+          </button>
+        </div>
 
         <p className={`text-center text-xs font-semibold ${textMuted}`}>
           Online matchmaking · Bot fallback if no opponent found

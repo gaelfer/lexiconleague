@@ -13,11 +13,14 @@ import {
   COLORS,
   EYES,
   ACCESSORIES,
-  AURAS,
   CosmeticItem,
   ColorItem,
   colorHexToId,
   FREE_ITEM_IDS,
+  getOwnedAuraVariants,
+  AuraVariant,
+  RARITY_COLORS,
+  RARITY_LABELS,
 } from "@/lib/cosmetics/catalog";
 import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
@@ -332,21 +335,62 @@ export default function LockerPage() {
               </div>
             )}
 
-            {tab === "aura" && (
-              <div className="space-y-3">
-                <p className={`text-xs font-bold uppercase tracking-wider ${textMuted}`}>Aura</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {AURAS.map((a) =>
-                    renderLockerItem(
-                      a,
-                      config.aura === a.id,
-                      () => update({ aura: a.id }),
-                      <InkAvatar config={{ ...config, aura: a.id }} size="sm" />
-                    )
+            {tab === "aura" && (() => {
+              const ownedVariants = getOwnedAuraVariants(profile?.unlocked_items ?? []);
+              const isNoneSelected = config.aura === "none";
+              return (
+                <div className="space-y-3">
+                  <p className={`text-xs font-bold uppercase tracking-wider ${textMuted}`}>Aura</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {/* None option */}
+                    <button
+                      onClick={() => update({ aura: "none", aura_color: undefined })}
+                      className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                        isNoneSelected
+                          ? light ? "border-[#3B82F6] bg-[#DBEAFE] shadow-md" : "border-[#3B82F6] bg-[#3B82F6]/20 shadow-md"
+                          : light ? "border-[#E2E8F0] bg-white hover:border-[#3B82F6]/50" : "border-white/10 bg-[#0F172A]/50 hover:border-[#3B82F6]/50"
+                      }`}
+                    >
+                      <div className={`w-14 h-14 rounded-full border flex items-center justify-center shadow-inner ${previewSurface}`}>
+                        <InkAvatar config={{ ...config, aura: "none", aura_color: undefined }} size="sm" />
+                      </div>
+                      <span className={`text-xs font-bold ${text}`}>None</span>
+                    </button>
+                    {/* Owned aura variants */}
+                    {ownedVariants.map((v: AuraVariant) => {
+                      const isSelected = config.aura === v.auraId && config.aura_color === v.color;
+                      return (
+                        <button
+                          key={v.id}
+                          onClick={() => update({ aura: v.auraId, aura_color: v.color })}
+                          className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                            isSelected
+                              ? light ? "border-[#3B82F6] bg-[#DBEAFE] shadow-md" : "border-[#3B82F6] bg-[#3B82F6]/20 shadow-md"
+                              : light ? "border-[#E2E8F0] bg-white hover:border-[#3B82F6]/50" : "border-white/10 bg-[#0F172A]/50 hover:border-[#3B82F6]/50"
+                          }`}
+                        >
+                          <div className={`w-14 h-14 rounded-full border flex items-center justify-center shadow-inner ${previewSurface}`}>
+                            <InkAvatar config={{ ...config, aura: v.auraId, aura_color: v.color }} size="sm" />
+                          </div>
+                          <span className={`text-xs font-bold text-center leading-tight ${text}`}>{v.label}</span>
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ color: RARITY_COLORS[v.rarity], backgroundColor: `${RARITY_COLORS[v.rarity]}20` }}
+                          >
+                            {RARITY_LABELS[v.rarity]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {ownedVariants.length === 0 && (
+                    <p className={`text-xs font-semibold ${textMuted} text-center py-3`}>
+                      No auras yet! Open packs in the <Link href="/shop" className="underline" style={{ color: "#3B82F6" }}>Ink Shop</Link> to collect them.
+                    </p>
                   )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className={`mt-4 pt-4 border-t ${cardBorder}`}>
               <Link
