@@ -8,6 +8,7 @@ import { getProfile, saveProfile, createGuestProfile } from "@/lib/user/storage"
 import { syncProfileForUser, syncCurrentProfile } from "@/lib/user/profile-sync";
 import { VocabLevel } from "@/types";
 import ThemeToggle from "@/components/ThemeToggle";
+import LogoIcon from "@/components/icons/LogoIcon";
 
 const VOCAB_LEVELS: { value: VocabLevel; label: string }[] = [
   { value: 3, label: "Grade 3" },
@@ -114,6 +115,7 @@ function OnboardingPageInner() {
       </div>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
+          <LogoIcon className="w-14 h-14 mx-auto mb-4" />
           <h1 className={`text-2xl font-extrabold ${text} mb-1`}>Welcome to Lexicon League!</h1>
           <p className={`text-sm ${textMuted}`}>Choose your username and default vocabulary level.</p>
         </div>

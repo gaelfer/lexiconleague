@@ -1,0 +1,30 @@
+/** App favicon/logo — used consistently for branding (header, auth, etc.) */
+export default function LogoIcon({
+  className = "w-10 h-10",
+  ...props
+}: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 256 256"
+      className={className}
+      aria-hidden
+      {...props}
+    >
+      <rect width="256" height="256" rx="56" fill="#0F172A" />
+      <path
+        d="M128 28c-22 36-56 66-56 114 0 31 25 56 56 56s56-25 56-56c0-48-34-78-56-114z"
+        fill="#3B82F6"
+      />
+      <g fill="none" stroke="#111827" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="106" cy="124" r="18" />
+        <circle cx="150" cy="124" r="18" />
+        <path d="M124 124h8" />
+        <path d="M91 124H78" />
+        <path d="M178 124h-13" />
+      </g>
+      <circle cx="106" cy="124" r="6" fill="#111827" />
+      <circle cx="150" cy="124" r="6" fill="#111827" />
+    </svg>
+  );
+}

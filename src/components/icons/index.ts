@@ -1,4 +1,5 @@
 export { default as AppleIcon } from "./AppleIcon";
+export { default as LogoIcon } from "./LogoIcon";
 export { default as BookIcon } from "./BookIcon";
 export { default as GoogleIcon } from "./GoogleIcon";
 export { default as InkDropIcon } from "./InkDropIcon";

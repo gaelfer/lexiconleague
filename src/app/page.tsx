@@ -9,6 +9,7 @@ import { getProfile, saveProfile, createGuestProfile, INITIAL_PROFILE } from "@/
 import { UserProfile } from "@/types";
 import RankBadge from "@/components/RankBadge";
 import InkAvatar from "@/components/InkAvatar";
+import LogoIcon from "@/components/icons/LogoIcon";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import BookIcon from "@/components/icons/BookIcon";
 import TrophyIcon from "@/components/icons/TrophyIcon";
@@ -231,8 +232,8 @@ function Home() {
 
       <header className="relative z-20 flex items-center justify-between gap-3 px-4 sm:px-6 py-4 max-w-6xl mx-auto w-full">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${headerBtn} border overflow-hidden`}>
-            <InkAvatar config={{ base: "droplet_01", color: BLUE, eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={36} />
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${headerBtn} border overflow-hidden p-0.5`}>
+            <LogoIcon className="w-full h-full" />
           </div>
           <span className={`text-lg font-bold ${text}`}>
             Lexicon<span style={{ color: BLUE }}>League</span>
@@ -331,7 +332,7 @@ function Home() {
         <div className="flex items-center justify-center gap-2">
           <p className={`text-sm font-bold tracking-wide ${textMuted} animate-pulse`}>Season</p>
           <div className="relative shrink-0" style={{ transform: "rotate(-6deg)" }}>
-            <InkAvatar config={{ base: "droplet_01", color: BLUE, eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={72} />
+            <LogoIcon className="w-[72px] h-[72px]" />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none" style={{ fontFamily: "system-ui, sans-serif", fontWeight: 900, fontSize: "2rem", color: "white", textShadow: "0 1px 2px rgba(0,0,0,0.5), 0 0 0 2px rgba(0,0,0,0.2)", lineHeight: 1 }}>1</div>
           </div>
         </div>

@@ -9,8 +9,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "@/context/ThemeContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import GoogleIcon from "@/components/icons/GoogleIcon";
+import LogoIcon from "@/components/icons/LogoIcon";
 import MailIcon from "@/components/icons/MailIcon";
-import TrophyIcon from "@/components/icons/TrophyIcon";
 
 type View = "providers" | "email";
 
@@ -120,8 +120,8 @@ function SignupPageInner() {
 
         <div className="relative z-10 text-center px-12 space-y-8">
           <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white shadow-xl">
-              <TrophyIcon className="w-9 h-9" color="#34D399" />
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white shadow-xl overflow-hidden p-1">
+              <LogoIcon className="w-full h-full" />
             </div>
           </div>
           <div>
@@ -164,7 +164,8 @@ function SignupPageInner() {
       <div className={`flex-1 flex flex-col items-center justify-center px-6 py-12 ${light ? "bg-white" : "bg-[#0F172A]"}`}>
         <div className="w-full max-w-sm">
           <div className="flex justify-end mb-4"><ThemeToggle /></div>
-          <div className="lg:hidden text-center mb-8">
+          <div className="lg:hidden flex flex-col items-center gap-3 mb-8">
+            <LogoIcon className="w-12 h-12" />
             <span className={`text-2xl font-extrabold ${light ? "text-[#0F172A]" : "text-white"}`}>
               Lexicon<span className="text-[#3B82F6]">League</span>
             </span>
