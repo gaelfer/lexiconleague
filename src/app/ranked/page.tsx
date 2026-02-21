@@ -15,6 +15,7 @@ import RankBadge from "@/components/RankBadge";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import TrophyIcon from "@/components/icons/TrophyIcon";
+import FlameIcon from "@/components/icons/FlameIcon";
 import { DEFAULT_AVATAR_CONFIG } from "@/types";
 
 const BLUE = "#3B82F6";
@@ -145,8 +146,7 @@ export default function RankedScreenPage() {
   const currentStreak = profile.ranked_win_streak ?? 0;
   const streakMultiplier = getWinStreakMultiplier(currentStreak);
   const nextMilestone = [3, 5, 7, 10].find((m) => m > currentStreak) ?? 10;
-  const prevMilestone = [0, 3, 5, 7, 10].filter((m) => m <= currentStreak).slice(-1)[0] ?? 0;
-  const streakProgress = nextMilestone === prevMilestone ? 100 : ((currentStreak - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
+  const streakProgress = Math.min(100, (currentStreak / 10) * 100);
 
   const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
   const text = light ? "text-[#0F172A]" : "text-white";
@@ -249,9 +249,7 @@ export default function RankedScreenPage() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2C12 2 9 6 9 9c0 1.66 1.34 3 3 3s3-1.34 3-3c0-1.5-1-3-1-3s2 3 2 6c0 3.31-2.69 6-6 6S5 15.31 5 12C5 7 12 2 12 2z" fill={currentStreak > 0 ? "#F59E0B" : (light ? "#CBD5E1" : "#475569")} />
-                    </svg>
+                    <FlameIcon className="w-4 h-4" color={currentStreak > 0 ? "#F59E0B" : (light ? "#CBD5E1" : "#475569")} />
                     <span className="text-sm font-extrabold" style={{ color: currentStreak > 0 ? "#D97706" : (light ? "#94A3B8" : "#64748B") }}>
                       {currentStreak > 0 ? `${currentStreak} Win Streak` : "No Streak"}
                     </span>

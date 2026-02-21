@@ -11,6 +11,7 @@ import InkAvatar from "./InkAvatar";
 import SparkIcon from "./icons/SparkIcon";
 import TrophyIcon from "./icons/TrophyIcon";
 import InkDropIcon from "./icons/InkDropIcon";
+import FlameIcon from "./icons/FlameIcon";
 import { getTierProgress, GAME_DURATION, getWinStreakMultiplier } from "@/lib/game/rank";
 
 interface ResultsScreenProps {
@@ -22,10 +23,13 @@ interface ResultsScreenProps {
   metadata?: GameResultMetadata;
   /** For casual mode: win/loss against opponent(s) */
   casualOutcome?: "win" | "loss" | "draw";
+  /** Optional: pass fresh profile from parent so streak/trophies sync (e.g. after ranked game) */
+  profile?: ReturnType<typeof getProfile>;
 }
 
-export default function ResultsScreen({ result, onPlayAgain, placementGrade, metadata, casualOutcome }: ResultsScreenProps) {
-  const [profile, setProfile] = useState<ReturnType<typeof getProfile>>(null);
+export default function ResultsScreen({ result, onPlayAgain, placementGrade, metadata, casualOutcome, profile: profileProp }: ResultsScreenProps) {
+  const [profileState, setProfileState] = useState<ReturnType<typeof getProfile>>(null);
+  const profile = profileProp ?? profileState;
   const [bests, setBests] = useState({
     casual_vocab: 0,
     casual_punctuation: 0,
@@ -36,13 +40,20 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
   const [levelUpPopup, setLevelUpPopup] = useState(metadata?.levelUp ?? null);
 
   useEffect(() => {
-    setProfile(getProfile());
+    if (!profileProp) setProfileState(getProfile());
     setBests(getPersonalBests());
     setRankUpPopup(metadata?.rankUp ?? null);
     setLevelUpPopup(metadata?.levelUp ?? null);
     const t = setTimeout(() => setVisible(true), 100);
     return () => clearTimeout(t);
-  }, [metadata?.rankUp, metadata?.levelUp]);
+  }, [profileProp, metadata?.rankUp, metadata?.levelUp, result]);
+
+  useEffect(() => {
+    if (profileProp) return;
+    const onUpdated = () => setProfileState(getProfile());
+    window.addEventListener("ll-profile-updated", onUpdated);
+    return () => window.removeEventListener("ll-profile-updated", onUpdated);
+  }, [profileProp]);
 
   function dismissRankUpPopup() {
     if (rankUpPopup) {
@@ -253,18 +264,17 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
         {result.mode === "ranked" && !placementGrade && (() => {
           const streak = profile?.ranked_win_streak ?? 0;
           if (isWin) {
+            const nextWinMultiplier = getWinStreakMultiplier(streak + 1);
             return (
               <div className="rounded-2xl px-4 py-3 bg-amber-50 border border-amber-200 flex items-center gap-2">
-                <svg viewBox="0 0 24 24" fill="#F59E0B" className="w-5 h-5 shrink-0">
-                  <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152-.498 9.75 9.75 0 1010.5 14.25.75.75 0 00.75-.75v-4.133a.75.75 0 00-.75-.75 9.75 9.75 0 01-9.75-9.75.75.75 0 01.136-1.071z" clipRule="evenodd" />
-                </svg>
+                <FlameIcon className="w-5 h-5 shrink-0" color="#F59E0B" />
                 <div className="flex-1">
                   <span className="font-extrabold text-amber-700 text-sm">
                     {streak === 1 ? "Streak started!" : `${streak} win streak!`}
                   </span>
                   {streak > 0 && (
                     <span className="ml-2 text-xs font-bold text-amber-600">
-                      {streak >= 10 ? "MAX 3×" : `Next win: ${getWinStreakMultiplier(streak).toFixed(1)}× trophies`}
+                      {streak >= 10 ? "MAX 3×" : `Next win: ${nextWinMultiplier.toFixed(1)}× trophies`}
                     </span>
                   )}
                 </div>
@@ -274,9 +284,7 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
           if (isLoss) {
             return (
               <div className="rounded-2xl px-4 py-3 bg-slate-50 border border-slate-200 flex items-center gap-2">
-                <svg viewBox="0 0 24 24" fill="#94A3B8" className="w-4 h-4 shrink-0">
-                  <path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.177A7.547 7.547 0 016.648 6.61a.75.75 0 00-1.152-.498 9.75 9.75 0 1010.5 14.25.75.75 0 00.75-.75v-4.133a.75.75 0 00-.75-.75 9.75 9.75 0 01-9.75-9.75.75.75 0 01.136-1.071z" clipRule="evenodd" />
-                </svg>
+                <FlameIcon className="w-4 h-4 shrink-0" color="#94A3B8" />
                 <span className="text-[#64748B] font-bold text-sm">Streak reset. Win again to start a new one.</span>
               </div>
             );

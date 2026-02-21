@@ -445,6 +445,7 @@ export default function RankedPage() {
           onPlayAgain={handlePlayAgain}
           placementGrade={isPlacementMatch ? (getProfile()?.placement_vocab_grade) : undefined}
           metadata={resultMetadata}
+          profile={profile}
         />
       </div>
     );
@@ -541,11 +542,8 @@ export default function RankedPage() {
   const currentStreak = profile.ranked_win_streak ?? 0;
   const streakMultiplier = getWinStreakMultiplier(currentStreak);
   const winTrophies = Math.round(TROPHY_WIN[profile.rank_tier] * streakMultiplier);
-  // Streak milestone thresholds for progress display
-  const STREAK_MILESTONES = [0, 3, 5, 7, 10];
-  const nextMilestone = STREAK_MILESTONES.find((m) => m > currentStreak) ?? 10;
-  const prevMilestone = [...STREAK_MILESTONES].reverse().find((m) => m <= currentStreak) ?? 0;
-  const streakProgress = nextMilestone === prevMilestone ? 100 : ((currentStreak - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
+  const nextMilestone = [3, 5, 7, 10].find((m) => m > currentStreak) ?? 10;
+  const streakProgress = Math.min(100, (currentStreak / 10) * 100);
 
   return (
     <main className={`min-h-screen ${bg} flex flex-col items-center justify-center px-6`}>
