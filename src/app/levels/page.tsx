@@ -347,42 +347,44 @@ function BattlePassTrack({
           boxShadow: `0 0 10px ${BLUE}60`,
         }} />
 
-        {/* ── Player avatar (on progress bar, animates when level changes) ── */}
+        {/* ── Player avatar (on progress bar, level badge in corner) ── */}
         <div
           style={{
             position: "absolute",
             left: playerX,
-            top: TRACK_CY - 24,
+            top: TRACK_CY - 22,
             transform: "translateX(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 2,
             zIndex: 30,
             pointerEvents: "none",
             transition: "left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
           }}
         >
-          <div style={{
-            background: `linear-gradient(135deg, ${BLUE}, ${MINT})`,
-            borderRadius: 12,
-            padding: 2.5,
-            boxShadow: `0 0 14px ${BLUE}80`,
-          }}>
-            <InkAvatar config={profile.avatar_config} size={34} />
+          <div style={{ position: "relative" }}>
+            <div style={{
+              background: `linear-gradient(135deg, ${BLUE}, ${MINT})`,
+              borderRadius: 12,
+              padding: 2.5,
+              boxShadow: `0 0 14px ${BLUE}80`,
+            }}>
+              <InkAvatar config={profile.avatar_config} size={34} />
+            </div>
+            {/* Level badge in corner — keeps marker compact, no overlap with cards below */}
+            <div style={{
+              position: "absolute",
+              bottom: -2,
+              right: -2,
+              fontSize: 9,
+              fontWeight: 800,
+              color: "#fff",
+              backgroundColor: BLUE,
+              borderRadius: 6,
+              padding: "2px 5px",
+              boxShadow: `0 2px 6px ${BLUE}70`,
+              lineHeight: 1,
+            }}>
+              {currentLevel}
+            </div>
           </div>
-          <div style={{
-            fontSize: 10,
-            fontWeight: 800,
-            color: "#fff",
-            backgroundColor: BLUE,
-            borderRadius: 10,
-            padding: "1px 7px",
-            boxShadow: `0 2px 6px ${BLUE}70`,
-          }}>
-            Lv.{currentLevel}
-          </div>
-          <div style={{ width: 2, height: 8, backgroundColor: BLUE, borderRadius: 2, opacity: 0.7 }} />
         </div>
 
         {/* ── Reward cards + nodes ── */}
