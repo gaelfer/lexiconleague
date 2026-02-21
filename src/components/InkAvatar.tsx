@@ -13,6 +13,13 @@ const SIZE_MAP: Record<string, number> = {
 };
 
 /**
+ * Accessories anchored to the body's base rather than the head/top.
+ * These bypass the accY/accScale offsets (which are tuned for head accessories)
+ * so they stay flush with the body's bottom silhouette.
+ */
+const BOTTOM_ACCESSORIES = new Set(["suit_01"]);
+
+/**
  * Per-body-shape offsets for eyes and accessories.
  * eyesY/accY: vertical shift (%).
  * accX: horizontal shift (%) — for wider/narrower bodies.
@@ -108,10 +115,11 @@ export default function InkAvatar({
       {/* Accessory overlays — up to 2 slots, shifted and scaled per body shape */}
       {[c.accessory, c.accessory2 ?? "none"].map((accId, idx) => {
         if (accId === "none") return null;
+        const isBottom = BOTTOM_ACCESSORIES.has(accId);
         const parts: string[] = [];
         if (offsets.accX) parts.push(`translateX(${offsets.accX}%)`);
-        if (offsets.accY) parts.push(`translateY(${offsets.accY}%)`);
-        if (offsets.accScale && offsets.accScale !== 1) parts.push(`scale(${offsets.accScale})`);
+        if (!isBottom && offsets.accY) parts.push(`translateY(${offsets.accY}%)`);
+        if (!isBottom && offsets.accScale && offsets.accScale !== 1) parts.push(`scale(${offsets.accScale})`);
         const transform = parts.length > 0 ? parts.join(" ") : undefined;
         return (
           <div

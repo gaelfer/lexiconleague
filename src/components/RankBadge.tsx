@@ -1,6 +1,8 @@
 "use client";
 
 import { RankTier, RANK_COLORS } from "@/types";
+import BronzeIcon from "@/components/icons/BronzeIcon";
+import DiamondIcon from "@/components/icons/DiamondIcon";
 
 interface RankBadgeProps {
   tier: RankTier;
@@ -19,13 +21,7 @@ function RankIcon({ tier, className }: { tier: RankTier; className: string }) {
   const color = RANK_COLORS[tier];
   const common = { stroke: color, strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
   if (tier === "Bronze") {
-    return (
-      <svg className={className} viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" fill={`${color}35`} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M12 6L16.5 9v6Q12 18.75 7.5 15V9L12 6Z" fill={`${color}30`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
-        <path d="M12 9V15" fill="none" stroke={color} strokeWidth="1" strokeOpacity="0.6" strokeLinecap="round" />
-      </svg>
-    );
+    return <BronzeIcon className={className} color={color} />;
   }
   if (tier === "Silver") {
     return (
@@ -57,11 +53,7 @@ function RankIcon({ tier, className }: { tier: RankTier; className: string }) {
       </svg>
     );
   }
-  return (
-    <svg className={className} viewBox="0 0 24 24">
-      <path d="M12 3.75L16.5 8.25L18 12L16.5 15.75L12 20.25L7.5 15.75L6 12L7.5 8.25L12 3.75Z" fill={`${color}30`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  );
+  return <DiamondIcon className={className} color={color} />;
 }
 
 export default function RankBadge({

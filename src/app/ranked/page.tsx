@@ -16,6 +16,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import TrophyIcon from "@/components/icons/TrophyIcon";
 import FlameIcon from "@/components/icons/FlameIcon";
+import BronzeIcon from "@/components/icons/BronzeIcon";
+import DiamondIcon from "@/components/icons/DiamondIcon";
 import { DEFAULT_AVATAR_CONFIG } from "@/types";
 
 const BLUE = "#3B82F6";
@@ -33,13 +35,7 @@ const TIER_DESCRIPTIONS: Record<RankTier, string> = {
 function BigTierIcon({ tier, color }: { tier: RankTier; color: string }) {
   const common = { stroke: color, strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
   if (tier === "Bronze") {
-    return (
-      <svg className="w-full h-full" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="28" fill={`${color}20`} stroke={color} strokeWidth="2.5" />
-        <path d="M32 16L44 24V40Q32 50 20 40V24L32 16Z" fill={`${color}22`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
-        <path d="M32 24L32 40" fill="none" stroke={color} strokeWidth="1.5" strokeOpacity="0.6" strokeLinecap="round" />
-      </svg>
-    );
+    return <BronzeIcon className="w-full h-full" color={color} />;
   }
   if (tier === "Silver") {
     return (
@@ -77,12 +73,7 @@ function BigTierIcon({ tier, color }: { tier: RankTier; color: string }) {
       </svg>
     );
   }
-  return (
-    <svg className="w-full h-full" viewBox="0 0 64 64">
-      <circle cx="32" cy="32" r="28" fill={`${color}10`} stroke={color} strokeWidth="2" />
-      <path d="M32 10L44 22L48 32L44 42L32 54L20 42L16 32L20 22Z" fill={`${color}28`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
-    </svg>
-  );
+  return <DiamondIcon className="w-full h-full" color={color} />;
 }
 
 function TrophyIconSmall({ rank }: { rank: number }) {
