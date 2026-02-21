@@ -20,7 +20,7 @@ const GATE_MESSAGES: Record<string, string> = {
   ranked: "Sign up to compete in Ranked Mode!",
 };
 
-const GRADES = ["Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "PSAT", "SAT", "Other"];
+const GRADES = ["Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "English 1", "English 2", "English 3", "AP Language & Comp", "AP Literature & Comp", "Other"];
 
 export default function SignupPage() {
   return (

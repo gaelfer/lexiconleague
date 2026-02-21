@@ -37,6 +37,12 @@ const STEPS: TutorialStep[] = [
     text: "This is where you earn trophies and climb the ladder. Win games to rank up.",
   },
   {
+    id: "study",
+    targetId: "study",
+    title: "Study Mode",
+    text: "Self-paced practice with spaced repetition. Pick a tier and unit, build mastery over time — no timer, no pressure.",
+  },
+  {
     id: "leaderboard",
     targetId: "leaderboard",
     title: "Leaderboard Screen",
@@ -73,9 +79,12 @@ const STEPS: TutorialStep[] = [
   },
 ];
 
-function getTargetRect(targetId?: string): Rect | null {
+function getTargetRect(targetId?: string, fallbackId?: string): Rect | null {
   if (!targetId) return null;
-  const element = document.querySelector(`[data-tutorial-id="${targetId}"]`) as HTMLElement | null;
+  let element = document.querySelector(`[data-tutorial-id="${targetId}"]`) as HTMLElement | null;
+  if (!element && fallbackId) {
+    element = document.querySelector(`[data-tutorial-id="${fallbackId}"]`) as HTMLElement | null;
+  }
   if (!element) return null;
   const box = element.getBoundingClientRect();
   const pad = 8;
@@ -100,12 +109,16 @@ export default function HomeTutorialOverlay({ open, light, onFinish }: HomeTutor
   useEffect(() => {
     if (!open) return;
     if (step.targetId) {
-      const element = document.querySelector(`[data-tutorial-id="${step.targetId}"]`) as HTMLElement | null;
+      let element = document.querySelector(`[data-tutorial-id="${step.targetId}"]`) as HTMLElement | null;
+      if (!element && step.targetId === "daily-reward") {
+        element = document.querySelector(`[data-tutorial-id="shop"]`) as HTMLElement | null;
+      }
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
       }
     }
-    const refresh = () => setTargetRect(getTargetRect(step.targetId));
+    const fallback = step.targetId === "daily-reward" ? "shop" : undefined;
+    const refresh = () => setTargetRect(getTargetRect(step.targetId, fallback));
     refresh();
     window.addEventListener("resize", refresh);
     window.addEventListener("scroll", refresh, true);

@@ -41,7 +41,7 @@ interface GameScreenProps {
   playerAvatarConfig?: InkAvatarConfig;
   /** For ranked: returns opponent's final score (used for win/loss & trophies) */
   getOpponentScore?: () => number | null;
-  /** For casual vocabulary: grade level (3-8) or psat/sat to filter questions */
+  /** For casual vocabulary: grade level (3-7), english1-3, ap-lang, ap-lit to filter questions */
   vocabGrade?: VocabLevel;
   /** Pre-computed questions (e.g. for party sync - same match for all) */
   questionsOverride?: Question[];

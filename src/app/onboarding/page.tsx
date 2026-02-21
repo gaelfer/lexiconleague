@@ -10,15 +10,17 @@ import { VocabLevel } from "@/types";
 import ThemeToggle from "@/components/ThemeToggle";
 import LogoIcon from "@/components/icons/LogoIcon";
 
-const VOCAB_LEVELS: { value: VocabLevel; label: string }[] = [
+const VOCAB_LEVELS: { value: VocabLevel; label: string; sublabel?: string }[] = [
   { value: 3, label: "Grade 3" },
   { value: 4, label: "Grade 4" },
   { value: 5, label: "Grade 5" },
   { value: 6, label: "Grade 6" },
   { value: 7, label: "Grade 7" },
-  { value: 8, label: "Grade 8" },
-  { value: "psat", label: "PSAT" },
-  { value: "sat", label: "SAT" },
+  { value: "english1", label: "English 1", sublabel: "High School" },
+  { value: "english2", label: "English 2", sublabel: "High School" },
+  { value: "english3", label: "English 3", sublabel: "High School" },
+  { value: "ap-lang", label: "AP Language", sublabel: "& Composition" },
+  { value: "ap-lit", label: "AP Literature", sublabel: "& Composition" },
 ];
 
 const BLUE = "#3B82F6";
@@ -34,7 +36,7 @@ export default function OnboardingPage() {
 function OnboardingPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get("next") ?? "/";
+  const nextUrl = searchParams.get("next") ?? "/dashboard";
   const { user, loading: authLoading } = useAuth();
   const { light } = useTheme();
   const [username, setUsername] = useState("");

@@ -36,10 +36,7 @@ function BigTierIcon({ tier, color }: { tier: RankTier; color: string }) {
     return (
       <svg className="w-full h-full" viewBox="0 0 64 64">
         <circle cx="32" cy="32" r="28" fill={`${color}20`} stroke={color} strokeWidth="2.5" />
-        <circle cx="32" cy="32" r="22" fill={`${color}15`} stroke={color} strokeWidth="1" strokeDasharray="4 3" />
-        <path d="M22 38c3-3 7-4.5 10.5-4.5s7.5 1.5 10.5 4.5" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="24" cy="27" r="2.5" fill={color} />
-        <circle cx="40" cy="27" r="2.5" fill={color} />
+        <path d="M32 18L44 26v16l-12 10-12-10V26L32 18z" fill={`${color}18`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -82,7 +79,7 @@ function BigTierIcon({ tier, color }: { tier: RankTier; color: string }) {
   return (
     <svg className="w-full h-full" viewBox="0 0 64 64">
       <circle cx="32" cy="32" r="28" fill={`${color}10`} stroke={color} strokeWidth="2" />
-      <path d="M32 8l4 12 12 1.5-9 8 3 12-10-6-10 6 3-12-9-8 12-1.5L32 8z" fill={`${color}25`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M32 12l12 16 12 8-12 16-12-16-12 8 12-16z" fill={`${color}25`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -159,7 +156,7 @@ export default function RankedScreenPage() {
     <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
       <header className="flex items-center justify-between px-5 py-4">
         <Link
-          href="/"
+          href="/dashboard"
           className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${textMuted} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">

@@ -168,7 +168,7 @@ export default function LockerPage() {
     <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
       <header className={`flex items-center justify-between px-5 py-4 border-b ${cardBorder}`}>
         <Link
-          href="/"
+          href="/dashboard"
           className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${textMuted} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">

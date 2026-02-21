@@ -370,7 +370,7 @@ export default function RankedPage() {
       subject === "vocabulary"
         ? isPlacement
           ? PLACEMENT_VOCAB_GRADE
-          : getVocabGradeForRanked(profile.placement_vocab_grade, getTierFromTrophies(profile.trophies), profile.trophies)
+          : getVocabGradeForRanked(profile.placement_vocab_grade, profile.mmr)
         : undefined;
     return (
       <GameScreen
@@ -549,7 +549,7 @@ export default function RankedPage() {
     <main className={`min-h-screen ${bg} flex flex-col items-center justify-center px-6`}>
       <div className="absolute top-5 left-5 right-5 flex items-center justify-between">
         <Link
-          href="/"
+          href="/dashboard"
           className={`text-sm font-bold transition-colors flex items-center gap-1 ${textMuted} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
         >
         <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">

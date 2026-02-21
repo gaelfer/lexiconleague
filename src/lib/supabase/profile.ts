@@ -38,7 +38,7 @@ export interface DbProfile {
   updated_at: string;
 }
 
-const VALID_VOCAB_LEVELS: VocabLevel[] = [3, 4, 5, 6, 7, 8, "psat", "sat"];
+const VALID_VOCAB_LEVELS: VocabLevel[] = [3, 4, 5, 6, 7, "english1", "english2", "english3", "ap-lang", "ap-lit"];
 const unsupportedProfileColumns = new Set<string>();
 
 function getMissingColumnFromError(message: string): string | null {
@@ -83,7 +83,7 @@ export function dbProfileToUserProfile(row: DbProfile): UserProfile {
     },
     vocab_grade,
     mmr: row.mmr ?? undefined,
-    placement_vocab_grade: row.placement_vocab_grade != null ? (row.placement_vocab_grade as 3 | 4 | 5 | 6 | 7 | 8) : undefined,
+    placement_vocab_grade: row.placement_vocab_grade != null ? (row.placement_vocab_grade as 3 | 4 | 5 | 6 | 7) : undefined,
     placement_completed: row.placement_completed ?? undefined,
     tutorial_completed: row.tutorial_completed ?? undefined,
     onboarding_completed: row.onboarding_completed ?? true,

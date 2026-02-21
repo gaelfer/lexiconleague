@@ -13,9 +13,12 @@ export type SkillTag =
   | "semicolons"
   | "capitalization";
 
-export type VocabGrade = 3 | 4 | 5 | 6 | 7 | 8;
-/** Extended vocab level: grades 3-8, or PSAT/SAT for advanced test prep. */
-export type VocabLevel = VocabGrade | "psat" | "sat";
+export type VocabGrade = 3 | 4 | 5 | 6 | 7;
+/**
+ * Extended vocab level: grades 3-7 (elementary/middle school),
+ * then English 1-3 and AP courses (high school class levels).
+ */
+export type VocabLevel = VocabGrade | "english1" | "english2" | "english3" | "ap-lang" | "ap-lit";
 
 /** Punctuation difficulty: 1=beginner, 2=intermediate, 3=advanced. Used in casual mode. */
 export type PunctuationLevel = 1 | 2 | 3;
@@ -28,8 +31,8 @@ export interface Question {
   prompt: string;
   choices: string[];
   answer_index: number;
-  /** For vocabulary: target grade level (3-8, psat, sat). Used for casual grade selection. */
-  gradeLevel?: VocabGrade | "psat" | "sat";
+  /** For vocabulary: target tier level. Used for casual grade selection. */
+  gradeLevel?: VocabLevel;
   /** For punctuation: 1=beginner, 2=intermediate, 3=advanced. Used for punctuation level selection. */
   punctuationLevel?: PunctuationLevel;
 }
@@ -95,7 +98,7 @@ export interface UserProfile {
   daily_reward_claimed_at: string | null;
   daily_streak: number;
   avatar_config: InkAvatarConfig;
-  /** Preferred vocab level for casual mode (grades 3-8, psat, sat). */
+  /** Preferred vocab level for casual mode. */
   vocab_grade?: VocabLevel;
   /** Level numbers for which rewards have been claimed (Level & Rewards screen). */
   claimed_level_rewards?: number[];
@@ -103,6 +106,10 @@ export interface UserProfile {
   mmr?: number;
   /** Set after placement match; determines ranked question difficulty. */
   placement_vocab_grade?: VocabGrade;
+  /** Consecutive days with at least one study session completed. */
+  study_streak?: number;
+  /** ISO timestamp of last study session. */
+  last_study_session_at?: string | null;
   /** True after first ranked game (placement). */
   placement_completed?: boolean;
   /** True after completing or skipping the first-time home tutorial. */

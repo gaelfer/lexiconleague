@@ -23,7 +23,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
     }
     fetchProfile(user.id).then((profile) => {
       if (profile && profile.onboarding_completed === false) {
-        router.replace(`/onboarding?next=${encodeURIComponent(pathname || "/")}`);
+        router.replace(`/onboarding?next=${encodeURIComponent(pathname || "/dashboard")}`);
         return;
       }
       setChecked(true);

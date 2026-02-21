@@ -14,15 +14,17 @@ import RankBadge from "@/components/RankBadge";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 
-const VOCAB_LEVELS: { value: VocabLevel; label: string }[] = [
+const VOCAB_LEVELS: { value: VocabLevel; label: string; sublabel?: string }[] = [
   { value: 3, label: "Grade 3" },
   { value: 4, label: "Grade 4" },
   { value: 5, label: "Grade 5" },
   { value: 6, label: "Grade 6" },
   { value: 7, label: "Grade 7" },
-  { value: 8, label: "Grade 8" },
-  { value: "psat", label: "PSAT" },
-  { value: "sat", label: "SAT" },
+  { value: "english1", label: "English 1", sublabel: "High School" },
+  { value: "english2", label: "English 2", sublabel: "High School" },
+  { value: "english3", label: "English 3", sublabel: "High School" },
+  { value: "ap-lang", label: "AP Language", sublabel: "& Composition" },
+  { value: "ap-lit", label: "AP Literature", sublabel: "& Composition" },
 ];
 
 export default function ProfilePage() {
@@ -38,7 +40,6 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [loading, setLoading] = useState(true);
   const [savingGrade, setSavingGrade] = useState(false);
-  const [syncing, setSyncing] = useState(false);
 
   const showToast = useCallback((type: "success" | "error", msg: string) => {
     setToast({ type, msg });
@@ -81,25 +82,6 @@ export default function ProfilePage() {
       showToast("error", result.error ?? "Failed to update username.");
     }
     setSavingUsername(false);
-  }
-
-  async function handleSyncToCloud() {
-    if (!user) return;
-    setSyncing(true);
-    const local = getProfile();
-    if (!local) {
-      showToast("error", "No local profile to sync.");
-      setSyncing(false);
-      return;
-    }
-    try {
-      await syncCurrentProfile(user.id);
-      showToast("success", `Synced! ${local.trophies} trophies saved to cloud.`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to sync to cloud.";
-      showToast("error", msg);
-    }
-    setSyncing(false);
   }
 
   async function handleVocabGradeChange(level: VocabLevel) {
@@ -163,7 +145,7 @@ export default function ProfilePage() {
     <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
       <header className={`flex items-center justify-between px-5 py-4 border-b ${cardBorder}`}>
         <Link
-          href="/"
+          href="/dashboard"
           className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${textMuted} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
@@ -251,27 +233,12 @@ export default function ProfilePage() {
         {user && (
           <>
             <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} shadow-lg`}>
-              <h2 className={`${text} font-bold text-base mb-2`}>Sync to cloud</h2>
-              <p className={`${textMuted} text-xs mb-4`}>
-                Push your local progress (trophies, XP, ink drops) to Supabase so it appears on the leaderboard.
-              </p>
-              <button
-                onClick={handleSyncToCloud}
-                disabled={syncing}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition-colors"
-                style={{ backgroundColor: "#22C55E" }}
-              >
-                {syncing ? "Syncing..." : "Sync now"}
-              </button>
-            </div>
-
-            <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} shadow-lg`}>
               <h2 className={`${text} font-bold text-base mb-2`}>Tutorial</h2>
               <p className={`${textMuted} text-xs mb-4`}>
                 Want a refresher? Replay the guided walkthrough from home.
               </p>
               <Link
-                href="/?tutorial=1"
+                href="/dashboard?tutorial=1"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
                 style={{ backgroundColor: "#3B82F6" }}
               >

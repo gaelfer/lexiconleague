@@ -1,4 +1,4 @@
-import { RankTier, RANK_TIERS, RANK_THRESHOLDS, GameMode } from "@/types";
+import { RankTier, RANK_TIERS, RANK_THRESHOLDS, GameMode, VocabGrade } from "@/types";
 
 // ── Rank rewards (skins unlocked per tier) ─────────────────────────────────────
 export const RANK_REWARD_ITEM_IDS: Record<RankTier, string[]> = {
@@ -124,7 +124,8 @@ export function getTierProgress(trophies: number, tier: RankTier): number {
 }
 
 // ── MMR (Elo-style, for ranked matchmaking) ────────────────────────────────────
-const MMR_K = 32;
+// Lower K makes climbing each 100-MMR difficulty band take sustained performance.
+const MMR_K = 20;
 const MMR_DEFAULT = 1000;
 
 /** MMR for a bot opponent based on tier. Used for Elo calculation. */
@@ -138,6 +139,12 @@ export function getMMRForTier(tier: RankTier): number {
     Emerald: 1600,
   };
   return tierMMR[tier] ?? MMR_DEFAULT;
+}
+
+/** Starting ranked MMR from placement vocab grade (3-7), 100 MMR per grade band. */
+export function getStartingMMRForPlacementGrade(grade: VocabGrade): number {
+  const gradeOffset = grade - 3; // 3=>0, 7=>4
+  return 800 + gradeOffset * 100;
 }
 
 /** Elo-style MMR update. Returns new MMR. */

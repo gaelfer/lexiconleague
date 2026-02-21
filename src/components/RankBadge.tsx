@@ -21,10 +21,8 @@ function RankIcon({ tier, className }: { tier: RankTier; className: string }) {
   if (tier === "Bronze") {
     return (
       <svg className={className} viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" fill={`${color}35`} stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M8 14c1.5-1 3-1.5 4.5-1.5s3 .5 4.5 1.5" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="9" cy="10" r="1" fill={color} />
-        <circle cx="15" cy="10" r="1" fill={color} />
+        <circle cx="12" cy="12" r="10" fill={`${color}35`} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 7L16.5 10v6l-4.5 3.75L7.5 16V10L12 7z" fill={`${color}30`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -60,7 +58,7 @@ function RankIcon({ tier, className }: { tier: RankTier; className: string }) {
   }
   return (
     <svg className={className} viewBox="0 0 24 24">
-      <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" {...common} />
+      <path d="M12 4.5l4.5 6 4.5 3-4.5 6-4.5-6-4.5 3 4.5-6z" fill={`${color}30`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }

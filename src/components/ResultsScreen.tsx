@@ -321,7 +321,7 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
             Play Again
           </button>
           <Link
-            href="/"
+            href="/dashboard"
             className="w-full py-3 text-center text-[#64748B] hover:text-[#0F172A] font-bold transition-colors"
           >
             Back to Home

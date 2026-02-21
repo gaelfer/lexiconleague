@@ -45,15 +45,17 @@ const ONE_VS_ONE_QUESTIONS = 15;
 type CasualMode = "1v1" | "3v3";
 type Phase = "select" | "vocab-grade" | "punctuation-level" | "searching" | "matchmaking" | "playing" | "waiting" | "results";
 
-const VOCAB_LEVELS: { level: VocabLevel; label: string }[] = [
+const VOCAB_LEVELS: { level: VocabLevel; label: string; sublabel?: string }[] = [
   { level: 3, label: "Grade 3" },
   { level: 4, label: "Grade 4" },
   { level: 5, label: "Grade 5" },
   { level: 6, label: "Grade 6" },
   { level: 7, label: "Grade 7" },
-  { level: 8, label: "Grade 8" },
-  { level: "psat", label: "PSAT" },
-  { level: "sat", label: "SAT" },
+  { level: "english1", label: "English 1", sublabel: "High School" },
+  { level: "english2", label: "English 2", sublabel: "High School" },
+  { level: "english3", label: "English 3", sublabel: "High School" },
+  { level: "ap-lang", label: "AP Language", sublabel: "& Composition" },
+  { level: "ap-lit", label: "AP Literature", sublabel: "& Composition" },
 ];
 
 const PREMATCH_SECONDS = 5;
@@ -1172,7 +1174,7 @@ export default function CasualPage() {
   }
 
   function handleUseDefault() {
-    const defaultLevel = profile?.vocab_grade ?? 8;
+    const defaultLevel: VocabLevel = profile?.vocab_grade ?? "english1";
     doQueue("vocabulary", defaultLevel);
   }
 
@@ -1607,12 +1609,13 @@ export default function CasualPage() {
   if (phase === "vocab-grade") {
     const gradeColors: Record<string, string> = {
       "3": "#34D399", "4": "#60A5FA", "5": "#A78BFA",
-      "6": "#F97316", "7": "#EC4899", "8": "#EF4444",
-      psat: "#FBBF24", sat: "#F43F5E",
+      "6": "#F97316", "7": "#EC4899",
+      "english1": "#EF4444", "english2": "#FBBF24",
+      "english3": "#F43F5E", "ap-lang": "#8B5CF6", "ap-lit": "#A855F7",
     };
     const gradeEmojis: Record<string, string> = {
-      "3": "🌱", "4": "📗", "5": "📘", "6": "📙",
-      "7": "📕", "8": "🔥", psat: "⚡", sat: "🏆",
+      "3": "🌱", "4": "📗", "5": "📘", "6": "📙", "7": "📕",
+      "english1": "🔥", "english2": "⚡", "english3": "💡", "ap-lang": "🏆", "ap-lit": "📖",
     };
     const defaultLabel = VOCAB_LEVELS.find((l) => l.level === profile?.vocab_grade)?.label ?? profile?.vocab_grade;
     return (
@@ -2040,7 +2043,7 @@ export default function CasualPage() {
   return (
     <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
       <header className="flex items-center justify-between px-5 py-4">
-        <Link href="/" className={`flex items-center gap-1.5 text-sm font-bold ${textMuted} hover:opacity-80 transition-opacity`}>
+        <Link href="/dashboard" className={`flex items-center gap-1.5 text-sm font-bold ${textMuted} hover:opacity-80 transition-opacity`}>
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
           </svg>
