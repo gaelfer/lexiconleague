@@ -36,7 +36,8 @@ function BigTierIcon({ tier, color }: { tier: RankTier; color: string }) {
     return (
       <svg className="w-full h-full" viewBox="0 0 64 64">
         <circle cx="32" cy="32" r="28" fill={`${color}20`} stroke={color} strokeWidth="2.5" />
-        <path d="M32 18L44 26v16l-12 10-12-10V26L32 18z" fill={`${color}18`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M32 16L44 24V40Q32 50 20 40V24L32 16Z" fill={`${color}22`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M32 24L32 40" fill="none" stroke={color} strokeWidth="1.5" strokeOpacity="0.6" strokeLinecap="round" />
       </svg>
     );
   }
@@ -79,7 +80,7 @@ function BigTierIcon({ tier, color }: { tier: RankTier; color: string }) {
   return (
     <svg className="w-full h-full" viewBox="0 0 64 64">
       <circle cx="32" cy="32" r="28" fill={`${color}10`} stroke={color} strokeWidth="2" />
-      <path d="M32 12l12 16 12 8-12 16-12-16-12 8 12-16z" fill={`${color}25`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M32 10L44 22L48 32L44 42L32 54L20 42L16 32L20 22Z" fill={`${color}28`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );
 }

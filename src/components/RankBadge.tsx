@@ -22,7 +22,8 @@ function RankIcon({ tier, className }: { tier: RankTier; className: string }) {
     return (
       <svg className={className} viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="10" fill={`${color}35`} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M12 7L16.5 10v6l-4.5 3.75L7.5 16V10L12 7z" fill={`${color}30`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M12 6L16.5 9v6Q12 18.75 7.5 15V9L12 6Z" fill={`${color}30`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M12 9V15" fill="none" stroke={color} strokeWidth="1" strokeOpacity="0.6" strokeLinecap="round" />
       </svg>
     );
   }
@@ -58,7 +59,7 @@ function RankIcon({ tier, className }: { tier: RankTier; className: string }) {
   }
   return (
     <svg className={className} viewBox="0 0 24 24">
-      <path d="M12 4.5l4.5 6 4.5 3-4.5 6-4.5-6-4.5 3 4.5-6z" fill={`${color}30`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M12 3.75L16.5 8.25L18 12L16.5 15.75L12 20.25L7.5 15.75L6 12L7.5 8.25L12 3.75Z" fill={`${color}30`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }

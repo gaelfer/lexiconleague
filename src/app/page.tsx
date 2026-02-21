@@ -91,7 +91,8 @@ function BigTierIcon({ tier, color, size = 56 }: { tier: RankTier; color: string
     svg = (
       <svg className="w-full h-full" viewBox="0 0 64 64">
         <circle cx="32" cy="32" r="28" fill={`${color}20`} stroke={color} strokeWidth="2.5" />
-        <path d="M32 18L44 26v16l-12 10-12-10V26L32 18z" fill={`${color}18`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M32 16L44 24V40Q32 50 20 40V24L32 16Z" fill={`${color}22`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M32 24L32 40" fill="none" stroke={color} strokeWidth="1.5" strokeOpacity="0.6" strokeLinecap="round" />
       </svg>
     );
   } else if (tier === "Silver") {
@@ -127,11 +128,11 @@ function BigTierIcon({ tier, color, size = 56 }: { tier: RankTier; color: string
       </svg>
     );
   } else {
-    // Diamond — cut gem shape
+    // Diamond — faceted gem (brilliant cut)
     svg = (
       <svg className="w-full h-full" viewBox="0 0 64 64">
         <circle cx="32" cy="32" r="28" fill={`${color}10`} stroke={color} strokeWidth="2" />
-        <path d="M32 12l12 16 12 8-12 16-12-16-12 8 12-16z" fill={`${color}25`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M32 10L44 22L48 32L44 42L32 54L20 42L16 32L20 22Z" fill={`${color}28`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -286,9 +287,8 @@ export default function MarketingPage() {
         .cosm-card { transition: border-color 0.2s ease; }
         .cosm-card:hover { border-color: rgba(52, 211, 153, 0.45) !important; }
 
-        /* Tier node — subtle lift and glow on hover */
-        .tier-node { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: default; }
-        .tier-node:hover { transform: translateY(-6px); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+        /* Tier node */
+        .tier-node { cursor: default; }
 
         /* Hero Inklings — circle around main, responsive */
         .hero-inklings-wrap { display: flex; justify-content: center; align-items: center; }
