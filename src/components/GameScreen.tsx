@@ -21,6 +21,8 @@ interface GameScreenProps {
   mode: GameMode;
   subject: Subject;
   onComplete: (result: GameResult, metadata?: import("@/types").GameResultMetadata) => void;
+  /** Incrementing signal to force-end the game with current stats. */
+  forceFinishSignal?: number;
   /** Called each time the player answers a question (for ranked live opponent sync) */
   onAnswerProgress?: (answered: number, score: number) => void;
   /** Opponent's answered count (for ranked live display). For 3v3, combined total. */
@@ -45,7 +47,7 @@ interface GameScreenProps {
   questionsOverride?: Question[];
 }
 
-export default function GameScreen({ mode, subject, onComplete, onAnswerProgress, opponentAnswered, opponentScore, opponent, opponents, teamMembers, teammateScores, playerAvatarConfig, getOpponentScore, vocabGrade, questionsOverride }: GameScreenProps) {
+export default function GameScreen({ mode, subject, onComplete, forceFinishSignal, onAnswerProgress, opponentAnswered, opponentScore, opponent, opponents, teamMembers, teammateScores, playerAvatarConfig, getOpponentScore, vocabGrade, questionsOverride }: GameScreenProps) {
   const questions = useMemo(
     () => questionsOverride ?? getQuestionsForMode(subject, 30, vocabGrade),
     [subject, vocabGrade, questionsOverride]
@@ -86,6 +88,7 @@ export default function GameScreen({ mode, subject, onComplete, onAnswerProgress
         : undefined;
       onComplete(result, { rankUp, levelUp });
     },
+    forceFinishSignal,
     onAnswerProgress,
     getOpponentScore,
   });

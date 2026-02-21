@@ -40,6 +40,7 @@ const isSupabaseConfigured =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 0;
 
 const THREE_VS_THREE_QUESTIONS = 15;
+const ONE_VS_ONE_QUESTIONS = 15;
 
 type CasualMode = "1v1" | "3v3";
 type Phase = "select" | "vocab-grade" | "searching" | "matchmaking" | "playing" | "waiting" | "results";
@@ -86,6 +87,14 @@ type MatchFoundPayload1v1 = {
     rank_tier?: RankTier;
     avatar_config?: InkAvatarConfig;
   };
+};
+type GameDecisionPayload = {
+  matchSeed?: string;
+  fromUserId?: string;
+  toUserId?: string;
+  finalAnswered?: number;
+  finalScore?: number;
+  finalElapsedMs?: number;
 };
 
 function toRankTier(value: unknown): RankTier | undefined {
@@ -279,8 +288,10 @@ export default function CasualPage() {
   const [teammateScores, setTeammateScores] = useState<number[]>([]);
   const [, setTeammateAnswered] = useState<number[]>([]);
   const [matchSeed, setMatchSeed] = useState<string | null>(null);
+  const [forceFinishSignal, setForceFinishSignal] = useState(0);
   const partyQueueAppliedRef = useRef(false);
   const matchedRef = useRef(false);
+  const decisionSentRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -295,6 +306,7 @@ export default function CasualPage() {
   const remoteDoneRef = useRef<Record<string, boolean>>({});
   const remoteFinishMsRef = useRef<Record<string, number>>({});
   const [remoteFinishMsState, setRemoteFinishMsState] = useState<Record<string, number>>({});
+  const [remoteFinalState, setRemoteFinalState] = useState<Record<string, { answered: number; score: number }>>({});
   const waitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [waitElapsedMs, setWaitElapsedMs] = useState(0);
   const [profile, setProfile] = useState(INITIAL_PROFILE);
@@ -307,6 +319,14 @@ export default function CasualPage() {
   const setRemoteFinish = useCallback((userId: string, elapsedMs: number) => {
     remoteFinishMsRef.current[userId] = elapsedMs;
     setRemoteFinishMsState({ ...remoteFinishMsRef.current });
+  }, []);
+
+  const setRemoteFinal = useCallback((userId: string, answered: number, score: number) => {
+    setRemoteFinalState((prev) => {
+      const current = prev[userId];
+      if (current && current.answered === answered && current.score === score) return prev;
+      return { ...prev, [userId]: { answered, score } };
+    });
   }, []);
 
   useEffect(() => {
@@ -385,14 +405,17 @@ export default function CasualPage() {
       setOpponentScores(new Array(opponents.length).fill(0));
       setTeammateAnswered(new Array(teamMembers.length).fill(0));
       setTeammateScores(new Array(teamMembers.length).fill(0));
+      setForceFinishSignal(0);
       gameStartTimeRef.current = Date.now();
       setWaitElapsedMs(0);
       playerDoneRef.current = false;
       playerFinishTimeRef.current = 0;
       setPlayerFinishMsState(0);
+      decisionSentRef.current = false;
       remoteDoneRef.current = {};
       remoteFinishMsRef.current = {};
       setRemoteFinishMsState({});
+      setRemoteFinalState({});
     }
   }, [phase, opponents.length, teamMembers.length]);
 
@@ -658,6 +681,9 @@ export default function CasualPage() {
           next[oppIdx] = payload.score ?? next[oppIdx] ?? 0;
           return next;
         });
+        if (payload.answered != null && payload.score != null) {
+          setRemoteFinal(payload.userId, payload.answered, payload.score);
+        }
         return;
       }
 
@@ -673,6 +699,9 @@ export default function CasualPage() {
           next[teamIdx] = payload.score ?? next[teamIdx] ?? 0;
           return next;
         });
+        if (payload.answered != null && payload.score != null) {
+          setRemoteFinal(payload.userId, payload.answered, payload.score);
+        }
       }
 
       if (
@@ -698,6 +727,9 @@ export default function CasualPage() {
         elapsedMs?: number;
       };
       if (!payload || payload.matchSeed !== matchSeed || !payload.userId || payload.userId === user.id) return;
+      if (payload.answered != null && payload.score != null) {
+        setRemoteFinal(payload.userId, payload.answered, payload.score);
+      }
 
       remoteDoneRef.current[payload.userId] = true;
       if (typeof payload.elapsedMs === "number" && Number.isFinite(payload.elapsedMs)) {
@@ -736,9 +768,32 @@ export default function CasualPage() {
       }
     });
 
+    gameChannel.on("broadcast", { event: "game-decision" }, (msg: { payload: GameDecisionPayload }) => {
+      const payload = msg.payload;
+      if (mode !== "1v1") return;
+      if (!payload || payload.matchSeed !== matchSeed || !payload.fromUserId || payload.fromUserId === user.id) return;
+      if (payload.toUserId && payload.toUserId !== user.id) return;
+
+      if (payload.finalAnswered != null && payload.finalScore != null) {
+        setOpponentAnswered([payload.finalAnswered]);
+        setOpponentScores([payload.finalScore]);
+        setRemoteFinal(payload.fromUserId, payload.finalAnswered, payload.finalScore);
+      }
+      if (payload.finalElapsedMs != null) {
+        setRemoteFinish(payload.fromUserId, payload.finalElapsedMs);
+      }
+      remoteDoneRef.current[payload.fromUserId] = true;
+
+      if (phase === "playing") {
+        setForceFinishSignal((n) => n + 1);
+      } else if (phase === "waiting") {
+        setPhase("results");
+      }
+    });
+
     gameChannel.subscribe();
     return () => cleanupGameChannel();
-  }, [cleanupGameChannel, hasHumanMatch, matchSeed, mode, opponents, phase, setBotResults, setRemoteFinish, teamMembers, user]);
+  }, [cleanupGameChannel, hasHumanMatch, matchSeed, mode, opponents, phase, setBotResults, setRemoteFinal, setRemoteFinish, teamMembers, user]);
 
   // In 3v3, if you finish early, wait until all humans + bots are done.
   useEffect(() => {
@@ -781,6 +836,53 @@ export default function CasualPage() {
     const interval = setInterval(tick, 250);
     return () => clearInterval(interval);
   }, [mode, opponents, phase, teamMembers]);
+
+  // In human 1v1, if you finish early, wait until outcome is guaranteed or opponent finishes.
+  useEffect(() => {
+    if (phase !== "waiting" || mode !== "1v1") return;
+    if (!user || !matchSeed || opponents.length !== 1 || opponents[0].isBot || !result) return;
+
+    const opponentId = opponents[0].id;
+    const myCorrect = result.correct;
+    const myElapsed = playerFinishTimeRef.current;
+
+    const tick = () => {
+      const oppSnapshot = remoteFinalState[opponentId];
+      const oppAnswered = oppSnapshot?.answered ?? (opponentAnswered[0] ?? 0);
+      const oppScore = oppSnapshot?.score ?? (opponentScores[0] ?? 0);
+      const oppCorrect = Math.round(oppScore / 10);
+      const oppDone = !!remoteDoneRef.current[opponentId] || oppAnswered >= ONE_VS_ONE_QUESTIONS;
+      const remaining = Math.max(0, ONE_VS_ONE_QUESTIONS - oppAnswered);
+      const oppMaxCorrect = oppCorrect + remaining;
+      const guaranteedWin = myCorrect > oppMaxCorrect || (myCorrect === oppMaxCorrect && myElapsed > 0);
+
+      if (!oppDone && !guaranteedWin) return;
+
+      if (!decisionSentRef.current && gameChannelRef.current) {
+        decisionSentRef.current = true;
+        try {
+          gameChannelRef.current.send({
+            type: "broadcast",
+            event: "game-decision",
+            payload: {
+              matchSeed,
+              fromUserId: user.id,
+              toUserId: opponentId,
+              finalAnswered: result.correct + result.incorrect,
+              finalScore: result.score,
+              finalElapsedMs: myElapsed,
+            } satisfies GameDecisionPayload,
+          });
+        } catch {}
+      }
+
+      setPhase("results");
+    };
+
+    tick();
+    const interval = setInterval(tick, 200);
+    return () => clearInterval(interval);
+  }, [matchSeed, mode, opponentAnswered, opponentScores, opponents, phase, remoteFinalState, result, user]);
 
   async function startSearch(queueSubject: Subject, queueGrade: VocabLevel | undefined) {
     if (!canQueue) return;
@@ -1066,6 +1168,7 @@ export default function CasualPage() {
     if (user) {
       remoteDoneRef.current[user.id] = true;
       setRemoteFinish(user.id, elapsedMs);
+      setRemoteFinal(user.id, playerAnswered, r.score);
     }
 
     // Snap final bot scores immediately for non-3v3; 3v3 waits for full team completion.
@@ -1083,6 +1186,11 @@ export default function CasualPage() {
       try {
         gameChannelRef.current.send({
           type: "broadcast",
+          event: "game-progress",
+          payload: { matchSeed, userId: user.id, answered: playerAnswered, score: r.score, elapsedMs, finished: true },
+        });
+        gameChannelRef.current.send({
+          type: "broadcast",
           event: "game-complete",
           payload: { matchSeed, userId: user.id, answered: playerAnswered, score: r.score, elapsedMs },
         });
@@ -1090,6 +1198,8 @@ export default function CasualPage() {
     }
 
     if (is3v3Game && playerAnswered >= THREE_VS_THREE_QUESTIONS) {
+      setPhase("waiting");
+    } else if (mode === "1v1" && hasHumanMatch && !opponents[0]?.isBot && playerAnswered >= ONE_VS_ONE_QUESTIONS) {
       setPhase("waiting");
     } else {
       // Timer ran out or 1v1
@@ -1116,6 +1226,7 @@ export default function CasualPage() {
     setResultMetadata(undefined);
     setVocabGrade(undefined);
     setMatchSeed(null);
+    setForceFinishSignal(0);
     setOpponents([]);
     setTeamMembers([]);
     setOpponentScores([]);
@@ -1126,9 +1237,11 @@ export default function CasualPage() {
     playerFinishTimeRef.current = 0;
     setPlayerFinishMsState(0);
     playerDoneRef.current = false;
+    decisionSentRef.current = false;
     remoteDoneRef.current = {};
     remoteFinishMsRef.current = {};
     setRemoteFinishMsState({});
+    setRemoteFinalState({});
     setWaitElapsedMs(0);
     setPhase("select");
   }
@@ -1142,8 +1255,10 @@ export default function CasualPage() {
   const seededQuestions = useMemo(() => {
     if (!matchSeed) return undefined;
     const qs = getSeededQuestionsForMode(subject, matchSeed, 30, vocabGrade);
-    // 3v3 uses a fixed 15-question sprint; everyone answers the same set
-    return mode === "3v3" ? qs.slice(0, THREE_VS_THREE_QUESTIONS) : qs;
+    // PvP uses a fixed 15-question sprint; everyone answers the same set
+    if (mode === "3v3") return qs.slice(0, THREE_VS_THREE_QUESTIONS);
+    if (mode === "1v1") return qs.slice(0, ONE_VS_ONE_QUESTIONS);
+    return qs;
   }, [matchSeed, mode, subject, vocabGrade]);
 
   if (phase === "playing" && opponents.length > 0) {
@@ -1172,7 +1287,9 @@ export default function CasualPage() {
             answered,
             score,
             elapsedMs,
-            finished: mode === "3v3" && answered >= THREE_VS_THREE_QUESTIONS,
+            finished:
+              (mode === "3v3" && answered >= THREE_VS_THREE_QUESTIONS) ||
+              (mode === "1v1" && answered >= ONE_VS_ONE_QUESTIONS),
           },
         });
       } catch {}
@@ -1183,6 +1300,7 @@ export default function CasualPage() {
         mode="casual"
         subject={subject}
         onComplete={handleComplete}
+        forceFinishSignal={forceFinishSignal}
         onAnswerProgress={handleAnswerProgress}
         opponent={mode === "1v1" ? opponents[0] : undefined}
         opponents={mode === "3v3" ? opponents : undefined}
@@ -1198,8 +1316,43 @@ export default function CasualPage() {
     );
   }
 
-  // ── Waiting for other players to finish (3v3 only) ─────────────────────────
+  // ── Waiting for other players to finish (3v3 + human 1v1) ──────────────────
   if (phase === "waiting") {
+    if (mode === "1v1") {
+      const opp = opponents[0];
+      const oppSnapshot = opp ? remoteFinalState[opp.id] : undefined;
+      const oppAnswered = oppSnapshot?.answered ?? (opponentAnswered[0] ?? 0);
+      return (
+        <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-6 overflow-x-hidden`}>
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            <ThemeToggle />
+            <GlobalNotificationBar />
+          </div>
+          <div className="w-full max-w-sm text-center space-y-6">
+            <div className="relative mx-auto w-24 h-24">
+              <div className={`w-24 h-24 rounded-full border-4 ${light ? "border-[#E2E8F0]" : "border-white/20"} border-t-[#3B82F6] animate-spin`} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <InkAvatar config={(profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig} size="md" />
+              </div>
+            </div>
+            <div>
+              <h2 className={`text-xl font-extrabold ${text}`}>Waiting for opponent…</h2>
+              <p className={`${textMuted} text-sm mt-1`}>
+                You finished {ONE_VS_ONE_QUESTIONS}/{ONE_VS_ONE_QUESTIONS}. Resolving match.
+              </p>
+            </div>
+            {opp && (
+              <div className={`flex items-center gap-2 rounded-xl px-3 py-2 ${light ? "bg-white border border-[#E2E8F0]" : "bg-[#1E293B] border border-white/10"}`}>
+                <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...opp.avatar_config }} size="xs" className="shrink-0" />
+                <p className={`text-xs font-bold flex-1 text-left truncate ${text}`}>{opp.username}{opp.isBot ? " BOT" : ""}</p>
+                <span className="text-xs font-bold text-[#3B82F6]">{oppAnswered}/{ONE_VS_ONE_QUESTIONS}</span>
+              </div>
+            )}
+          </div>
+        </main>
+      );
+    }
+
     const br = botResultsState;
     const allOppBotsDone = !br || br.opponents.every((b) => waitElapsedMs >= (b.finishTimeMs ?? 60_000));
     const allTeamBotsDone = !br || br.teammates.every((b) => waitElapsedMs >= (b.finishTimeMs ?? 60_000));
@@ -1523,57 +1676,83 @@ export default function CasualPage() {
     const hasBotResults = !!br && br.opponents.length > 0;
     const is3v3 = mode === "3v3" && opponents.length === 3 && teamMembers.length === 2;
 
-    // Tiebreaker: whoever finishes their 15 questions faster wins a tied matchup.
-    // Lower finishTimeMs = finished faster = wins the tie.
     function matchupWinner(
-      allyCorrect: number, allyFinishMs: number,
-      oppCorrect: number, oppFinishMs: number
+      allyCorrect: number,
+      oppCorrect: number
     ): "ally" | "opp" | "tie" {
       if (allyCorrect !== oppCorrect) return allyCorrect > oppCorrect ? "ally" : "opp";
-      if (allyFinishMs < oppFinishMs) return "ally";
-      if (oppFinishMs < allyFinishMs) return "opp";
       return "tie";
     }
 
     const playerCorrect = result.correct;
-    const playerFinishMs = playerFinishMsState;
 
     // 3v3: individual matchups (best of 3). Use bot results for bots, opponentScores for humans.
     const matchups = is3v3
       ? (() => {
           const allyScore0 = result.score;
           const allyCorrect0 = playerCorrect;
-          const allyFinishMs0 = playerFinishMs;
-          const oppCorrect0 = opponents[0].isBot && br?.opponents[0] ? br.opponents[0].correct : Math.round((opponentScores[0] ?? 0) / 10);
-          const oppFinishMs0 = opponents[0].isBot && br?.opponents[0]
-            ? (br.opponents[0].finishTimeMs ?? 60000)
-            : (remoteFinishMsState[opponents[0].id] ?? 60000);
-          const oppScore0 = opponents[0].isBot && br?.opponents[0] ? calculateScore(br.opponents[0].correct) : (opponentScores[0] ?? 0);
-          const w0 = matchupWinner(allyCorrect0, allyFinishMs0, oppCorrect0, oppFinishMs0);
+          const oppHuman0 = remoteFinalState[opponents[0].id];
+          const oppCorrect0 = opponents[0].isBot && br?.opponents[0]
+            ? br.opponents[0].correct
+            : oppHuman0
+            ? oppHuman0.answered
+            : Math.round((opponentScores[0] ?? 0) / 10);
+          const oppScore0 = opponents[0].isBot && br?.opponents[0]
+            ? calculateScore(br.opponents[0].correct)
+            : oppHuman0
+            ? oppHuman0.score
+            : (opponentScores[0] ?? 0);
+          const w0 = matchupWinner(allyCorrect0, oppCorrect0);
 
-          const allyCorrect1 = teamMembers[0]?.isBot && br?.teammates[0] ? br.teammates[0].correct : Math.round((teammateScores[0] ?? 0) / 10);
-          const allyFinishMs1 = teamMembers[0]?.isBot && br?.teammates[0]
-            ? (br.teammates[0].finishTimeMs ?? 60000)
-            : (teamMembers[0]?.id ? (remoteFinishMsState[teamMembers[0].id] ?? 60000) : 60000);
-          const allyScore1 = teamMembers[0]?.isBot && br?.teammates[0] ? calculateScore(br.teammates[0].correct) : (teammateScores[0] ?? 0);
-          const oppCorrect1 = opponents[1].isBot && br?.opponents[1] ? br.opponents[1].correct : Math.round((opponentScores[1] ?? 0) / 10);
-          const oppFinishMs1 = opponents[1].isBot && br?.opponents[1]
-            ? (br.opponents[1].finishTimeMs ?? 60000)
-            : (remoteFinishMsState[opponents[1].id] ?? 60000);
-          const oppScore1 = opponents[1].isBot && br?.opponents[1] ? calculateScore(br.opponents[1].correct) : (opponentScores[1] ?? 0);
-          const w1 = matchupWinner(allyCorrect1, allyFinishMs1, oppCorrect1, oppFinishMs1);
+          const allyHuman1Id = teamMembers[0]?.id;
+          const allyHuman1 = allyHuman1Id ? remoteFinalState[allyHuman1Id] : undefined;
+          const allyCorrect1 = teamMembers[0]?.isBot && br?.teammates[0]
+            ? br.teammates[0].correct
+            : allyHuman1
+            ? allyHuman1.answered
+            : Math.round((teammateScores[0] ?? 0) / 10);
+          const allyScore1 = teamMembers[0]?.isBot && br?.teammates[0]
+            ? calculateScore(br.teammates[0].correct)
+            : allyHuman1
+            ? allyHuman1.score
+            : (teammateScores[0] ?? 0);
+          const oppHuman1 = remoteFinalState[opponents[1].id];
+          const oppCorrect1 = opponents[1].isBot && br?.opponents[1]
+            ? br.opponents[1].correct
+            : oppHuman1
+            ? oppHuman1.answered
+            : Math.round((opponentScores[1] ?? 0) / 10);
+          const oppScore1 = opponents[1].isBot && br?.opponents[1]
+            ? calculateScore(br.opponents[1].correct)
+            : oppHuman1
+            ? oppHuman1.score
+            : (opponentScores[1] ?? 0);
+          const w1 = matchupWinner(allyCorrect1, oppCorrect1);
 
-          const allyCorrect2 = teamMembers[1]?.isBot && br?.teammates[1] ? br.teammates[1].correct : Math.round((teammateScores[1] ?? 0) / 10);
-          const allyFinishMs2 = teamMembers[1]?.isBot && br?.teammates[1]
-            ? (br.teammates[1].finishTimeMs ?? 60000)
-            : (teamMembers[1]?.id ? (remoteFinishMsState[teamMembers[1].id] ?? 60000) : 60000);
-          const allyScore2 = teamMembers[1]?.isBot && br?.teammates[1] ? calculateScore(br.teammates[1].correct) : (teammateScores[1] ?? 0);
-          const oppCorrect2 = opponents[2].isBot && br?.opponents[2] ? br.opponents[2].correct : Math.round((opponentScores[2] ?? 0) / 10);
-          const oppFinishMs2 = opponents[2].isBot && br?.opponents[2]
-            ? (br.opponents[2].finishTimeMs ?? 60000)
-            : (remoteFinishMsState[opponents[2].id] ?? 60000);
-          const oppScore2 = opponents[2].isBot && br?.opponents[2] ? calculateScore(br.opponents[2].correct) : (opponentScores[2] ?? 0);
-          const w2 = matchupWinner(allyCorrect2, allyFinishMs2, oppCorrect2, oppFinishMs2);
+          const allyHuman2Id = teamMembers[1]?.id;
+          const allyHuman2 = allyHuman2Id ? remoteFinalState[allyHuman2Id] : undefined;
+          const allyCorrect2 = teamMembers[1]?.isBot && br?.teammates[1]
+            ? br.teammates[1].correct
+            : allyHuman2
+            ? allyHuman2.answered
+            : Math.round((teammateScores[1] ?? 0) / 10);
+          const allyScore2 = teamMembers[1]?.isBot && br?.teammates[1]
+            ? calculateScore(br.teammates[1].correct)
+            : allyHuman2
+            ? allyHuman2.score
+            : (teammateScores[1] ?? 0);
+          const oppHuman2 = remoteFinalState[opponents[2].id];
+          const oppCorrect2 = opponents[2].isBot && br?.opponents[2]
+            ? br.opponents[2].correct
+            : oppHuman2
+            ? oppHuman2.answered
+            : Math.round((opponentScores[2] ?? 0) / 10);
+          const oppScore2 = opponents[2].isBot && br?.opponents[2]
+            ? calculateScore(br.opponents[2].correct)
+            : oppHuman2
+            ? oppHuman2.score
+            : (opponentScores[2] ?? 0);
+          const w2 = matchupWinner(allyCorrect2, oppCorrect2);
 
           return [
             {
@@ -1622,19 +1801,46 @@ export default function CasualPage() {
     const matchupsWon = matchups.filter((m) => m.winner === "ally").length;
     const matchupsLost = matchups.filter((m) => m.winner === "opp").length;
 
-    // 1v1 uses simple score comparison; 3v3 uses best-of-3 matchups with tiebreaker
+    // 1v1: more correct wins; if tied, faster finish wins; exact tie stays draw.
+    // 3v3: best-of-3 matchups.
     let youWin: boolean;
     let youLose: boolean;
     if (is3v3) {
       youWin = matchupsWon >= 2;
       youLose = matchupsLost >= 2;
     } else {
-      const yourScore = result.score;
+      const yourCorrect = result.correct;
+      const yourElapsedMs = playerFinishMsState;
+      const oppId = opponents[0]?.id;
+      const oppSnapshot = oppId ? remoteFinalState[oppId] : undefined;
       const theirScore = hasBotResults && br
         ? calculateScore(br.opponents[0].correct)
+        : oppSnapshot
+        ? oppSnapshot.score
         : opponentScores[0] ?? 0;
-      youWin = yourScore > theirScore;
-      youLose = yourScore < theirScore;
+      const theirCorrect = hasBotResults && br
+        ? br.opponents[0].correct
+        : oppSnapshot
+        ? Math.round(oppSnapshot.score / 10)
+        : Math.round(theirScore / 10);
+      const theirElapsedMs = oppId ? (remoteFinishMsState[oppId] ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY;
+
+      if (yourCorrect > theirCorrect) {
+        youWin = true;
+        youLose = false;
+      } else if (yourCorrect < theirCorrect) {
+        youWin = false;
+        youLose = true;
+      } else if (yourElapsedMs < theirElapsedMs) {
+        youWin = true;
+        youLose = false;
+      } else if (yourElapsedMs > theirElapsedMs) {
+        youWin = false;
+        youLose = true;
+      } else {
+        youWin = false;
+        youLose = false;
+      }
     }
 
     return (

@@ -16,12 +16,14 @@ interface UseGameOptions {
   subject: Subject;
   questions: Question[];
   onComplete: (result: GameResult) => void;
+  /** Increment to force-complete the current game using current counts. */
+  forceFinishSignal?: number;
   onAnswerProgress?: (answered: number, score: number) => void;
   /** For ranked: returns opponent's final score. Win/loss/trophies use score comparison. */
   getOpponentScore?: () => number | null;
 }
 
-export function useGame({ mode, subject, questions, onComplete, onAnswerProgress, getOpponentScore }: UseGameOptions) {
+export function useGame({ mode, subject, questions, onComplete, forceFinishSignal, onAnswerProgress, getOpponentScore }: UseGameOptions) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [correctCount, setCorrectCount] = useState(0);
@@ -100,6 +102,13 @@ export function useGame({ mode, subject, questions, onComplete, onAnswerProgress
       finishGame(correctCount, incorrectCount);
     }
   }, [timeLeft, isStarted, isFinished, finishGame, correctCount, incorrectCount]);
+
+  // External forced finish (used by synced PvP when result is already decided).
+  useEffect(() => {
+    if (!isStarted || isFinished) return;
+    if (!forceFinishSignal) return;
+    finishGame(correctCount, incorrectCount);
+  }, [forceFinishSignal, isStarted, isFinished, finishGame, correctCount, incorrectCount]);
 
   const startGame = useCallback(() => {
     setIsStarted(true);
