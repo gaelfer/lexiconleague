@@ -347,26 +347,38 @@ function BattlePassTrack({
           boxShadow: `0 0 10px ${BLUE}60`,
         }} />
 
-        {/* ── Player avatar ── */}
-        <div style={{
-          position: "absolute",
-          left: playerX,
-          top: TRACK_CY - NODE_R - 44,
-          transform: "translateX(-50%)",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-          zIndex: 30, pointerEvents: "none",
-        }}>
+        {/* ── Player avatar (on progress bar, animates when level changes) ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: playerX,
+            top: TRACK_CY - 24,
+            transform: "translateX(-50%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+            zIndex: 30,
+            pointerEvents: "none",
+            transition: "left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          }}
+        >
           <div style={{
             background: `linear-gradient(135deg, ${BLUE}, ${MINT})`,
-            borderRadius: 12, padding: 2.5,
+            borderRadius: 12,
+            padding: 2.5,
             boxShadow: `0 0 14px ${BLUE}80`,
           }}>
             <InkAvatar config={profile.avatar_config} size={34} />
           </div>
           <div style={{
-            fontSize: 10, fontWeight: 800, color: "#fff",
-            backgroundColor: BLUE, borderRadius: 10,
-            padding: "1px 7px", boxShadow: `0 2px 6px ${BLUE}70`,
+            fontSize: 10,
+            fontWeight: 800,
+            color: "#fff",
+            backgroundColor: BLUE,
+            borderRadius: 10,
+            padding: "1px 7px",
+            boxShadow: `0 2px 6px ${BLUE}70`,
           }}>
             Lv.{currentLevel}
           </div>
