@@ -6,6 +6,7 @@ import { useState, useTransition, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { getAuthRedirectBase } from "@/lib/auth/redirect";
 import { useTheme } from "@/context/ThemeContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import GoogleIcon from "@/components/icons/GoogleIcon";
@@ -52,7 +53,10 @@ function SignupPageInner() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${getAuthRedirectBase()}/auth/callback`,
+        ...(provider === "google" && {
+          queryParams: { access_type: "offline" },
+        }),
         ...(provider === "azure" && { scopes: "email profile openid" }),
       },
     });
@@ -77,7 +81,7 @@ function SignupPageInner() {
         password,
         options: {
           data: { username, grade },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${getAuthRedirectBase()}/auth/callback`,
         },
       });
       if (error) {

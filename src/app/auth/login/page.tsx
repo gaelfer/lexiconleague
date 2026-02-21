@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getAuthRedirectBase } from "@/lib/auth/redirect";
 import { signInWithUsernameOrEmail } from "@/app/auth/actions";
 import { useTheme } from "@/context/ThemeContext";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -30,7 +31,10 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${getAuthRedirectBase()}/auth/callback`,
+        ...(provider === "google" && {
+          queryParams: { access_type: "offline" },
+        }),
         ...(provider === "azure" && { scopes: "email profile openid" }),
       },
     });
