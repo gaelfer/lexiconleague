@@ -2,10 +2,16 @@
   <!-- Droplet body (from ink/base/droplet_01.svg) -->
   <path d="M50 10C50 10 24 42 24 60C24 74.4 35.6 88 50 88C64.4 88 76 74.4 76 60C76 42 50 10 50 10z" fill="#3B82F6"/>
   <ellipse cx="38" cy="52" rx="6" ry="8" fill="white" opacity="0.18"/>
-  <!-- Face (from ink/eyes/eyes_03.svg - happy closed eyes) -->
+  <!-- Face (from ink/eyes/eyes_03.svg) -->
   <path d="M30 54Q37 46 44 54" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
   <path d="M56 54Q63 46 70 54" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
   <ellipse cx="30" cy="60" rx="4" ry="2.5" fill="#FF9999" opacity="0.4"/>
   <ellipse cx="70" cy="60" rx="4" ry="2.5" fill="#FF9999" opacity="0.4"/>
   <path d="M40 65Q50 74 60 65" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <!-- Glasses (from ink/accessories/glasses_01.svg) -->
+  <circle cx="37" cy="54" r="11" fill="none" stroke="white" stroke-width="2.5" opacity="0.9"/>
+  <circle cx="63" cy="54" r="11" fill="none" stroke="white" stroke-width="2.5" opacity="0.9"/>
+  <path d="M48 54Q50 50 52 54" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+  <line x1="26" y1="52" x2="22" y2="50" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="74" y1="52" x2="78" y2="50" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
 </svg>

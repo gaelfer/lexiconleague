@@ -18,6 +18,12 @@ export default function LogoIcon({
       <ellipse cx="30" cy="60" rx="4" ry="2.5" fill="#FF9999" opacity="0.4" />
       <ellipse cx="70" cy="60" rx="4" ry="2.5" fill="#FF9999" opacity="0.4" />
       <path d="M40 65Q50 74 60 65" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" />
+      {/* Glasses */}
+      <circle cx="37" cy="54" r="11" fill="none" stroke="white" strokeWidth="2.5" opacity="0.9" />
+      <circle cx="63" cy="54" r="11" fill="none" stroke="white" strokeWidth="2.5" opacity="0.9" />
+      <path d="M48 54Q50 50 52 54" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.9" />
+      <line x1="26" y1="52" x2="22" y2="50" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+      <line x1="74" y1="52" x2="78" y2="50" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
     </svg>
   );
 }
