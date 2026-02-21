@@ -1,6 +1,11 @@
-import { Question, VocabGrade, VocabLevel } from "@/types";
+import { Question, VocabGrade, VocabLevel, PunctuationLevel } from "@/types";
 import { seededShuffle } from "./matchmaking";
 
+/**
+ * Vocabulary questions by grade level.
+ * Aligned with Common Core and state standards for grades 3-8.
+ * Skill tags: definitions, synonyms, antonyms, context-clues, word-forms.
+ */
 // Grade 3 vocabulary (simple tier 2 words)
 const GRADE3_VOCAB: Question[] = [
   { id: "g3_01", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'consider' mean?", choices: ["To ignore", "To think about carefully", "To forget", "To run away"], answer_index: 1, gradeLevel: 3 },
@@ -18,6 +23,16 @@ const GRADE3_VOCAB: Question[] = [
   { id: "g3_13", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'decide' mean?", choices: ["To wonder", "To make a choice", "To forget", "To ask"], answer_index: 1, gradeLevel: 3 },
   { id: "g3_14", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'describe' mean?", choices: ["To hide", "To tell what something is like", "To guess", "To forget"], answer_index: 1, gradeLevel: 3 },
   { id: "g3_15", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'different' mean?", choices: ["The same", "Not the same", "Similar", "Boring"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_16", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'discover' mean?", choices: ["To hide", "To find or learn something new", "To forget", "To lose"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_17", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'enormous' mean?", choices: ["Tiny", "Very large", "Average", "Round"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_18", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'famous' mean?", choices: ["Unknown", "Known by many people", "Quiet", "New"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_19", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'gather' mean?", choices: ["To scatter", "To collect or bring together", "To lose", "To hide"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_20", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'journey' mean?", choices: ["A short walk", "A trip from one place to another", "A rest", "A meal"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_21", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'magnificent' mean?", choices: ["Plain", "Very impressive or beautiful", "Small", "Boring"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_22", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'observe' mean?", choices: ["To ignore", "To watch or notice", "To forget", "To guess"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_23", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'peculiar' mean?", choices: ["Normal", "Strange or unusual", "Boring", "Loud"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_24", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'suggest' mean?", choices: ["To demand", "To offer an idea", "To refuse", "To forget"], answer_index: 1, gradeLevel: 3 },
+  { id: "g3_25", subject: "vocabulary", difficulty: 1, skill_tag: "definitions", prompt: "What does 'various' mean?", choices: ["Only one", "Many different kinds", "None", "The same"], answer_index: 1, gradeLevel: 3 },
 ];
 
 // Grade 4 vocabulary
@@ -37,6 +52,15 @@ const GRADE4_VOCAB: Question[] = [
   { id: "g4_13", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'persuade' mean?", choices: ["To confuse", "To convince someone", "To forget", "To ask"], answer_index: 1, gradeLevel: 4 },
   { id: "g4_14", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'inform' mean?", choices: ["To hide", "To give information", "To guess", "To entertain"], answer_index: 1, gradeLevel: 4 },
   { id: "g4_15", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'entertain' mean?", choices: ["To bore", "To amuse or interest", "To teach", "To confuse"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_16", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'convey' mean?", choices: ["To hide", "To communicate or express", "To forget", "To confuse"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_17", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'demonstrate' mean?", choices: ["To hide", "To show or prove", "To guess", "To forget"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_18", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'elaborate' mean?", choices: ["To simplify", "To add more detail", "To shorten", "To confuse"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_19", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'emphasize' mean?", choices: ["To ignore", "To give special importance to", "To forget", "To hide"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_20", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'illustrate' mean?", choices: ["To hide", "To explain with examples or pictures", "To confuse", "To shorten"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_21", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'infer' mean?", choices: ["To state directly", "To conclude from evidence", "To guess randomly", "To ask"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_22", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'narrate' mean?", choices: ["To listen", "To tell a story", "To forget", "To hide"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_23", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'paraphrase' mean?", choices: ["To copy exactly", "To restate in your own words", "To forget", "To shorten"], answer_index: 1, gradeLevel: 4 },
+  { id: "g4_24", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'respond' mean?", choices: ["To ignore", "To reply or react", "To forget", "To hide"], answer_index: 1, gradeLevel: 4 },
 ];
 
 // Grade 5 vocabulary
@@ -56,6 +80,15 @@ const GRADE5_VOCAB: Question[] = [
   { id: "g5_13", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'support' mean?", choices: ["To oppose", "To back up with evidence", "To ignore", "To guess"], answer_index: 1, gradeLevel: 5 },
   { id: "g5_14", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'convey' mean?", choices: ["To hide", "To communicate or express", "To forget", "To confuse"], answer_index: 1, gradeLevel: 5 },
   { id: "g5_15", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'demonstrate' mean?", choices: ["To hide", "To show or prove", "To guess", "To forget"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_16", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'emphasize' mean?", choices: ["To ignore", "To give special importance to", "To forget", "To hide"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_17", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'hypothesize' mean?", choices: ["To prove", "To form a testable guess", "To ignore", "To forget"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_18", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'modify' mean?", choices: ["To keep the same", "To change or alter", "To destroy", "To ignore"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_19", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'persuade' mean?", choices: ["To confuse", "To convince someone", "To forget", "To ask"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_20", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'prioritize' mean?", choices: ["To ignore", "To rank by importance", "To forget", "To mix up"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_21", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'revise' mean?", choices: ["To keep the same", "To change and improve", "To destroy", "To forget"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_22", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'substantiate' mean?", choices: ["To weaken", "To provide evidence for", "To ignore", "To guess"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_23", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'synthesize' mean?", choices: ["To separate", "To combine into a whole", "To forget", "To copy"], answer_index: 1, gradeLevel: 5 },
+  { id: "g5_24", subject: "vocabulary", difficulty: 2, skill_tag: "definitions", prompt: "What does 'verify' mean?", choices: ["To ignore", "To confirm as true", "To guess", "To forget"], answer_index: 1, gradeLevel: 5 },
 ];
 
 // Grade 6 vocabulary
@@ -75,6 +108,11 @@ const GRADE6_VOCAB: Question[] = [
   { id: "g6_13", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'analyze' mean?", choices: ["To summarize", "To examine in detail", "To ignore", "To copy"], answer_index: 1, gradeLevel: 6 },
   { id: "g6_14", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'synthesize' mean?", choices: ["To separate", "To combine into a whole", "To forget", "To copy"], answer_index: 1, gradeLevel: 6 },
   { id: "g6_15", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'credible' mean?", choices: ["Unbelievable", "Trustworthy", "Fake", "Confusing"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_16", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'delineate' mean?", choices: ["To blur", "To describe or outline clearly", "To forget", "To confuse"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_17", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'elucidate' mean?", choices: ["To obscure", "To make clear", "To confuse", "To forget"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_18", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'juxtapose' mean?", choices: ["To separate", "To place side by side for comparison", "To forget", "To mix"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_19", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'substantiate' mean?", choices: ["To weaken", "To provide evidence for", "To ignore", "To guess"], answer_index: 1, gradeLevel: 6 },
+  { id: "g6_20", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'underscore' mean?", choices: ["To ignore", "To emphasize", "To forget", "To hide"], answer_index: 1, gradeLevel: 6 },
 ];
 
 // Grade 7 vocabulary
@@ -94,6 +132,11 @@ const GRADE7_VOCAB: Question[] = [
   { id: "g7_13", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'paradox' mean?", choices: ["A simple truth", "A seeming contradiction", "A fact", "A question"], answer_index: 1, gradeLevel: 7 },
   { id: "g7_14", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'diction' mean?", choices: ["Plot", "Word choice in writing", "Setting", "Character"], answer_index: 1, gradeLevel: 7 },
   { id: "g7_15", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'syntax' mean?", choices: ["Word meaning", "Sentence structure", "Plot", "Theme"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_16", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'juxtaposition' mean?", choices: ["Separation", "Placement of contrasting things side by side", "Agreement", "Confusion"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_17", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'oxymoron' mean?", choices: ["A simple phrase", "A phrase combining opposite ideas", "A long word", "A question"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_18", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'hyperbole' mean?", choices: ["Understatement", "Exaggeration for effect", "Literal truth", "A question"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_19", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'metaphor' mean?", choices: ["Literal comparison", "A comparison without like or as", "A question", "A fact"], answer_index: 1, gradeLevel: 7 },
+  { id: "g7_20", subject: "vocabulary", difficulty: 3, skill_tag: "definitions", prompt: "What does 'personification' mean?", choices: ["Describing a person", "Giving human traits to non-human things", "A question", "A fact"], answer_index: 1, gradeLevel: 7 },
 ];
 
 // Florida Grade 8 / English 1 / Pre-AP English 1 vocabulary (primary curriculum)
@@ -255,6 +298,11 @@ const PSAT_VOCAB: Question[] = [
   { id: "psat_16", subject: "vocabulary", difficulty: 4, skill_tag: "context-clues", prompt: "The senator's equivocal response left reporters unsure of his position. What does 'equivocal' mean?", choices: ["Clear and direct", "Ambiguous and unclear", "Honest", "Brief"], answer_index: 1, gradeLevel: "psat" },
   { id: "psat_17", subject: "vocabulary", difficulty: 4, skill_tag: "synonyms", prompt: "Which word is closest in meaning to 'ubiquitous'?", choices: ["Rare", "Omnipresent", "Hidden", "Temporary"], answer_index: 1, gradeLevel: "psat" },
   { id: "psat_18", subject: "vocabulary", difficulty: 4, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'gregarious'?", choices: ["Sociable", "Reclusive", "Friendly", "Outgoing"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_19", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'cogent' mean?", choices: ["Weak and unconvincing", "Clear and convincing", "Confusing", "Long"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_20", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'disparate' mean?", choices: ["Similar", "Fundamentally different", "Equal", "Related"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_21", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'esoteric' mean?", choices: ["Common knowledge", "Understood by few", "Simple", "Popular"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_22", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'garrulous' mean?", choices: ["Quiet", "Excessively talkative", "Shy", "Brief"], answer_index: 1, gradeLevel: "psat" },
+  { id: "psat_23", subject: "vocabulary", difficulty: 4, skill_tag: "definitions", prompt: "What does 'idiosyncratic' mean?", choices: ["Ordinary", "Peculiar to an individual", "Common", "Boring"], answer_index: 1, gradeLevel: "psat" },
 ];
 
 // SAT-level vocabulary — especially hard, expert-tier words
@@ -279,6 +327,11 @@ const SAT_VOCAB: Question[] = [
   { id: "sat_18", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'propitious' mean?", choices: ["Unfavorable", "Favorable and advantageous", "Neutral", "Dangerous"], answer_index: 1, gradeLevel: "sat" },
   { id: "sat_19", subject: "vocabulary", difficulty: 5, skill_tag: "context-clues", prompt: "His obsequious manner toward the CEO made his colleagues uncomfortable. What does 'obsequious' mean?", choices: ["Defiant", "Excessively submissive", "Confident", "Honest"], answer_index: 1, gradeLevel: "sat" },
   { id: "sat_20", subject: "vocabulary", difficulty: 5, skill_tag: "antonyms", prompt: "Which word is the OPPOSITE of 'magnanimous'?", choices: ["Generous", "Petty", "Kind", "Forgiving"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_21", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'circumlocution' mean?", choices: ["Direct speech", "Indirect or roundabout expression", "Brief answer", "Clear statement"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_22", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'equivocate' mean?", choices: ["To speak clearly", "To be deliberately vague", "To agree", "To shout"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_23", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'germane' mean?", choices: ["Irrelevant", "Relevant to the matter", "Boring", "Off-topic"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_24", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'inchoate' mean?", choices: ["Fully formed", "Just begun", "Complete", "Finished"], answer_index: 1, gradeLevel: "sat" },
+  { id: "sat_25", subject: "vocabulary", difficulty: 5, skill_tag: "definitions", prompt: "What does 'trenchant' mean?", choices: ["Mild and vague", "Sharp and incisive", "Boring", "Long-winded"], answer_index: 1, gradeLevel: "sat" },
 ];
 
 export const VOCAB_BY_GRADE: Record<VocabGrade, Question[]> = {
@@ -514,114 +567,76 @@ export const VOCAB_QUESTIONS: Question[] = [
   },
 ];
 
+/**
+ * Punctuation questions by level.
+ * Level 1 (Beginner): commas in lists, apostrophes, basic capitalization.
+ * Level 2 (Intermediate): quotation marks, commas in complex sentences, semicolons.
+ * Level 3 (Advanced): colons, dashes, ellipses, complex punctuation.
+ */
+const PUNCTUATION_BEGINNER: Question[] = [
+  { id: "p001", subject: "punctuation", difficulty: 1, skill_tag: "commas", prompt: "Which sentence uses a comma correctly?", choices: ["I like cats, dogs and birds.", "I like cats, dogs, and birds.", "I like, cats dogs and birds.", "I, like cats dogs and birds."], answer_index: 1, punctuationLevel: 1 },
+  { id: "p002", subject: "punctuation", difficulty: 1, skill_tag: "apostrophes", prompt: "Which sentence uses an apostrophe correctly?", choices: ["The dog wagged it's tail.", "The dog wagged its' tail.", "The dog wagged its tail.", "The dog wagged it tail."], answer_index: 2, punctuationLevel: 1 },
+  { id: "p008", subject: "punctuation", difficulty: 1, skill_tag: "apostrophes", prompt: "Which contraction is spelled correctly?", choices: ["dont", "don't", "do'nt", "don't'"], answer_index: 1, punctuationLevel: 1 },
+  { id: "p009", subject: "punctuation", difficulty: 1, skill_tag: "apostrophes", prompt: "Which is correct?", choices: ["cant", "can't", "ca'nt", "cann't"], answer_index: 1, punctuationLevel: 1 },
+  { id: "p010", subject: "punctuation", difficulty: 1, skill_tag: "apostrophes", prompt: "Which sentence shows correct possession?", choices: ["The cats bowl is empty.", "The cat's bowl is empty.", "The cats' bowl is empty.", "The cat bowl's is empty."], answer_index: 1, punctuationLevel: 1 },
+  { id: "p011", subject: "punctuation", difficulty: 1, skill_tag: "capitalization", prompt: "Which sentence is capitalized correctly?", choices: ["i went to the store.", "I went to the store.", "I Went to the store.", "i went to the Store."], answer_index: 1, punctuationLevel: 1 },
+  { id: "p012", subject: "punctuation", difficulty: 1, skill_tag: "capitalization", prompt: "Which sentence is capitalized correctly?", choices: ["monday is my favorite day.", "Monday is my favorite day.", "monday is my Favorite day.", "Monday is my favorite Day."], answer_index: 1, punctuationLevel: 1 },
+  { id: "p013", subject: "punctuation", difficulty: 1, skill_tag: "commas", prompt: "Which sentence uses commas correctly in a list?", choices: ["We need milk bread and eggs.", "We need milk, bread, and eggs.", "We need, milk bread and eggs.", "We need milk, bread and eggs."], answer_index: 1, punctuationLevel: 1 },
+  { id: "p014", subject: "punctuation", difficulty: 1, skill_tag: "commas", prompt: "Which sentence uses a comma correctly?", choices: ["I have a dog a cat and a bird.", "I have a dog, a cat, and a bird.", "I have a dog, a cat and a bird.", "I have, a dog a cat and a bird."], answer_index: 1, punctuationLevel: 1 },
+  { id: "p015", subject: "punctuation", difficulty: 1, skill_tag: "apostrophes", prompt: "Which shows correct plural possession?", choices: ["The dogs toys are scattered.", "The dog's toys are scattered.", "The dogs' toys are scattered.", "The dogs toys' are scattered."], answer_index: 2, punctuationLevel: 1 },
+  { id: "p016", subject: "punctuation", difficulty: 1, skill_tag: "apostrophes", prompt: "Which contraction is correct?", choices: ["theyre", "they're", "theyr'e", "they're'"], answer_index: 1, punctuationLevel: 1 },
+  { id: "p017", subject: "punctuation", difficulty: 1, skill_tag: "capitalization", prompt: "Which sentence is capitalized correctly?", choices: ["the sun rises in the east.", "The sun rises in the east.", "The Sun rises in the east.", "the Sun rises in the East."], answer_index: 1, punctuationLevel: 1 },
+  { id: "p018", subject: "punctuation", difficulty: 1, skill_tag: "commas", prompt: "Which sentence uses a comma correctly after an introductory word?", choices: ["Yes we can go to the park.", "Yes, we can go to the park.", "Yes we, can go to the park.", "Yes we can go, to the park."], answer_index: 1, punctuationLevel: 1 },
+  { id: "p019", subject: "punctuation", difficulty: 1, skill_tag: "apostrophes", prompt: "Which is the correct possessive form?", choices: ["James book", "James's book", "James' book", "James book's"], answer_index: 1, punctuationLevel: 1 },
+  { id: "p020", subject: "punctuation", difficulty: 1, skill_tag: "commas", prompt: "Which sentence uses commas correctly?", choices: ["On Tuesday we have gym.", "On Tuesday, we have gym.", "On, Tuesday we have gym.", "On Tuesday we, have gym."], answer_index: 1, punctuationLevel: 1 },
+];
+
+const PUNCTUATION_INTERMEDIATE: Question[] = [
+  { id: "p003", subject: "punctuation", difficulty: 2, skill_tag: "quotation-marks", prompt: "Which sentence uses quotation marks correctly?", choices: ['She said, "I will be there soon."', 'She said, "I will be there soon".', "She said, 'I will be there soon.'", 'She "said," I will be there soon.'], answer_index: 0, punctuationLevel: 2 },
+  { id: "p004", subject: "punctuation", difficulty: 2, skill_tag: "apostrophes", prompt: "Which sentence is punctuated correctly?", choices: ["That is Sarahs book.", "That is Sarah's book.", "That is Sarahs' book.", "That is Sarah book's."], answer_index: 1, punctuationLevel: 2 },
+  { id: "p005", subject: "punctuation", difficulty: 2, skill_tag: "semicolons", prompt: "Which sentence correctly uses a semicolon?", choices: ["I love soccer; and basketball is great too.", "She studied hard; she passed the exam.", "We went to; the park and the mall.", "He is tall; but thin."], answer_index: 1, punctuationLevel: 2 },
+  { id: "p006", subject: "punctuation", difficulty: 2, skill_tag: "capitalization", prompt: "Which sentence is capitalized correctly?", choices: ["we visited new york city last summer.", "We visited New york city last Summer.", "We visited New York City last summer.", "We Visited New York city last summer."], answer_index: 2, punctuationLevel: 2 },
+  { id: "p007", subject: "punctuation", difficulty: 2, skill_tag: "commas", prompt: "Which sentence uses commas correctly in a complex sentence?", choices: ["Although it was raining we decided to go outside.", "Although, it was raining, we decided to go outside.", "Although it was raining, we decided to go outside.", "Although it was raining we decided, to go outside."], answer_index: 2, punctuationLevel: 2 },
+  { id: "p021", subject: "punctuation", difficulty: 2, skill_tag: "quotation-marks", prompt: "Which sentence uses quotation marks correctly?", choices: ['He asked, "Where are you going?"', 'He asked, "Where are you going"?', 'He "asked," Where are you going?', "He asked, 'Where are you going?'"], answer_index: 0, punctuationLevel: 2 },
+  { id: "p022", subject: "punctuation", difficulty: 2, skill_tag: "semicolons", prompt: "Which sentence correctly uses a semicolon?", choices: ["I have a test tomorrow; I need to study.", "I have a test; tomorrow I need to study.", "I have; a test tomorrow I need to study.", "I have a test tomorrow; and I need to study."], answer_index: 0, punctuationLevel: 2 },
+  { id: "p023", subject: "punctuation", difficulty: 2, skill_tag: "commas", prompt: "Which sentence uses commas correctly?", choices: ["After the game we went home.", "After the game, we went home.", "After, the game we went home.", "After the game we, went home."], answer_index: 1, punctuationLevel: 2 },
+  { id: "p024", subject: "punctuation", difficulty: 2, skill_tag: "quotation-marks", prompt: "Which sentence punctuates dialogue correctly?", choices: ['"Hello," she said. "How are you?"', '"Hello" she said "How are you?"', '"Hello, she said. How are you?"', '"Hello," she said, "How are you?"'], answer_index: 0, punctuationLevel: 2 },
+  { id: "p025", subject: "punctuation", difficulty: 2, skill_tag: "semicolons", prompt: "Which sentence correctly uses a semicolon?", choices: ["The weather was cold; we wore jackets.", "The weather was cold we; wore jackets.", "The weather; was cold we wore jackets.", "The weather was cold; and we wore jackets."], answer_index: 0, punctuationLevel: 2 },
+  { id: "p026", subject: "punctuation", difficulty: 2, skill_tag: "commas", prompt: "Which sentence uses commas correctly in a compound sentence?", choices: ["I wanted to play but it was raining.", "I wanted to play, but it was raining.", "I wanted to play but, it was raining.", "I, wanted to play but it was raining."], answer_index: 1, punctuationLevel: 2 },
+  { id: "p027", subject: "punctuation", difficulty: 2, skill_tag: "quotation-marks", prompt: "Which sentence uses quotation marks correctly for a title?", choices: ['We read "Charlotte\'s Web" in class.', "We read Charlotte's Web in class.", 'We read "Charlottes Web" in class.', "We read 'Charlotte's Web' in class."], answer_index: 0, punctuationLevel: 2 },
+  { id: "p028", subject: "punctuation", difficulty: 2, skill_tag: "commas", prompt: "Which sentence uses commas correctly with a direct address?", choices: ["Sarah please pass the salt.", "Sarah, please pass the salt.", "Sarah please, pass the salt.", "Sarah, please, pass the salt."], answer_index: 1, punctuationLevel: 2 },
+  { id: "p029", subject: "punctuation", difficulty: 2, skill_tag: "semicolons", prompt: "Which sentence correctly uses a semicolon before a conjunctive adverb?", choices: ["I was tired; however, I finished my homework.", "I was tired however; I finished my homework.", "I was tired; however I finished my homework.", "I was tired however, I finished my homework."], answer_index: 0, punctuationLevel: 2 },
+  { id: "p030", subject: "punctuation", difficulty: 2, skill_tag: "commas", prompt: "Which sentence uses commas correctly with an appositive?", choices: ["My friend Emma loves to read.", "My friend, Emma, loves to read.", "My friend Emma, loves to read.", "My, friend Emma loves to read."], answer_index: 1, punctuationLevel: 2 },
+];
+
+const PUNCTUATION_ADVANCED: Question[] = [
+  { id: "p031", subject: "punctuation", difficulty: 3, skill_tag: "commas", prompt: "Which sentence uses a colon correctly?", choices: ["I need: milk, eggs, and bread.", "I need the following: milk, eggs, and bread.", "I need the following milk, eggs, and bread.", "I need the following, milk, eggs, and bread."], answer_index: 1, punctuationLevel: 3 },
+  { id: "p032", subject: "punctuation", difficulty: 3, skill_tag: "commas", prompt: "Which sentence uses a dash correctly?", choices: ["My sister—the one who lives in Boston—is visiting.", "My sister—the one who lives in Boston is visiting.", "My sister the one who lives in Boston—is visiting.", "My sister—the one who lives in Boston— is visiting."], answer_index: 0, punctuationLevel: 3 },
+  { id: "p033", subject: "punctuation", difficulty: 3, skill_tag: "semicolons", prompt: "Which sentence uses a semicolon correctly in a complex list?", choices: ["We visited Paris, France; Rome, Italy; and London, England.", "We visited Paris, France, Rome, Italy, and London, England.", "We visited Paris; France; Rome; Italy; and London; England.", "We visited Paris, France, Rome, Italy and London, England."], answer_index: 0, punctuationLevel: 3 },
+  { id: "p034", subject: "punctuation", difficulty: 3, skill_tag: "quotation-marks", prompt: "Which sentence punctuates a quote within a quote correctly?", choices: ['She said, "He told me, \'I will be late.\'"', 'She said, "He told me, "I will be late.""', "She said, 'He told me, \"I will be late.\"'", 'She said "He told me, \'I will be late.\'"'], answer_index: 0, punctuationLevel: 3 },
+  { id: "p035", subject: "punctuation", difficulty: 3, skill_tag: "commas", prompt: "Which sentence uses an ellipsis correctly?", choices: ["The quote was...and then he left.", "The quote was . . . and then he left.", "The quote was... and then he left.", "The quote was .... and then he left."], answer_index: 2, punctuationLevel: 3 },
+  { id: "p036", subject: "punctuation", difficulty: 3, skill_tag: "commas", prompt: "Which sentence uses a colon correctly to introduce a list?", choices: ["Bring these items: a pencil, paper, and a ruler.", "Bring these items a pencil, paper, and a ruler.", "Bring these items, a pencil, paper, and a ruler.", "Bring: these items a pencil, paper, and a ruler."], answer_index: 0, punctuationLevel: 3 },
+  { id: "p037", subject: "punctuation", difficulty: 3, skill_tag: "semicolons", prompt: "Which sentence uses a semicolon correctly?", choices: ["His reasons were clear; he had none.", "His reasons were clear he had none.", "His reasons were clear, he had none.", "His reasons were clear; and he had none."], answer_index: 0, punctuationLevel: 3 },
+  { id: "p038", subject: "punctuation", difficulty: 3, skill_tag: "commas", prompt: "Which sentence uses an em dash correctly for emphasis?", choices: ["The answer—if you can believe it—was right in front of us.", "The answer—if you can believe it was right in front of us.", "The answer if you can believe it—was right in front of us.", "The answer—if you can believe it— was right in front of us."], answer_index: 0, punctuationLevel: 3 },
+  { id: "p039", subject: "punctuation", difficulty: 3, skill_tag: "quotation-marks", prompt: "Which sentence uses punctuation correctly with a question mark and quotation?", choices: ['Did she say, "I am leaving"?', 'Did she say, "I am leaving?"', 'Did she say "I am leaving?"', 'Did she say, "I am leaving"?'], answer_index: 0, punctuationLevel: 3 },
+  { id: "p040", subject: "punctuation", difficulty: 3, skill_tag: "commas", prompt: "Which sentence uses a colon correctly before an explanation?", choices: ["There is one thing I know: practice makes perfect.", "There is one thing I know, practice makes perfect.", "There is one thing I know; practice makes perfect.", "There is one thing I know practice makes perfect."], answer_index: 0, punctuationLevel: 3 },
+  { id: "p041", subject: "punctuation", difficulty: 3, skill_tag: "semicolons", prompt: "Which sentence uses a semicolon correctly between independent clauses?", choices: ["The storm was fierce; we stayed indoors.", "The storm was fierce we stayed indoors.", "The storm was fierce, we stayed indoors.", "The storm was fierce; and we stayed indoors."], answer_index: 0, punctuationLevel: 3 },
+  { id: "p042", subject: "punctuation", difficulty: 3, skill_tag: "commas", prompt: "Which sentence correctly uses a comma with a nonrestrictive clause?", choices: ["My brother, who lives in Seattle, is a doctor.", "My brother who lives in Seattle is a doctor.", "My brother, who lives in Seattle is a doctor.", "My brother who lives in Seattle, is a doctor."], answer_index: 0, punctuationLevel: 3 },
+  { id: "p043", subject: "punctuation", difficulty: 3, skill_tag: "quotation-marks", prompt: "Which sentence punctuates an exclamation within dialogue correctly?", choices: ['She shouted, "Watch out!"', 'She shouted, "Watch out"!', 'She shouted "Watch out!"', 'She shouted, "Watch out"!'], answer_index: 0, punctuationLevel: 3 },
+  { id: "p044", subject: "punctuation", difficulty: 3, skill_tag: "commas", prompt: "Which sentence uses a hyphen correctly in a compound modifier?", choices: ["She is a well-known author.", "She is a well known author.", "She is a well-known-author.", "She is a well known-author."], answer_index: 0, punctuationLevel: 3 },
+  { id: "p045", subject: "punctuation", difficulty: 3, skill_tag: "semicolons", prompt: "Which sentence uses a semicolon correctly with transitional phrases?", choices: ["I studied all night; as a result, I passed the test.", "I studied all night as a result; I passed the test.", "I studied all night; as a result I passed the test.", "I studied all night, as a result; I passed the test."], answer_index: 0, punctuationLevel: 3 },
+];
+
+export const PUNCTUATION_BY_LEVEL: Record<PunctuationLevel, Question[]> = {
+  1: PUNCTUATION_BEGINNER,
+  2: PUNCTUATION_INTERMEDIATE,
+  3: PUNCTUATION_ADVANCED,
+};
+
 export const PUNCTUATION_QUESTIONS: Question[] = [
-  {
-    id: "p001",
-    subject: "punctuation",
-    difficulty: 1,
-    skill_tag: "commas",
-    prompt: "Which sentence uses a comma correctly?",
-    choices: [
-      "I like cats, dogs and birds.",
-      "I like cats, dogs, and birds.",
-      "I like, cats dogs and birds.",
-      "I, like cats dogs and birds.",
-    ],
-    answer_index: 1,
-  },
-  {
-    id: "p002",
-    subject: "punctuation",
-    difficulty: 1,
-    skill_tag: "apostrophes",
-    prompt: "Which sentence uses an apostrophe correctly?",
-    choices: [
-      "The dog wagged it's tail.",
-      "The dog wagged its' tail.",
-      "The dog wagged its tail.",
-      "The dog wagged it tail.",
-    ],
-    answer_index: 2,
-  },
-  {
-    id: "p003",
-    subject: "punctuation",
-    difficulty: 2,
-    skill_tag: "quotation-marks",
-    prompt: "Which sentence uses quotation marks correctly?",
-    choices: [
-      'She said, "I will be there soon."',
-      'She said, "I will be there soon".',
-      "She said, 'I will be there soon.'",
-      'She "said," I will be there soon.',
-    ],
-    answer_index: 0,
-  },
-  {
-    id: "p004",
-    subject: "punctuation",
-    difficulty: 2,
-    skill_tag: "apostrophes",
-    prompt: "Which sentence is punctuated correctly?",
-    choices: [
-      "That is Sarahs book.",
-      "That is Sarah's book.",
-      "That is Sarahs' book.",
-      "That is Sarah book's.",
-    ],
-    answer_index: 1,
-  },
-  {
-    id: "p005",
-    subject: "punctuation",
-    difficulty: 3,
-    skill_tag: "semicolons",
-    prompt: "Which sentence correctly uses a semicolon?",
-    choices: [
-      "I love soccer; and basketball is great too.",
-      "She studied hard; she passed the exam.",
-      "We went to; the park and the mall.",
-      "He is tall; but thin.",
-    ],
-    answer_index: 1,
-  },
-  {
-    id: "p006",
-    subject: "punctuation",
-    difficulty: 2,
-    skill_tag: "capitalization",
-    prompt: "Which sentence is capitalized correctly?",
-    choices: [
-      "we visited new york city last summer.",
-      "We visited New york city last Summer.",
-      "We visited New York City last summer.",
-      "We Visited New York city last summer.",
-    ],
-    answer_index: 2,
-  },
-  {
-    id: "p007",
-    subject: "punctuation",
-    difficulty: 3,
-    skill_tag: "commas",
-    prompt: "Which sentence uses commas correctly in a complex sentence?",
-    choices: [
-      "Although it was raining we decided to go outside.",
-      "Although, it was raining, we decided to go outside.",
-      "Although it was raining, we decided to go outside.",
-      "Although it was raining we decided, to go outside.",
-    ],
-    answer_index: 2,
-  },
-  {
-    id: "p008",
-    subject: "punctuation",
-    difficulty: 1,
-    skill_tag: "apostrophes",
-    prompt: "Which contraction is spelled correctly?",
-    choices: ["dont", "don't", "do'nt", "don't'"],
-    answer_index: 1,
-  },
+  ...PUNCTUATION_BEGINNER,
+  ...PUNCTUATION_INTERMEDIATE,
+  ...PUNCTUATION_ADVANCED,
 ];
 
 /** Shuffle answer choices and update answer_index. Uses seed for deterministic shuffle (e.g. ranked). */
@@ -709,14 +724,17 @@ export function getVocabQuestionsByLevel(level: VocabLevel, count: number = 30):
 export function getQuestionsForMode(
   subject: "vocabulary" | "punctuation",
   count: number = 20,
-  vocabGrade?: VocabGrade | "psat" | "sat"
+  vocabGrade?: VocabGrade | "psat" | "sat",
+  punctuationLevel?: PunctuationLevel
 ): Question[] {
   const pool =
     subject === "vocabulary"
       ? vocabGrade
         ? (VOCAB_BY_LEVEL[vocabGrade as VocabLevel] ?? VOCAB_QUESTIONS)
         : VOCAB_QUESTIONS
-      : PUNCTUATION_QUESTIONS;
+      : punctuationLevel
+        ? PUNCTUATION_BY_LEVEL[punctuationLevel]
+        : PUNCTUATION_QUESTIONS;
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   const selected = shuffled.slice(0, Math.min(count, shuffled.length));
   const sessionSeed = Math.random().toString(36).slice(2, 12);
@@ -747,14 +765,17 @@ export function getSeededQuestionsForMode(
   subject: "vocabulary" | "punctuation",
   seed: string,
   count: number = 30,
-  vocabGrade?: VocabGrade | "psat" | "sat"
+  vocabGrade?: VocabGrade | "psat" | "sat",
+  punctuationLevel?: PunctuationLevel
 ): Question[] {
   const pool =
     subject === "vocabulary"
       ? vocabGrade
         ? (VOCAB_BY_LEVEL[vocabGrade as VocabLevel] ?? VOCAB_QUESTIONS)
         : VOCAB_QUESTIONS
-      : PUNCTUATION_QUESTIONS;
+      : punctuationLevel
+        ? PUNCTUATION_BY_LEVEL[punctuationLevel]
+        : PUNCTUATION_QUESTIONS;
   const shuffled = seededShuffle([...pool], seed);
   const selected = shuffled.slice(0, Math.min(count, shuffled.length));
   return selected.map((q, i) => shuffleQuestionChoices(q, `${seed}_${q.id}_${i}`));

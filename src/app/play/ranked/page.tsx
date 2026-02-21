@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Subject, GameResult, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS, RankTier, InkAvatarConfig } from "@/types";
+import { GameResult, DEFAULT_AVATAR_CONFIG, RANK_TIERS, RANK_COLORS, RankTier, InkAvatarConfig } from "@/types";
 import { getProfile, createGuestProfile, INITIAL_PROFILE } from "@/lib/user/storage";
 import { syncProfileForUser, syncCurrentProfile } from "@/lib/user/profile-sync";
 import { useAuth } from "@/context/AuthContext";
@@ -23,7 +23,6 @@ import RankBadge from "@/components/RankBadge";
 import TrophyIcon from "@/components/icons/TrophyIcon";
 import FlameIcon from "@/components/icons/FlameIcon";
 import BookIcon from "@/components/icons/BookIcon";
-import PencilIcon from "@/components/icons/PencilIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, TROPHY_WIN, TROPHY_LOSS, getWinStreakMultiplier } from "@/lib/game/rank";
@@ -44,7 +43,8 @@ export default function RankedPage() {
   const { light } = useTheme();
   const { members, canPlayRanked } = useParty();
   const [phase, setPhase] = useState<Phase>("lobby");
-  const [subject, setSubject] = useState<Subject>("vocabulary");
+  /** Ranked is vocabulary only — no punctuation. */
+  const subject = "vocabulary" as const;
   const [result, setResult] = useState<GameResult | null>(null);
   const [resultMetadata, setResultMetadata] = useState<import("@/types").GameResultMetadata | undefined>(undefined);
   const [profile, setProfile] = useState(INITIAL_PROFILE);
@@ -72,13 +72,6 @@ export default function RankedPage() {
     async function load() {
       const synced = await syncProfileForUser(user!.id, user!.email ?? "");
       setProfile(synced);
-      const goldTierIdx = RANK_TIERS.indexOf("Gold");
-      const playerTierIdx = RANK_TIERS.indexOf(synced.rank_tier);
-      if (playerTierIdx >= goldTierIdx) {
-        setSubject(Math.random() > 0.5 ? "vocabulary" : "punctuation");
-      } else {
-        setSubject("vocabulary");
-      }
     }
     load();
   }, [user, authLoading]);
@@ -534,7 +527,7 @@ export default function RankedPage() {
               Match starting in {countdown}...
             </p>
             <p className={`${text} font-medium text-sm mt-1`}>
-              {subject === "vocabulary" ? "Vocabulary Sprint" : "Punctuation Sprint"} · 60 seconds
+              Vocabulary Sprint · 60 seconds
             </p>
           </div>
         </div>
@@ -544,7 +537,6 @@ export default function RankedPage() {
 
   // ── Lobby ───────────────────────────────────────────────────────────────────
   const tierIdx = RANK_TIERS.indexOf(profile.rank_tier);
-  const isGoldPlus = tierIdx >= RANK_TIERS.indexOf("Gold");
   const tierProgress = getTierProgress(profile.trophies, profile.rank_tier);
   const currentStreak = profile.ranked_win_streak ?? 0;
   const streakMultiplier = getWinStreakMultiplier(currentStreak);
@@ -645,14 +637,8 @@ export default function RankedPage() {
           <p className={`font-bold text-sm mb-3 ${text}`}>{profile.placement_completed ? "This match" : "Placement"}</p>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className={`flex items-center gap-2 ${textMuted}`}>
-              {subject === "vocabulary" ? (
-                <BookIcon className="w-4 h-4" color="#3B82F6" />
-              ) : (
-                <PencilIcon className="w-4 h-4" color="#34D399" />
-              )}
-              <span>
-                {isGoldPlus ? `Subject: ${subject}` : "Vocabulary only"}
-              </span>
+              <BookIcon className="w-4 h-4" color="#3B82F6" />
+              <span>Vocabulary only</span>
             </div>
             <div className={`flex items-center gap-2 ${textMuted}`}>
               <span className="font-bold">60s</span>

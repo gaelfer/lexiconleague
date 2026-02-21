@@ -43,7 +43,7 @@ const THREE_VS_THREE_QUESTIONS = 15;
 const ONE_VS_ONE_QUESTIONS = 15;
 
 type CasualMode = "1v1" | "3v3";
-type Phase = "select" | "vocab-grade" | "searching" | "matchmaking" | "playing" | "waiting" | "results";
+type Phase = "select" | "vocab-grade" | "punctuation-level" | "searching" | "matchmaking" | "playing" | "waiting" | "results";
 
 const VOCAB_LEVELS: { level: VocabLevel; label: string }[] = [
   { level: 3, label: "Grade 3" },
@@ -276,6 +276,7 @@ export default function CasualPage() {
   const [mode, setMode] = useState<CasualMode>("1v1");
   const [subject, setSubject] = useState<Subject>("vocabulary");
   const [vocabGrade, setVocabGrade] = useState<VocabLevel | undefined>(undefined);
+  const [punctuationLevel, setPunctuationLevel] = useState<1 | 2 | 3>(2);
   const [result, setResult] = useState<GameResult | null>(null);
   const [resultMetadata, setResultMetadata] = useState<import("@/types").GameResultMetadata | undefined>(undefined);
   const [prematchSeconds, setPrematchSeconds] = useState(PREMATCH_SECONDS);
@@ -358,6 +359,7 @@ export default function CasualPage() {
     setMode(partyQueuePayload.mode);
     setSubject(partyQueuePayload.subject);
     setVocabGrade(partyQueuePayload.vocabGrade);
+    setPunctuationLevel(partyQueuePayload.punctuationLevel ?? 2);
     setOpponents(partyQueuePayload.opponents);
     setTeamMembers(normalizedTeamMembers);
     setBotResults(partyQueuePayload.botResults);
@@ -490,12 +492,13 @@ export default function CasualPage() {
     setPhase("vocab-grade");
   }
 
-  function matchWithBots(queueSubject: Subject, queueGrade: VocabLevel | undefined): { opps: OpponentInfo[]; tms: { id?: string; username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]; seed: string; botResults: typeof botResultsRef.current } {
+  function matchWithBots(queueSubject: Subject, queueGrade: VocabLevel | undefined, queuePunctuationLevel?: 1 | 2 | 3): { opps: OpponentInfo[]; tms: { id?: string; username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[]; seed: string; botResults: typeof botResultsRef.current } {
     const tier = profile?.rank_tier ?? "Bronze";
     const seed = generateMatchSeed();
     setMatchSeed(seed);
     setSubject(queueSubject);
     setVocabGrade(queueGrade);
+    if (queueSubject === "punctuation" && queuePunctuationLevel != null) setPunctuationLevel(queuePunctuationLevel);
 
     let opps: OpponentInfo[];
     let tms: { id?: string; username: string; avatar_config: InkAvatarConfig; isBot?: boolean }[];
@@ -543,13 +546,14 @@ export default function CasualPage() {
     return { opps, tms, seed, botResults: botResultsRef.current };
   }
 
-  function startBotMatch(queueSubject: Subject, queueGrade: VocabLevel | undefined) {
-    const { opps, tms, seed, botResults } = matchWithBots(queueSubject, queueGrade);
+  function startBotMatch(queueSubject: Subject, queueGrade: VocabLevel | undefined, queuePunctuationLevel?: 1 | 2 | 3) {
+    const { opps, tms, seed, botResults } = matchWithBots(queueSubject, queueGrade, queuePunctuationLevel);
     if (mode === "3v3" && members.length > 0 && user && isLeader && botResults) {
       void broadcastPartyQueue(user.id, {
         mode,
         subject: queueSubject,
         vocabGrade: queueGrade,
+        punctuationLevel: queuePunctuationLevel,
         seed,
         startedAt: getStartedAtFromSeed(seed),
         opponents: opps,
@@ -566,7 +570,8 @@ export default function CasualPage() {
     seed: string,
     queueSubject: Subject,
     queueGrade: VocabLevel | undefined,
-    broadcastBotResults?: { teamA: (BotResult3v3 | null)[]; teamB: (BotResult3v3 | null)[] }
+    broadcastBotResults?: { teamA: (BotResult3v3 | null)[]; teamB: (BotResult3v3 | null)[] },
+    queuePunctuationLevel?: 1 | 2 | 3
   ) => {
     if (!user || matchedRef.current) return;
     const me = players.find((p) => p.id === user.id);
@@ -620,6 +625,9 @@ export default function CasualPage() {
     }
 
     setMatchSeed(seed);
+    setSubject(queueSubject);
+    setVocabGrade(queueGrade);
+    setPunctuationLevel(queuePunctuationLevel ?? 2);
     setOpponents(opps);
     setTeamMembers(tms);
     setOpponentScores([]);
@@ -634,6 +642,7 @@ export default function CasualPage() {
         mode: "3v3",
         subject: queueSubject,
         vocabGrade: queueGrade,
+        punctuationLevel: queuePunctuationLevel,
         seed,
         startedAt: Date.now(),
         opponents: opps,
@@ -884,17 +893,18 @@ export default function CasualPage() {
     return () => clearInterval(interval);
   }, [matchSeed, mode, opponentAnswered, opponentScores, opponents, phase, remoteFinalState, result, user]);
 
-  async function startSearch(queueSubject: Subject, queueGrade: VocabLevel | undefined) {
+  async function startSearch(queueSubject: Subject, queueGrade: VocabLevel | undefined, queuePunctuationLevel?: 1 | 2 | 3) {
     if (!canQueue) return;
     matchedRef.current = false;
     cleanupChannel();
     setSubject(queueSubject);
     setVocabGrade(queueGrade);
+    setPunctuationLevel(queuePunctuationLevel ?? 2);
     setPlayersFound(Math.min(6, mode === "3v3" ? members.length + 1 : 1));
     setPhase("searching");
 
     if (!isSupabaseConfigured || !user) {
-      searchTimerRef.current = setTimeout(() => startBotMatch(queueSubject, queueGrade), mode === "3v3" ? THREE_VS_THREE_TIMEOUT_MS : 3000);
+      searchTimerRef.current = setTimeout(() => startBotMatch(queueSubject, queueGrade, queuePunctuationLevel), mode === "3v3" ? THREE_VS_THREE_TIMEOUT_MS : 3000);
       return;
     }
 
@@ -942,7 +952,7 @@ export default function CasualPage() {
           event: "match-found-3v3",
           payload,
         });
-        void apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade);
+        void apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade, undefined, queuePunctuationLevel);
       }
 
       const players = Object.entries(state).filter(([key, raw]) => {
@@ -1028,9 +1038,11 @@ export default function CasualPage() {
         seed?: string;
         players?: MatchPlayer[];
         botResults?: { teamA: (BotResult3v3 | null)[]; teamB: (BotResult3v3 | null)[] };
+        punctuationLevel?: 1 | 2 | 3;
       };
       if (!payload?.to?.includes(user.id) || !payload.seed || !Array.isArray(payload.players)) return;
-      await apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade, payload.botResults);
+      const puncLevel = payload.punctuationLevel ?? queuePunctuationLevel;
+      await apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade, payload.botResults, puncLevel);
     });
 
     channel.subscribe(async (status: string) => {
@@ -1059,13 +1071,13 @@ export default function CasualPage() {
           players: ownPartyPlayers,
         });
       } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-        startBotMatch(queueSubject, queueGrade);
+        startBotMatch(queueSubject, queueGrade, queuePunctuationLevel);
       }
     });
 
     searchTimerRef.current = setTimeout(() => {
       if (mode !== "3v3") {
-        startBotMatch(queueSubject, queueGrade);
+        startBotMatch(queueSubject, queueGrade, queuePunctuationLevel);
         return;
       }
       if (matchedRef.current) return;
@@ -1076,20 +1088,20 @@ export default function CasualPage() {
       );
       const coordinator = sortedLeaders[0];
       if (!coordinator) {
-        startBotMatch(queueSubject, queueGrade);
+        startBotMatch(queueSubject, queueGrade, queuePunctuationLevel);
         return;
       }
 
       if (coordinator.leaderId !== user.id) {
         setTimeout(() => {
-          if (!matchedRef.current) startBotMatch(queueSubject, queueGrade);
+          if (!matchedRef.current) startBotMatch(queueSubject, queueGrade, queuePunctuationLevel);
         }, 1200);
         return;
       }
 
       const participants = findEntriesBestAtMost(entries, user.id, 6);
       if (!participants) {
-        startBotMatch(queueSubject, queueGrade);
+        startBotMatch(queueSubject, queueGrade, queuePunctuationLevel);
         return;
       }
 
@@ -1111,26 +1123,28 @@ export default function CasualPage() {
         seed,
         players: mixedPlayers,
         botResults,
+        ...(queueSubject === "punctuation" && queuePunctuationLevel != null && { punctuationLevel: queuePunctuationLevel }),
       };
       channel.send({
         type: "broadcast",
         event: "match-found-3v3",
         payload,
       });
-      void apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade, payload.botResults);
+      void apply3v3Match(payload.players, payload.seed, queueSubject, queueGrade, payload.botResults, payload.punctuationLevel ?? queuePunctuationLevel);
     }, mode === "3v3" ? THREE_VS_THREE_TIMEOUT_MS : MATCHMAKING_TIMEOUT_MS);
   }
 
-  async function doQueue(queueSubject: Subject, queueGrade: VocabLevel | undefined) {
+  async function doQueue(queueSubject: Subject, queueGrade: VocabLevel | undefined, queuePunctuationLevel?: 1 | 2 | 3) {
     if (!canQueue) return;
     // 1v1 and 3v3 party flow: instant match with bots, broadcast so all party members get same game
     if ((mode === "1v1" || mode === "3v3") && members.length > 0 && user && isLeader) {
-      const { opps, tms, seed, botResults } = matchWithBots(queueSubject, queueGrade);
+      const { opps, tms, seed, botResults } = matchWithBots(queueSubject, queueGrade, queuePunctuationLevel);
       if (botResults) {
         await broadcastPartyQueue(user.id, {
           mode,
           subject: queueSubject,
           vocabGrade: queueGrade,
+          punctuationLevel: queuePunctuationLevel,
           seed,
           startedAt: getStartedAtFromSeed(seed),
           opponents: opps,
@@ -1140,11 +1154,17 @@ export default function CasualPage() {
       }
       return;
     }
-    await startSearch(queueSubject, queueGrade);
+    await startSearch(queueSubject, queueGrade, queuePunctuationLevel);
   }
 
   function handleStartPunctuation() {
-    doQueue("punctuation", undefined);
+    setSubject("punctuation");
+    setPhase("punctuation-level");
+  }
+
+  function handleStartWithPunctuationLevel(level: 1 | 2 | 3) {
+    setPunctuationLevel(level);
+    doQueue("punctuation", undefined, level);
   }
 
   function handleStartWithGrade(level: VocabLevel) {
@@ -1254,12 +1274,12 @@ export default function CasualPage() {
 
   const seededQuestions = useMemo(() => {
     if (!matchSeed) return undefined;
-    const qs = getSeededQuestionsForMode(subject, matchSeed, 30, vocabGrade);
+    const qs = getSeededQuestionsForMode(subject, matchSeed, 30, vocabGrade, subject === "punctuation" ? punctuationLevel : undefined);
     // PvP uses a fixed 15-question sprint; everyone answers the same set
     if (mode === "3v3") return qs.slice(0, THREE_VS_THREE_QUESTIONS);
     if (mode === "1v1") return qs.slice(0, ONE_VS_ONE_QUESTIONS);
     return qs;
-  }, [matchSeed, mode, subject, vocabGrade]);
+  }, [matchSeed, mode, subject, vocabGrade, punctuationLevel]);
 
   if (phase === "playing" && opponents.length > 0) {
     const getOpponentScore = () => {
@@ -1662,6 +1682,67 @@ export default function CasualPage() {
                       default
                     </span>
                   )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (phase === "punctuation-level") {
+    const levelConfig: { level: 1 | 2 | 3; label: string; emoji: string; color: string; desc: string }[] = [
+      { level: 1, label: "Beginner", emoji: "📝", color: "#34D399", desc: "Periods, commas, question marks" },
+      { level: 2, label: "Intermediate", emoji: "✏️", color: "#60A5FA", desc: "Semicolons, colons, apostrophes" },
+      { level: 3, label: "Advanced", emoji: "📌", color: "#A78BFA", desc: "Dashes, ellipses, complex rules" },
+    ];
+    return (
+      <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+        <header className="flex items-center justify-between px-5 py-4">
+          <button
+            onClick={() => setPhase("select")}
+            className={`flex items-center gap-1.5 text-sm font-bold ${textMuted} hover:opacity-80 transition-opacity`}
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+            </svg>
+            Back
+          </button>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#60A5FA]"}`}>
+            {mode} · Punctuation
+          </span>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <GlobalNotificationBar />
+          </div>
+        </header>
+        <div className="flex-1 max-w-lg mx-auto w-full px-4 sm:px-5 py-6 flex flex-col gap-5">
+          <div className="text-center">
+            <h1 className={`text-2xl sm:text-3xl font-extrabold ${text}`}>Pick Punctuation Level</h1>
+            <p className={`${textMuted} text-sm font-medium mt-1`}>Choose the difficulty that matches your skill</p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {levelConfig.map(({ level, label, emoji, color, desc }) => {
+              const isSelected = punctuationLevel === level;
+              return (
+                <button
+                  key={level}
+                  onClick={() => handleStartWithPunctuationLevel(level)}
+                  className={`relative flex items-center gap-4 rounded-2xl px-5 py-4 border-2 font-bold transition-all duration-150 active:scale-[0.98] text-left`}
+                  style={{
+                    borderColor: isSelected ? color : (light ? "#E2E8F0" : "rgba(255,255,255,0.1)"),
+                    backgroundColor: isSelected ? `${color}12` : (light ? "#ffffff" : "#1E293B"),
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 0 14px ${color}30`; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = isSelected ? color : (light ? "#E2E8F0" : "rgba(255,255,255,0.1)"); e.currentTarget.style.boxShadow = "none"; }}
+                >
+                  <span className="text-2xl leading-none">{emoji}</span>
+                  <div className="flex-1">
+                    <span className={`block text-base font-extrabold ${text}`}>{label}</span>
+                    <span className={`block text-xs font-medium ${textMuted} mt-0.5`}>{desc}</span>
+                  </div>
                 </button>
               );
             })}

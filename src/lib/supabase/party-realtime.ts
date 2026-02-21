@@ -2,12 +2,13 @@
 
 import { createClient } from "./client";
 import type { OpponentInfo } from "@/lib/game/matchmaking";
-import type { InkAvatarConfig, VocabLevel } from "@/types";
+import type { InkAvatarConfig, VocabLevel, PunctuationLevel } from "@/types";
 
 export interface PartyQueuePayload {
   mode: "1v1" | "3v3";
   subject: "vocabulary" | "punctuation";
   vocabGrade?: VocabLevel;
+  punctuationLevel?: PunctuationLevel;
   seed: string;
   startedAt: number;
   opponents: OpponentInfo[];

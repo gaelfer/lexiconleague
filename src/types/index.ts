@@ -17,6 +17,9 @@ export type VocabGrade = 3 | 4 | 5 | 6 | 7 | 8;
 /** Extended vocab level: grades 3-8, or PSAT/SAT for advanced test prep. */
 export type VocabLevel = VocabGrade | "psat" | "sat";
 
+/** Punctuation difficulty: 1=beginner, 2=intermediate, 3=advanced. Used in casual mode. */
+export type PunctuationLevel = 1 | 2 | 3;
+
 export interface Question {
   id: string;
   subject: Subject;
@@ -27,6 +30,8 @@ export interface Question {
   answer_index: number;
   /** For vocabulary: target grade level (3-8, psat, sat). Used for casual grade selection. */
   gradeLevel?: VocabGrade | "psat" | "sat";
+  /** For punctuation: 1=beginner, 2=intermediate, 3=advanced. Used for punctuation level selection. */
+  punctuationLevel?: PunctuationLevel;
 }
 
 // ── Rank ────────────────────────────────────────────────────────────────────
