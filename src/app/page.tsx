@@ -9,8 +9,6 @@ import FlameIcon from "@/components/icons/FlameIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import InkAvatar from "@/components/InkAvatar";
-import BronzeIcon from "@/components/icons/BronzeIcon";
-import DiamondIcon from "@/components/icons/DiamondIcon";
 import { RANK_TIERS, RANK_THRESHOLDS, RANK_COLORS, type RankTier } from "@/types";
 
 // ── Inline icons for marketing (User, Eye, Palette, Crown, Zap) ───────────────
@@ -84,54 +82,6 @@ const MUTED = "#94A3B8";
 const FAINT = "#475569";
 
 // ── Utility components ────────────────────────────────────────────────────────
-
-/** Tier icon SVG — matches ranked/leaderboard page */
-function BigTierIcon({ tier, color, size = 56 }: { tier: RankTier; color: string; size?: number }) {
-  const common = { stroke: color, strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
-  let svg: React.ReactNode;
-  if (tier === "Bronze") {
-    svg = <BronzeIcon className="w-full h-full" color={color} />;
-  } else if (tier === "Silver") {
-    svg = (
-      <svg className="w-full h-full" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="28" fill={`${color}15`} stroke={color} strokeWidth="2.5" />
-        <circle cx="32" cy="32" r="20" {...common} strokeDasharray="4 3" />
-        <path d="M32 20v12l6 6" {...common} strokeWidth="2.5" />
-      </svg>
-    );
-  } else if (tier === "Gold") {
-    svg = (
-      <svg className="w-full h-full" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="28" fill={`${color}15`} stroke={color} strokeWidth="2" />
-        <path d="M20 50h24M32 42v8M42 12H22l-5 12c0 9.5 6.7 17 15 17s15-7.5 15-17L42 12z" {...common} strokeWidth="2.5" />
-        <path d="M17 24h-5l-2 8h8M47 24h5l2 8h-8" {...common} strokeWidth="2" />
-      </svg>
-    );
-  } else if (tier === "Platinum") {
-    svg = (
-      <svg className="w-full h-full" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="28" fill={`${color}10`} stroke={color} strokeWidth="2" />
-        <path d="M32 8L8 20l24 12 24-12L32 8z" {...common} strokeWidth="2.5" />
-        <path d="M8 44l24 12 24-12" {...common} strokeWidth="2" />
-        <path d="M8 32l24 12 24-12" {...common} strokeWidth="2" />
-      </svg>
-    );
-  } else if (tier === "Emerald") {
-    svg = (
-      <svg className="w-full h-full" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="28" fill={`${color}15`} stroke={color} strokeWidth="2.5" />
-        <path d="M32 12l4 12 12 1.5-9 8 3 12-10-6-10 6 3-12-9-8 12-1.5L32 12z" fill={`${color}30`} stroke={color} strokeWidth="2" strokeLinejoin="round" />
-      </svg>
-    );
-  } else {
-    svg = <DiamondIcon className="w-full h-full" color={color} />;
-  }
-  return (
-    <div style={{ width: size, height: size, flexShrink: 0 }}>
-      {svg}
-    </div>
-  );
-}
 
 /** Section eyebrow label */
 function SLabel({ children }: { children: React.ReactNode }) {
@@ -277,9 +227,6 @@ export default function MarketingPage() {
         .cosm-card { transition: border-color 0.2s ease; }
         .cosm-card:hover { border-color: rgba(52, 211, 153, 0.45) !important; }
 
-        /* Tier node */
-        .tier-node { cursor: default; }
-
         /* Hero Inklings — circle around main, responsive */
         .hero-inklings-wrap { display: flex; justify-content: center; align-items: center; }
         .hero-inklings-circle { position: relative; width: min(320px, 85vw); height: min(320px, 85vw); }
@@ -291,7 +238,6 @@ export default function MarketingPage() {
           .hero-grid    { grid-template-columns: 1fr !important; text-align: center; }
           .hero-ctas    { justify-content: center !important; }
           .modes-grid   { grid-template-columns: 1fr !important; }
-          .tiers-grid   { grid-template-columns: repeat(3, 1fr) !important; }
           .tiers-line   { display: none !important; }
           .vocab-grid   { grid-template-columns: 1fr !important; }
           .cosm-grid    { grid-template-columns: 1fr !important; }
@@ -307,7 +253,6 @@ export default function MarketingPage() {
           .proof-divider-3 { border-right: none !important; }
         }
         @media (max-width: 600px) {
-          .tiers-grid   { grid-template-columns: repeat(2, 1fr) !important; }
           .proof-grid   { grid-template-columns: 1fr !important; }
           .proof-divider-0, .proof-divider-1, .proof-divider-2 { border-right: none !important; }
           .footer-grid  { grid-template-columns: 1fr !important; }
@@ -876,50 +821,6 @@ export default function MarketingPage() {
               <span key={t} style={{ width: `${[4, 10, 26, 20, 32, 8][i]}%`, textAlign: "left" }}>
                 {RANK_THRESHOLDS[t] >= 1000 ? `${RANK_THRESHOLDS[t] / 1000}K` : RANK_THRESHOLDS[t]}
               </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Tier ladder */}
-        <div style={{ position: "relative", padding: "24px 0 20px" }}>
-          {/* Connecting gradient line */}
-          <div
-            className="tiers-line"
-            style={{
-              position: "absolute",
-              top: "82px",
-              left: "calc(8.33% + 12px)",
-              right: "calc(8.33% + 12px)",
-              height: "3px",
-              background: "linear-gradient(90deg, #CD7F32, #C0C0C0, #D4AF37, #7DD3FC, #A78BFA, #10B981)",
-              borderRadius: "4px",
-              zIndex: 0,
-            }}
-          />
-
-          <div className="tiers-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px", position: "relative", zIndex: 1 }}>
-            {[
-              { name: "Bronze" as RankTier, desc: "Start here" },
-              { name: "Silver" as RankTier, desc: "Rising challenger" },
-              { name: "Gold" as RankTier, desc: "Punctuation unlocked" },
-              { name: "Platinum" as RankTier, desc: "Elite linguist" },
-              { name: "Diamond" as RankTier, desc: "Legendary master" },
-              { name: "Emerald" as RankTier, desc: "Ultimate champion" },
-            ].map(({ name, desc }) => (
-              <div key={name} className="tier-node" style={{ textAlign: "center" }}>
-                <div style={{
-                  width: "56px", height: "56px", borderRadius: "50%",
-                  background: `${RANK_COLORS[name]}18`,
-                  border: `2.5px solid ${RANK_COLORS[name]}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  margin: "0 auto 14px",
-                  overflow: "hidden",
-                }}>
-                  <BigTierIcon tier={name} color={RANK_COLORS[name]} size={40} />
-                </div>
-                <p style={{ fontSize: "0.78rem", fontWeight: 800, color: RANK_COLORS[name], marginBottom: "4px" }}>{name}</p>
-                <p style={{ fontSize: "0.68rem", color: FAINT }}>{desc}</p>
-              </div>
             ))}
           </div>
         </div>
