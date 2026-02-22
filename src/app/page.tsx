@@ -171,8 +171,8 @@ export default function MarketingPage() {
 
         @keyframes floatUp {
           0%   { transform: translateY(0) rotate(var(--rot)); opacity: 0; }
-          8%   { opacity: 0.14; }
-          92%  { opacity: 0.14; }
+          8%   { opacity: 0.48; }
+          92%  { opacity: 0.48; }
           100% { transform: translateY(-110vh) rotate(var(--rot)); opacity: 0; }
         }
         .float-word {
@@ -180,7 +180,7 @@ export default function MarketingPage() {
           pointer-events: none;
           font-weight: 700;
           font-size: var(--fs, 1rem);
-          color: rgba(59, 130, 246, 0.22);
+          color: rgba(59, 130, 246, 0.55);
           animation: floatUp var(--dur, 18s) var(--delay, 0s) linear infinite;
           user-select: none;
           white-space: nowrap;
@@ -385,7 +385,7 @@ export default function MarketingPage() {
                 "--rot": `${(i * 13 - 25) % 36}deg`,
                 "--dur": `${15 + (i * 2.8) % 12}s`,
                 "--delay": `${(i * 1.7) % 12}s`,
-                "--fs":  `${0.7 + (i * 0.13) % 0.7}rem`,
+                "--fs":  `${0.95 + (i * 0.12) % 0.6}rem`,
               } as React.CSSProperties}
             >
               {word}
@@ -479,8 +479,8 @@ export default function MarketingPage() {
           style={{ maxWidth: "960px", margin: "0 auto", padding: "0 24px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}
         >
           {[
-            { value: "10K+", label: "Students Playing" },
-            { value: "1M+",  label: "Questions Answered" },
+            { value: "200+", label: "Students Playing" },
+            { value: "15K+", label: "Questions Answered" },
             { value: "10",   label: "Vocabulary Tiers" },
             { value: "5★",   label: "Average Rating" },
           ].map((stat, i) => (
