@@ -571,7 +571,7 @@ export default function MarketingPage() {
             </h2>
           </div>
 
-          <div className="modes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
+          <div className="modes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
             {[
               {
                 title: "Casual Mode",
@@ -606,6 +606,17 @@ export default function MarketingPage() {
                 desc:   "Self-paced practice with spaced repetition. No timer, no pressure.",
                 cta:    "Start Studying",
                 href:   playHref,
+              },
+              {
+                title: "Classroom Mode",
+                accent: "#0EA5E9",
+                glow:   "rgba(14,165,233,0.18)",
+                avatar: { base: "droplet_01", color: "#0EA5E9", eyes: "eyes_03", accessory: "quill_01", aura: "none" },
+                sub:    "For Teachers",
+                tags:   ["20+ player lobbies", "Live vocabulary challenges", "Real-time progress tracking", "Coming Soon"],
+                desc:   "Host live sessions for your whole class. Compete together and track progress in real time.",
+                cta:    "Coming Soon",
+                href:   "/play/classroom",
               },
             ].map((mode) => (
               <div
@@ -1067,9 +1078,10 @@ export default function MarketingPage() {
               {
                 title: "Play",
                 links: [
-                  { label: "Casual Mode",  href: "/play/casual" },
+                  { label: "Casual Mode",   href: "/play/casual" },
                   { label: "Ranked Mode",  href: "/ranked" },
                   { label: "Study Mode",   href: "/study" },
+                  { label: "Classroom Mode", href: "/play/classroom" },
                   { label: "Leaderboard",  href: "/ranked" },
                 ],
               },
