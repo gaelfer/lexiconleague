@@ -24,6 +24,7 @@ import InkDropIcon from "@/components/icons/InkDropIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
+import { SURFACE } from "@/lib/design-tokens";
 
 type Tab = "base" | "color" | "eyes" | "accessory" | "aura";
 
@@ -153,19 +154,19 @@ export default function LockerPage() {
     );
   }
 
-  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const bg = light ? "bg-[#F8FAFC]" : "";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
 
   if (loading) {
     return (
-      <main className={`min-h-screen flex items-center justify-center ${bg}`}>
+      <main className="min-h-screen flex items-center justify-center" style={!light ? { background: SURFACE } : undefined}>
         <p className={`font-semibold animate-pulse ${textMuted}`}>Loading locker...</p>
       </main>
     );
   }
 
   return (
-    <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+    <main className={`min-h-[100dvh] flex flex-col overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
       <header className={`flex items-center justify-between px-5 py-4 border-b ${cardBorder}`}>
         <Link
           href="/dashboard"

@@ -30,8 +30,7 @@ import { broadcastPartyQueue } from "@/lib/supabase/party-realtime";
 import { calculateScore } from "@/lib/game/rank";
 import type { OpponentInfo } from "@/lib/game/matchmaking";
 
-const BLUE = "#3B82F6";
-const MINT = "#34D399";
+import { BLUE, MINT, SURFACE } from "@/lib/design-tokens";
 
 const isSupabaseConfigured =
   typeof process.env.NEXT_PUBLIC_SUPABASE_URL === "string" &&
@@ -1268,7 +1267,7 @@ export default function CasualPage() {
     setPhase("select");
   }
 
-  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const bg = light ? "bg-[#F8FAFC]" : "";
   const text = light ? "text-[#0F172A]" : "text-white";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
   const cardBg = light ? "bg-white" : "bg-[#1E293B]";
@@ -1345,7 +1344,7 @@ export default function CasualPage() {
       const oppSnapshot = opp ? remoteFinalState[opp.id] : undefined;
       const oppAnswered = oppSnapshot?.answered ?? (opponentAnswered[0] ?? 0);
       return (
-        <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-6 overflow-x-hidden`}>
+        <main className={`min-h-[100dvh] flex flex-col items-center justify-center px-6 overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
           <div className="absolute top-4 right-4 flex items-center gap-2">
             <ThemeToggle />
             <GlobalNotificationBar />
@@ -1545,7 +1544,7 @@ export default function CasualPage() {
       : [{ config: (profile?.avatar_config ?? DEFAULT_AVATAR_CONFIG) as InkAvatarConfig, name: profile?.username ?? "You", isBot: false }];
 
     return (
-      <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden`}>
+      <main className={`min-h-[100dvh] flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
         <div className="absolute top-4 right-4 flex items-center gap-2">
           <ThemeToggle />
           <GlobalNotificationBar />
@@ -1619,7 +1618,7 @@ export default function CasualPage() {
     };
     const defaultLabel = VOCAB_LEVELS.find((l) => l.level === profile?.vocab_grade)?.label ?? profile?.vocab_grade;
     return (
-      <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+      <main className={`min-h-[100dvh] flex flex-col overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
         <header className="flex items-center justify-between px-5 py-4">
           <button
             onClick={() => setPhase("select")}
@@ -1701,7 +1700,7 @@ export default function CasualPage() {
       { level: 3, label: "Advanced", emoji: "📌", color: "#A78BFA", desc: "Dashes, ellipses, complex rules" },
     ];
     return (
-      <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+      <main className={`min-h-[100dvh] flex flex-col overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
         <header className="flex items-center justify-between px-5 py-4">
           <button
             onClick={() => setPhase("select")}
@@ -2041,7 +2040,7 @@ export default function CasualPage() {
   const modeAccent = mode === "1v1" ? BLUE : MINT;
 
   return (
-    <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+    <main className={`min-h-[100dvh] flex flex-col overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
       <header className="flex items-center justify-between px-5 py-4">
         <Link href="/dashboard" className={`flex items-center gap-1.5 text-sm font-bold ${textMuted} hover:opacity-80 transition-opacity`}>
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">

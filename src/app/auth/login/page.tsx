@@ -13,6 +13,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import GoogleIcon from "@/components/icons/GoogleIcon";
 import LogoIcon from "@/components/icons/LogoIcon";
 import MailIcon from "@/components/icons/MailIcon";
+import { MINT, BLUE, DARK, CARD, SURFACE } from "@/lib/design-tokens";
 
 type View = "providers" | "email";
 
@@ -55,42 +56,58 @@ export default function LoginPage() {
     });
   }
 
+  const panelBg = light ? "bg-[#F8FAFC]" : SURFACE;
+  const textCls = light ? "text-[#0F172A]" : "text-white";
+  const textMutedCls = light ? "text-[#64748B]" : "text-[#94A3B8]";
+  const inputBg = light ? "bg-white" : CARD;
+  const inputBorder = light ? "border-[#E2E8F0]" : "border-white/10";
+  const inputFocus = light ? "focus:border-[#3B82F6]" : "focus:border-[#3B82F6]/60";
+  const btnSecondary = light
+    ? "bg-white border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]"
+    : "bg-[#1E293B] border-white/10 text-white hover:bg-[#334155] hover:border-white/20";
+
   return (
-    <main className="min-h-screen flex">
-      {/* Left panel — decorative */}
-      <div className="hidden lg:flex lg:w-[48%] flex-col items-center justify-center relative overflow-hidden bg-[#3B82F6]">
-        {/* Soft shapes */}
-        <div className="absolute top-20 left-16 w-40 h-40 rounded-full bg-white/10" />
-        <div className="absolute bottom-24 right-12 w-56 h-56 rounded-full bg-[#60A5FA]/30" />
-        <div className="absolute top-1/2 left-12 w-24 h-24 rounded-full bg-[#34D399]/20" />
+    <main className={`min-h-screen flex ${light ? "bg-[#F8FAFC]" : ""}`} style={!light ? { background: SURFACE } : undefined}>
+      {/* Left panel — decorative (marketing style) */}
+      <div
+        className="hidden lg:flex lg:w-[48%] flex-col items-center justify-center relative overflow-hidden"
+        style={light ? { background: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)" } : { background: DARK, borderRight: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        {/* Ambient glows */}
+        <div className="absolute top-1/2 right-0 w-[400px] h-[400px] rounded-full opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle, ${BLUE} 0%, transparent 65%)`, transform: "translate(30%, -50%)" }} />
+        <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] rounded-full opacity-15 pointer-events-none" style={{ background: `radial-gradient(circle, ${MINT} 0%, transparent 65%)`, transform: "translate(-30%, 0)" }} />
 
         <div className="relative z-10 text-center px-12 space-y-8">
           <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white shadow-xl overflow-hidden p-1">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden p-1"
+              style={light ? { background: "white", boxShadow: "0 8px 24px rgba(0,0,0,0.15)" } : { background: CARD, border: "1px solid rgba(52,211,153,0.22)" }}
+            >
               <LogoIcon className="w-full h-full" />
             </div>
           </div>
           <div>
-            <h1 className="text-5xl font-extrabold text-white leading-tight">
+            <h1 className="text-5xl font-extrabold leading-tight font-display" style={{ color: "white", fontFamily: "'Playfair Display', Georgia, serif" }}>
               Lexicon
               <br />
-              <span className="text-[#34D399]">League</span>
+              <span style={{ color: MINT }}>League</span>
             </h1>
-            <p className="text-white/90 text-lg mt-4 font-semibold">
+            <p className="text-lg mt-4 font-semibold" style={{ color: "rgba(255,255,255,0.9)" }}>
               Words are your superpower.
             </p>
           </div>
           <div className="flex flex-col gap-3 text-left">
             {[
-              { text: "Climb from Bronze to Emerald", color: "#34D399" },
+              { text: "Climb from Bronze to Emerald", color: MINT },
               { text: "60-second vocab sprints", color: "#60A5FA" },
               { text: "Beat your personal best", color: "#6EE7B7" },
             ].map((item) => (
               <div
                 key={item.text}
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/10"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.06)" }}
               >
-                <span className="w-2 h-2 rounded-full" style={{ background: item.color }} />
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: item.color }} />
                 <span className="text-white font-semibold text-sm">{item.text}</span>
               </div>
             ))}
@@ -98,23 +115,23 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className={`flex-1 flex flex-col items-center justify-center px-6 py-12 ${light ? "bg-white" : "bg-[#0F172A]"}`}>
+      <div className={`flex-1 flex flex-col items-center justify-center px-6 py-12 ${panelBg}`} style={!light ? { background: SURFACE } : undefined}>
         <div className="w-full max-w-sm">
           <div className="flex justify-end mb-4"><ThemeToggle /></div>
           <div className="lg:hidden flex flex-col items-center gap-3 mb-8">
             <LogoIcon className="w-12 h-12" />
-            <span className={`text-2xl font-extrabold ${light ? "text-[#0F172A]" : "text-white"}`}>
-              Lexicon<span className="text-[#3B82F6]">League</span>
+            <span className={`text-2xl font-extrabold ${textCls}`} style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
+              Lexicon<span style={{ color: BLUE }}>League</span>
             </span>
           </div>
 
           <div className="mb-8">
-            <h2 className={`text-3xl font-extrabold mb-1 ${light ? "text-[#0F172A]" : "text-white"}`}>
+            <h2 className={`text-3xl font-extrabold mb-1 font-display ${textCls}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               Welcome back!
             </h2>
-            <p className={`text-sm font-medium ${light ? "text-[#64748B]" : "text-white/60"}`}>
+            <p className={`text-sm font-medium ${textMutedCls}`}>
               Sign in to continue your journey.{" "}
-              <Link href="/auth/signup" className="font-bold text-[#3B82F6] hover:underline">
+              <Link href="/auth/signup" className="font-bold hover:underline" style={{ color: BLUE }}>
                 New here? Join free
               </Link>
             </p>
@@ -124,28 +141,28 @@ export default function LoginPage() {
             <div className="space-y-3">
               <button
                 onClick={() => handleOAuth("google")}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] hover:border-[#BFDBFE] transition-all font-bold text-[#0F172A] text-sm"
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all font-bold text-sm ${btnSecondary}`}
               >
                 <GoogleIcon className="w-5 h-5 shrink-0" />
                 <span className="flex-1 text-center">Continue with Google</span>
               </button>
 
               <div className="flex items-center gap-3 my-1">
-                <div className="flex-1 h-px bg-[#E2E8F0]" />
-                <span className="text-[#64748B] text-xs font-bold">or</span>
-                <div className="flex-1 h-px bg-[#E2E8F0]" />
+                <div className="flex-1 h-px" style={{ background: light ? "#E2E8F0" : "rgba(255,255,255,0.1)" }} />
+                <span className={`text-xs font-bold ${textMutedCls}`}>or</span>
+                <div className="flex-1 h-px" style={{ background: light ? "#E2E8F0" : "rgba(255,255,255,0.1)" }} />
               </div>
 
               <button
                 onClick={() => setView("email")}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-[#E2E8F0] bg-white hover:border-[#3B82F6] hover:bg-[#F8FAFC] transition-all font-bold text-[#0F172A] text-sm"
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all font-bold text-sm ${btnSecondary}`}
               >
-                <MailIcon className="w-5 h-5 shrink-0 text-[#64748B]" />
+                <MailIcon className={`w-5 h-5 shrink-0 ${textMutedCls}`} />
                 <span className="flex-1 text-center">Continue with Email</span>
               </button>
 
               {error && (
-                <div className="mt-2 px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium text-center">
+                <div className="mt-2 px-4 py-3 rounded-xl text-sm font-medium text-center" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#EF4444" }}>
                   {error}
                 </div>
               )}
@@ -155,7 +172,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => { setView("providers"); setError(""); }}
-                className="flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#0F172A] font-semibold mb-4 transition-colors"
+                className={`flex items-center gap-1.5 text-sm font-semibold mb-4 transition-colors ${textMutedCls} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                   <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
@@ -164,7 +181,7 @@ export default function LoginPage() {
               </button>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-[#0F172A]">Username or email</label>
+                <label className={`block text-sm font-bold ${textCls}`}>Username or email</label>
                 <input
                   type="text"
                   required
@@ -172,24 +189,24 @@ export default function LoginPage() {
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
                   placeholder="username or you@example.com"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-[#E2E8F0] focus:border-[#3B82F6] focus:outline-none text-[#0F172A] text-sm font-medium transition-colors bg-white placeholder-[#64748B]"
+                  className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-sm font-medium transition-colors ${inputBg} ${inputBorder} ${inputFocus} ${light ? "text-[#0F172A] placeholder-[#64748B]" : "text-white placeholder-[#94A3B8]"}`}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-[#0F172A]">Password</label>
+                <label className={`block text-sm font-bold ${textCls}`}>Password</label>
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-[#E2E8F0] focus:border-[#3B82F6] focus:outline-none text-[#0F172A] text-sm font-medium transition-colors bg-white placeholder-[#64748B]"
+                  className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-sm font-medium transition-colors ${inputBg} ${inputBorder} ${inputFocus} ${light ? "text-[#0F172A] placeholder-[#64748B]" : "text-white placeholder-[#94A3B8]"}`}
                 />
               </div>
 
               {error && (
-                <div className="px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
+                <div className="px-4 py-3 rounded-xl text-sm font-medium" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#EF4444" }}>
                   {error}
                 </div>
               )}
@@ -197,18 +214,19 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full py-3.5 rounded-2xl font-extrabold text-white text-base bg-[#3B82F6] hover:bg-[#2563EB] transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full py-3.5 rounded-xl font-extrabold text-white text-base transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-xl"
+                style={{ background: `linear-gradient(135deg, ${BLUE} 0%, #1D4ED8 100%)`, boxShadow: "0 4px 12px rgba(59,130,246,0.4)" }}
               >
                 {isPending ? "Signing in…" : "Sign In"}
               </button>
             </form>
           )}
 
-          <p className="mt-6 text-center text-xs text-[#64748B] font-medium">
+          <p className={`mt-6 text-center text-xs font-medium ${textMutedCls}`}>
             By continuing, you agree to our{" "}
-            <span className="underline cursor-pointer hover:text-[#0F172A]">Terms</span>
+            <span className="underline cursor-pointer hover:opacity-80">Terms</span>
             {" "}and{" "}
-            <span className="underline cursor-pointer hover:text-[#0F172A]">Privacy Policy</span>.
+            <span className="underline cursor-pointer hover:opacity-80">Privacy Policy</span>.
           </p>
         </div>
       </div>

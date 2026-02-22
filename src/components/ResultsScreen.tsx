@@ -12,6 +12,7 @@ import SparkIcon from "./icons/SparkIcon";
 import TrophyIcon from "./icons/TrophyIcon";
 import InkDropIcon from "./icons/InkDropIcon";
 import FlameIcon from "./icons/FlameIcon";
+import LevelUpCelebration from "./LevelUpCelebration";
 import { getTierProgress, GAME_DURATION, getWinStreakMultiplier } from "@/lib/game/rank";
 
 interface ResultsScreenProps {
@@ -38,6 +39,7 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
   const [visible, setVisible] = useState(false);
   const [rankUpPopup, setRankUpPopup] = useState(metadata?.rankUp ?? null);
   const [levelUpPopup, setLevelUpPopup] = useState(metadata?.levelUp ?? null);
+  const [levelUpFxNonce, setLevelUpFxNonce] = useState(0);
 
   useEffect(() => {
     if (!profileProp) setProfileState(getProfile());
@@ -54,6 +56,12 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
     window.addEventListener("ll-profile-updated", onUpdated);
     return () => window.removeEventListener("ll-profile-updated", onUpdated);
   }, [profileProp]);
+
+  useEffect(() => {
+    if (levelUpPopup) {
+      setLevelUpFxNonce((prev) => prev + 1);
+    }
+  }, [levelUpPopup]);
 
   function dismissRankUpPopup() {
     if (rankUpPopup) {
@@ -148,8 +156,9 @@ export default function ResultsScreen({ result, onPlayAgain, placementGrade, met
 
       {/* Level-up popup */}
       {levelUpPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border-2 border-[#8B5CF6]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 relative">
+          <LevelUpCelebration level={levelUpPopup.newLevel} playNonce={levelUpFxNonce} />
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border-2 border-[#8B5CF6] relative z-10">
             <div className="text-center">
               <p className="text-2xl font-extrabold text-[#8B5CF6]">Level Up!</p>
               <p className="mt-2 text-[#0F172A] font-bold">You reached Level {levelUpPopup.newLevel}!</p>

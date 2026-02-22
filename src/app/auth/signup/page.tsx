@@ -12,6 +12,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import GoogleIcon from "@/components/icons/GoogleIcon";
 import LogoIcon from "@/components/icons/LogoIcon";
 import MailIcon from "@/components/icons/MailIcon";
+import { MINT, BLUE, DARK, CARD, SURFACE } from "@/lib/design-tokens";
 
 type View = "providers" | "email";
 
@@ -25,7 +26,7 @@ const GRADES = ["Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "English 
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+    <Suspense fallback={<div className="min-h-screen" style={{ background: SURFACE }} />}>
       <SignupPageInner />
     </Suspense>
   );
@@ -94,18 +95,19 @@ function SignupPageInner() {
 
   if (success) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-white px-6">
+      <main className="min-h-screen flex items-center justify-center px-6" style={{ background: light ? "#F8FAFC" : SURFACE }}>
         <div className="text-center max-w-sm space-y-5">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto bg-[#ECFDF5] border-2 border-[#22C55E]">
-            <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto" style={{ background: light ? "#ECFDF5" : `${MINT}20`, border: `2px solid ${MINT}` }}>
+            <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" stroke={MINT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
-          <h2 className="text-2xl font-extrabold text-[#0F172A]">Check your inbox!</h2>
-          <p className="text-[#64748B] text-sm font-medium">{success}</p>
+          <h2 className="text-2xl font-extrabold font-display" style={{ color: light ? "#0F172A" : "white", fontFamily: "'Playfair Display', Georgia, serif" }}>Check your inbox!</h2>
+          <p className="text-sm font-medium" style={{ color: light ? "#64748B" : "#94A3B8" }}>{success}</p>
           <Link
             href="/auth/login"
-            className="inline-block px-6 py-3 rounded-2xl font-bold text-white text-sm bg-[#3B82F6] hover:bg-[#2563EB] transition-colors"
+            className="inline-block px-6 py-3 rounded-xl font-bold text-white text-sm transition-all hover:shadow-lg"
+            style={{ background: `linear-gradient(135deg, ${BLUE} 0%, #1D4ED8 100%)`, boxShadow: "0 4px 12px rgba(59,130,246,0.4)" }}
           >
             Back to Sign In
           </Link>
@@ -114,25 +116,37 @@ function SignupPageInner() {
     );
   }
 
+  const inputBg = light ? "bg-white" : CARD;
+  const inputBorder = light ? "border-[#E2E8F0]" : "border-white/10";
+  const inputFocus = light ? "focus:border-[#3B82F6]" : "focus:border-[#3B82F6]/60";
+  const btnSecondary = light
+    ? "bg-white border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#BFDBFE]"
+    : "bg-[#1E293B] border-white/10 text-white hover:bg-[#334155] hover:border-white/20";
+
   return (
-    <main className="min-h-screen flex">
-      {/* Left panel */}
-      <div className="hidden lg:flex lg:w-[48%] flex-col items-center justify-center relative overflow-hidden bg-[#3B82F6]">
-        <div className="absolute top-16 right-24 w-48 h-48 rounded-full bg-[#34D399]/20" />
-        <div className="absolute bottom-20 left-16 w-40 h-40 rounded-full bg-white/10" />
-        <div className="absolute top-1/3 right-8 w-20 h-20 rounded-full bg-[#34D399]/20" />
+    <main className="min-h-screen flex" style={!light ? { background: SURFACE } : undefined}>
+      {/* Left panel — marketing style */}
+      <div
+        className="hidden lg:flex lg:w-[48%] flex-col items-center justify-center relative overflow-hidden"
+        style={light ? { background: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)" } : { background: DARK, borderRight: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <div className="absolute top-1/2 right-0 w-[400px] h-[400px] rounded-full opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle, ${BLUE} 0%, transparent 65%)`, transform: "translate(30%, -50%)" }} />
+        <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] rounded-full opacity-15 pointer-events-none" style={{ background: `radial-gradient(circle, ${MINT} 0%, transparent 65%)`, transform: "translate(-30%, 0)" }} />
 
         <div className="relative z-10 text-center px-12 space-y-8">
           <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white shadow-xl overflow-hidden p-1">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden p-1"
+              style={light ? { background: "white", boxShadow: "0 8px 24px rgba(0,0,0,0.15)" } : { background: CARD, border: "1px solid rgba(52,211,153,0.22)" }}
+            >
               <LogoIcon className="w-full h-full" />
             </div>
           </div>
           <div>
-            <h1 className="text-5xl font-extrabold text-white leading-tight">
+            <h1 className="text-5xl font-extrabold text-white leading-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               Join the
               <br />
-              <span className="text-[#34D399]">League</span>
+              <span style={{ color: MINT }}>League</span>
             </h1>
             <p className="text-white/90 text-lg mt-4 font-semibold">
               Your rank journey starts here.
@@ -165,29 +179,29 @@ function SignupPageInner() {
         </div>
       </div>
 
-      <div className={`flex-1 flex flex-col items-center justify-center px-6 py-12 ${light ? "bg-white" : "bg-[#0F172A]"}`}>
+      <div className={`flex-1 flex flex-col items-center justify-center px-6 py-12 ${light ? "bg-[#F8FAFC]" : ""}`} style={!light ? { background: SURFACE } : undefined}>
         <div className="w-full max-w-sm">
           <div className="flex justify-end mb-4"><ThemeToggle /></div>
           <div className="lg:hidden flex flex-col items-center gap-3 mb-8">
             <LogoIcon className="w-12 h-12" />
             <span className={`text-2xl font-extrabold ${light ? "text-[#0F172A]" : "text-white"}`}>
-              Lexicon<span className="text-[#3B82F6]">League</span>
+              Lexicon<span style={{ color: BLUE }}>League</span>
             </span>
           </div>
 
           {gateMessage && (
-            <div className="mb-4 px-4 py-3 rounded-2xl bg-[#DBEAFE] border border-[#3B82F6]/30 text-sm font-bold text-[#3B82F6]">
+            <div className="mb-4 px-4 py-3 rounded-xl text-sm font-bold" style={{ background: `${BLUE}15`, border: `1px solid ${BLUE}40`, color: BLUE }}>
               {gateMessage}
             </div>
           )}
 
           <div className="mb-8">
-            <h2 className={`text-3xl font-extrabold mb-1 ${light ? "text-[#0F172A]" : "text-white"}`}>
+            <h2 className={`text-3xl font-extrabold mb-1 font-display ${light ? "text-[#0F172A]" : "text-white"}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               Create your account
             </h2>
-            <p className={`text-sm font-medium ${light ? "text-[#64748B]" : "text-white/60"}`}>
+            <p className={`text-sm font-medium ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
               Free forever.{" "}
-              <Link href="/auth/login" className="font-bold text-[#3B82F6] hover:underline">
+              <Link href="/auth/login" className="font-bold hover:underline" style={{ color: BLUE }}>
                 Already have one? Sign in
               </Link>
             </p>
@@ -197,28 +211,28 @@ function SignupPageInner() {
             <div className="space-y-3">
               <button
                 onClick={() => handleOAuth("google")}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] hover:border-[#BFDBFE] transition-all font-bold text-[#0F172A] text-sm"
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all font-bold text-sm ${btnSecondary}`}
               >
                 <GoogleIcon className="w-5 h-5 shrink-0" />
                 <span className="flex-1 text-center">Sign up with Google</span>
               </button>
 
               <div className="flex items-center gap-3 my-1">
-                <div className="flex-1 h-px bg-[#E2E8F0]" />
-                <span className="text-[#64748B] text-xs font-bold">or</span>
-                <div className="flex-1 h-px bg-[#E2E8F0]" />
+                <div className="flex-1 h-px" style={{ background: light ? "#E2E8F0" : "rgba(255,255,255,0.1)" }} />
+                <span className={`text-xs font-bold ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>or</span>
+                <div className="flex-1 h-px" style={{ background: light ? "#E2E8F0" : "rgba(255,255,255,0.1)" }} />
               </div>
 
               <button
                 onClick={() => setView("email")}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-[#E2E8F0] bg-white hover:border-[#3B82F6] hover:bg-[#F8FAFC] transition-all font-bold text-[#0F172A] text-sm"
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all font-bold text-sm ${btnSecondary}`}
               >
-                <MailIcon className="w-5 h-5 shrink-0 text-[#64748B]" />
+                <MailIcon className={`w-5 h-5 shrink-0 ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`} />
                 <span className="flex-1 text-center">Sign up with Email</span>
               </button>
 
               {error && (
-                <div className="px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium text-center">
+                <div className="px-4 py-3 rounded-xl text-sm font-medium text-center" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#EF4444" }}>
                   {error}
                 </div>
               )}
@@ -228,7 +242,7 @@ function SignupPageInner() {
               <button
                 type="button"
                 onClick={() => { setView("providers"); setError(""); }}
-                className="flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#0F172A] font-semibold mb-2 transition-colors"
+                className={`flex items-center gap-1.5 text-sm font-semibold mb-2 transition-colors ${light ? "text-[#64748B] hover:text-[#0F172A]" : "text-[#94A3B8] hover:text-white"}`}
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                   <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
@@ -237,7 +251,7 @@ function SignupPageInner() {
               </button>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-[#0F172A]">Username <span className="text-[#64748B] font-semibold">(your display name)</span></label>
+                <label className={`block text-sm font-bold ${light ? "text-[#0F172A]" : "text-white"}`}>Username <span className={`font-semibold ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>(your display name)</span></label>
                 <input
                   type="text"
                   required
@@ -245,16 +259,16 @@ function SignupPageInner() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="e.g. WordNinja99"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-[#E2E8F0] focus:border-[#3B82F6] focus:outline-none text-[#0F172A] text-sm font-medium transition-colors bg-white placeholder-[#64748B]"
+                  className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-sm font-medium transition-colors ${inputBg} ${inputBorder} ${inputFocus} ${light ? "text-[#0F172A] placeholder-[#64748B]" : "text-white placeholder-[#94A3B8]"}`}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-[#0F172A]">Grade <span className="text-[#64748B] font-semibold">(optional)</span></label>
+                <label className={`block text-sm font-bold ${light ? "text-[#0F172A]" : "text-white"}`}>Grade <span className={`font-semibold ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>(optional)</span></label>
                 <select
                   value={grade}
                   onChange={(e) => setGrade(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-[#E2E8F0] focus:border-[#3B82F6] focus:outline-none text-[#0F172A] text-sm font-medium transition-colors bg-white appearance-none"
+                  className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-sm font-medium transition-colors appearance-none ${inputBg} ${inputBorder} ${inputFocus} ${light ? "text-[#0F172A]" : "text-white"}`}
                 >
                   <option value="">Select your grade</option>
                   {GRADES.map((g) => (
@@ -264,19 +278,19 @@ function SignupPageInner() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-[#0F172A]">Email address</label>
+                <label className={`block text-sm font-bold ${light ? "text-[#0F172A]" : "text-white"}`}>Email address</label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-[#E2E8F0] focus:border-[#3B82F6] focus:outline-none text-[#0F172A] text-sm font-medium transition-colors bg-white placeholder-[#64748B]"
+                  className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-sm font-medium transition-colors ${inputBg} ${inputBorder} ${inputFocus} ${light ? "text-[#0F172A] placeholder-[#64748B]" : "text-white placeholder-[#94A3B8]"}`}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-[#0F172A]">Password</label>
+                <label className={`block text-sm font-bold ${light ? "text-[#0F172A]" : "text-white"}`}>Password</label>
                 <input
                   type="password"
                   required
@@ -284,20 +298,20 @@ function SignupPageInner() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-[#E2E8F0] focus:border-[#3B82F6] focus:outline-none text-[#0F172A] text-sm font-medium transition-colors bg-white placeholder-[#64748B]"
+                  className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-sm font-medium transition-colors ${inputBg} ${inputBorder} ${inputFocus} ${light ? "text-[#0F172A] placeholder-[#64748B]" : "text-white placeholder-[#94A3B8]"}`}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-[#0F172A]">Confirm password</label>
+                <label className={`block text-sm font-bold ${light ? "text-[#0F172A]" : "text-white"}`}>Confirm password</label>
                 <input
                   type="password"
                   required
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   placeholder="Re-enter your password"
-                  className={`w-full px-4 py-3 rounded-2xl border-2 focus:outline-none text-[#0F172A] text-sm font-medium transition-colors bg-white placeholder-[#64748B] ${
-                    confirm && confirm !== password ? "border-red-300 focus:border-red-400" : "border-[#E2E8F0] focus:border-[#3B82F6]"
+                  className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-sm font-medium transition-colors ${inputBg} ${inputFocus} ${light ? "text-[#0F172A] placeholder-[#64748B]" : "text-white placeholder-[#94A3B8]"} ${
+                    confirm && confirm !== password ? "border-red-400" : inputBorder
                   }`}
                 />
                 {confirm && confirm !== password && (
@@ -306,7 +320,7 @@ function SignupPageInner() {
               </div>
 
               {error && (
-                <div className="px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
+                <div className="px-4 py-3 rounded-xl text-sm font-medium" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#EF4444" }}>
                   {error}
                 </div>
               )}
@@ -314,18 +328,19 @@ function SignupPageInner() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full py-3.5 rounded-2xl font-extrabold text-white text-base bg-[#3B82F6] hover:bg-[#2563EB] transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full py-3.5 rounded-xl font-extrabold text-white text-base transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-xl"
+                style={{ background: `linear-gradient(135deg, ${BLUE} 0%, #1D4ED8 100%)`, boxShadow: "0 4px 12px rgba(59,130,246,0.4)" }}
               >
                 {isPending ? "Creating account…" : "Create Account"}
               </button>
             </form>
           )}
 
-          <p className="mt-6 text-center text-xs text-[#64748B] font-medium">
+          <p className={`mt-6 text-center text-xs font-medium ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
             By continuing, you agree to our{" "}
-            <span className="underline cursor-pointer hover:text-[#0F172A]">Terms</span>
+            <span className="underline cursor-pointer hover:opacity-80">Terms</span>
             {" "}and{" "}
-            <span className="underline cursor-pointer hover:text-[#0F172A]">Privacy Policy</span>.
+            <span className="underline cursor-pointer hover:opacity-80">Privacy Policy</span>.
           </p>
         </div>
       </div>

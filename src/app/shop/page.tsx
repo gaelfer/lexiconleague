@@ -60,7 +60,7 @@ const TABS: { id: ShopTab; label: string }[] = [
   { id: "auras", label: "Auras" },
 ];
 
-const MINT = "#34D399";
+import { MINT, SURFACE } from "@/lib/design-tokens";
 
 export default function ShopPage() {
   const { user, loading: authLoading } = useAuth();
@@ -261,7 +261,7 @@ export default function ShopPage() {
   const streakDay = getCurrentStreakDay(profile);
   const todayReward = getTodayReward(profile);
 
-  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const bg = light ? "bg-[#F8FAFC]" : "";
   const text = light ? "text-[#0F172A]" : "text-white";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
   const textFaint = light ? "text-[#94A3B8]" : "text-white/40";
@@ -270,7 +270,7 @@ export default function ShopPage() {
   const ownedAuras = getOwnedAuraVariants(profile.unlocked_items ?? []);
 
   return (
-    <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+    <main className={`min-h-[100dvh] flex flex-col overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
       <header className="flex items-center justify-between px-5 py-4">
         <Link href="/dashboard" className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${textMuted} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}>
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">

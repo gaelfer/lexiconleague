@@ -31,6 +31,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(getStoredTheme());
   }, []);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
   const toggleTheme = () => {
     setTheme((prev) => {
       const next = prev === "dark" ? "light" : "dark";

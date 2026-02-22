@@ -13,8 +13,7 @@ import InkDropIcon from "@/components/icons/InkDropIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
 import LogoIcon from "@/components/icons/LogoIcon";
 import ThemeToggle from "@/components/ThemeToggle";
-
-const BLUE = "#3B82F6";
+import { BLUE, SURFACE } from "@/lib/design-tokens";
 const MINT = "#34D399";
 const STUDY_XP_PER_CORRECT = 3;      // ~half of casual (5)
 const STUDY_DROPS_PER_CORRECT = 1;   // ~half of casual (2)
@@ -351,7 +350,7 @@ export default function StudyPage() {
   }, []);
 
   // ── Theme tokens ────────────────────────────────────────────────────────────
-  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const bg = light ? "bg-[#F8FAFC]" : "";
   const text = light ? "text-[#0F172A]" : "text-white";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
   const textFaint = light ? "text-[#94A3B8]" : "text-white/40";
@@ -543,7 +542,7 @@ export default function StudyPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <main className={`min-h-[100dvh] ${bg} ${text} flex flex-col overflow-x-hidden`}>
+    <main className={`min-h-[100dvh] ${bg} ${text} flex flex-col overflow-x-hidden`} style={!light ? { background: SURFACE } : undefined}>
       {/* Header */}
       <header className={`flex items-center justify-between gap-3 px-4 sm:px-6 py-4 max-w-3xl mx-auto w-full border-b ${cardBorder}`}>
         <div className="flex items-center gap-3">

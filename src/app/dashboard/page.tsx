@@ -22,8 +22,7 @@ import { getLevelProgress, getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
 import { canClaimDailyReward } from "@/lib/user/daily-rewards";
 import { RANK_COLORS } from "@/types";
 
-const BLUE = "#3B82F6";
-const MINT = "#34D399";
+import { BLUE, MINT, DARK, CARD, SURFACE } from "@/lib/design-tokens";
 
 function LockOpenIcon({ className = "w-6 h-6", color = "currentColor" }: { className?: string; color?: string }) {
   return (
@@ -175,19 +174,19 @@ function Home() {
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const bg = light ? "bg-[#F8FAFC]" : "";
   const text = light ? "text-[#0F172A]" : "text-white";
-  const textMuted = light ? "text-[#64748B]" : "text-white/60";
-  const textFaint = light ? "text-[#94A3B8]" : "text-white/40";
-  const cardBg = light ? "bg-white" : "bg-[#1E293B]/60";
+  const textMuted = light ? "text-[#64748B]" : "text-[#94A3B8]";
+  const textFaint = light ? "text-[#94A3B8]" : "text-[#475569]";
+  const cardBg = light ? "bg-white" : "bg-[#1E293B]";
   const cardBorder = light ? "border-[#E2E8F0]" : "border-white/10";
   const menuBg = light ? "bg-white" : "bg-[#1E293B]";
   const menuBorder = light ? "border-[#E2E8F0]" : "border-white/10";
   const headerBtn = light ? "bg-[#F1F5F9] border-[#E2E8F0]" : "bg-white/5 border-white/10";
 
   return (
-    <main className={`relative min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
-      {/* Background design */}
+    <main className={`relative min-h-[100dvh] flex flex-col overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
+      {/* Background design — marketing style */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         {light ? (
           <>
@@ -199,11 +198,10 @@ function Home() {
           </>
         ) : (
           <>
-            <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full opacity-20 blur-3xl" style={{ background: `radial-gradient(circle, ${BLUE} 0%, transparent 60%)` }} />
-            <div className="absolute top-1/3 -left-40 w-80 h-80 rounded-full opacity-15 blur-3xl" style={{ background: `radial-gradient(circle, ${MINT} 0%, transparent 60%)` }} />
-            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-10 blur-2xl" style={{ background: `radial-gradient(circle, ${BLUE} 0%, transparent 60%)` }} />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,#0F172A_0%,#0F172A_30%,#0c1222_100%)]" />
-            <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "40px 40px" }} />
+            <div className="absolute top-1/2 right-0 w-[500px] h-[500px] rounded-full opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle, ${BLUE} 0%, transparent 65%)`, transform: "translate(20%, -50%)" }} />
+            <div className="absolute bottom-1/4 left-0 w-[400px] h-[400px] rounded-full opacity-12 pointer-events-none" style={{ background: `radial-gradient(circle, ${MINT} 0%, transparent 65%)`, transform: "translate(-20%, 0)" }} />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${SURFACE} 0%, ${DARK} 30%, #0a0f1a 100%)` }} />
+            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.2) 1px, transparent 0)", backgroundSize: "40px 40px" }} />
           </>
         )}
       </div>
@@ -444,7 +442,7 @@ function Home() {
 
         {/* Casual Mode */}
         <Link href="/play/casual" className="block relative" data-tutorial-id="casual">
-          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#3B82F6]/40 h-full relative overflow-visible`}>
+          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-all duration-200 h-full relative overflow-visible ${!light ? "hover:border-[#3B82F6]/40 hover:shadow-[0_20px_56px_rgba(59,130,246,0.15)]" : "hover:border-[#3B82F6]/40"}`}>
             <div className="absolute -bottom-2 -left-2 opacity-40 pointer-events-none" style={{ transform: "rotate(-10deg)" }}>
               <InkAvatar config={{ base: "droplet_04", color: "#06B6D4", eyes: "eyes_08", accessory: "none", aura: "none" }} size={56} />
             </div>
@@ -462,7 +460,7 @@ function Home() {
 
         {/* Ranked Mode */}
         <Link href={user ? "/ranked" : "/auth/signup?from=ranked"} className="block relative" data-tutorial-id="ranked">
-          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#34D399]/40 h-full relative overflow-visible`}>
+          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-all duration-200 h-full relative overflow-visible ${!light ? "hover:border-[#34D399]/40 hover:shadow-[0_20px_56px_rgba(52,211,153,0.12)]" : "hover:border-[#34D399]/40"}`}>
             <div className="absolute -bottom-2 -right-1 opacity-40 pointer-events-none" style={{ transform: "rotate(15deg)" }}>
               <InkAvatar config={{ base: "droplet_05", color: "#EAB308", eyes: "eyes_01", accessory: "tophat_01", aura: "none" }} size={56} />
             </div>
@@ -480,7 +478,7 @@ function Home() {
 
         {/* Study Mode */}
         <Link href="/study" className="block relative sm:col-span-2" data-tutorial-id="study">
-          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-colors hover:border-[#A78BFA]/40 h-full relative overflow-visible flex flex-col sm:flex-row sm:items-center gap-4`}>
+          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-all duration-200 h-full relative overflow-visible flex flex-col sm:flex-row sm:items-center gap-4 ${!light ? "hover:border-[#A78BFA]/40 hover:shadow-[0_20px_56px_rgba(167,139,250,0.12)]" : "hover:border-[#A78BFA]/40"}`}>
             <div className="absolute -top-3 right-8 opacity-90 pointer-events-none" style={{ transform: "rotate(-8deg)" }}>
               <InkAvatar config={{ base: "droplet_03", color: "#8B5CF6", eyes: "eyes_05", accessory: "wizard_01", aura: "none" }} size={60} />
             </div>
@@ -499,7 +497,7 @@ function Home() {
           <div className="relative z-10 p-4 sm:p-6 h-full flex flex-col min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-2 sm:mb-3">
               <div className="relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-[18px] sm:rounded-[22px] flex items-center justify-center overflow-visible mx-auto sm:mx-0" style={{ background: "linear-gradient(145deg, #E11D48 0%, #BE123C 40%, #9F1239 100%)", boxShadow: "0 6px 16px rgba(220, 38, 38, 0.45), inset 0 2px 0 rgba(255,255,255,0.25), 0 0 0 3px rgba(255,255,255,0.15)", transform: "rotate(-3deg)" }}>
-                <InkAvatar config={{ base: "droplet_01", color: "#DC2626", eyes: "eyes_02", accessory: "none", aura: "none" }} size={48} className="drop-shadow-lg" />
+                <InkAvatar config={{ base: "droplet_04", color: "#BE123C", eyes: "eyes_02", accessory: "crown_01", aura: "none" }} size={48} className="drop-shadow-lg" />
               </div>
               <div className="flex-1 min-w-0 text-center sm:text-left">
                 <div className="inline-flex items-center gap-2 flex-wrap justify-center sm:justify-start">
@@ -554,7 +552,7 @@ function Home() {
         </div>
       </section>
 
-      <footer className={`relative z-10 mt-auto text-center py-5 text-sm ${textFaint} font-medium border-t ${cardBorder}`}>
+      <footer className={`relative z-10 mt-auto text-center py-5 text-sm ${textFaint} font-medium border-t ${cardBorder}`} style={!light ? { borderColor: "rgba(255,255,255,0.06)" } : undefined}>
         Lexicon League · Season 1
       </footer>
 

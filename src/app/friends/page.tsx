@@ -23,6 +23,7 @@ import InkAvatar from "@/components/InkAvatar";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import { DEFAULT_AVATAR_CONFIG } from "@/types";
+import { SURFACE } from "@/lib/design-tokens";
 
 export default function FriendsPage() {
   const { user } = useAuth();
@@ -176,7 +177,7 @@ export default function FriendsPage() {
     }
   }
 
-  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const bg = light ? "bg-[#F8FAFC]" : "";
   const text = light ? "text-[#0F172A]" : "text-white";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
   const cardBg = light ? "bg-white" : "bg-[#1E293B]";
@@ -184,7 +185,7 @@ export default function FriendsPage() {
 
   if (!user) {
     return (
-      <main className={`min-h-[100dvh] ${bg} flex flex-col items-center justify-center px-4`}>
+      <main className={`min-h-[100dvh] flex flex-col items-center justify-center px-4 ${bg}`} style={!light ? { background: SURFACE } : undefined}>
         <p className={`${textMuted} font-medium mb-4`}>Sign in to manage friends</p>
         <Link href="/auth/login" className="px-6 py-3 rounded-xl font-bold text-white" style={{ backgroundColor: "#3B82F6" }}>
           Sign in
@@ -194,7 +195,7 @@ export default function FriendsPage() {
   }
 
   return (
-    <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden pb-24`}>
+    <main className={`min-h-[100dvh] flex flex-col overflow-x-hidden pb-24 ${bg}`} style={!light ? { background: SURFACE } : undefined}>
       <header className="flex items-center justify-between px-5 py-4 border-b border-[#E2E8F0]">
         <Link href="/dashboard" className={`flex items-center gap-1.5 text-sm font-bold ${textMuted}`}>
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">

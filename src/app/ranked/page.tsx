@@ -19,6 +19,7 @@ import FlameIcon from "@/components/icons/FlameIcon";
 import BronzeIcon from "@/components/icons/BronzeIcon";
 import DiamondIcon from "@/components/icons/DiamondIcon";
 import { DEFAULT_AVATAR_CONFIG } from "@/types";
+import { SURFACE } from "@/lib/design-tokens";
 
 const BLUE = "#3B82F6";
 const MINT = "#34D399";
@@ -137,7 +138,7 @@ export default function RankedScreenPage() {
   const nextMilestone = [3, 5, 7, 10].find((m) => m > currentStreak) ?? 10;
   const streakProgress = Math.min(100, (currentStreak / 10) * 100);
 
-  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const bg = light ? "bg-[#F8FAFC]" : "";
   const text = light ? "text-[#0F172A]" : "text-white";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
   const textFaint = light ? "text-[#94A3B8]" : "text-white/40";
@@ -145,7 +146,7 @@ export default function RankedScreenPage() {
   const cardBorder = light ? "border-[#E2E8F0]" : "border-[#334155]";
 
   return (
-    <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+    <main className={`min-h-[100dvh] flex flex-col overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
       <header className="flex items-center justify-between px-5 py-4">
         <Link
           href="/dashboard"

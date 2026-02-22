@@ -16,6 +16,7 @@ import InkDropIcon from "@/components/icons/InkDropIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import { DEFAULT_AVATAR_CONFIG, UserProfile } from "@/types";
+import { SURFACE } from "@/lib/design-tokens";
 
 const BLUE = "#3B82F6";
 const MINT = "#34D399";
@@ -488,7 +489,7 @@ export default function LevelsPage() {
     return () => window.removeEventListener("ll-profile-updated", onProfileUpdated);
   }, []);
 
-  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const bg = light ? "bg-[#F8FAFC]" : "";
   const text = light ? "text-[#0F172A]" : "text-white";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
   const textFaint = light ? "text-[#94A3B8]" : "text-white/40";
@@ -517,7 +518,7 @@ export default function LevelsPage() {
   const xpToNextReward = nextReward ? Math.max(0, getXPForLevel(nextReward.level) - profile.xp) : null;
 
   return (
-    <main className={`min-h-[100dvh] ${bg} flex flex-col overflow-x-hidden`}>
+    <main className={`min-h-[100dvh] flex flex-col overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
       <header className="flex items-center justify-between px-5 py-4">
         <Link
           href="/dashboard"

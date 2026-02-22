@@ -1,0 +1,36 @@
+---
+description: Install skills for Cursor, Claude Code, and Codex
+alwaysApply: true
+---
+
+# Skill Installation for All Agents
+
+When the user asks to install a skill or plugin, **always install for all three tools**: Cursor, Claude Code, and Codex.
+
+## Installation Process
+
+1. **Run the skills installer with global flag:**
+   ```bash
+   npx skills add <repo-url> --skill <skill-name> --yes --global
+   ```
+
+2. **Fix Claude Code compatibility** (Claude Code may not follow symlinks):
+   ```bash
+   rm -rf ~/.claude/skills/<skill-name>
+   cp -R ~/.agents/skills/<skill-name> ~/.claude/skills/
+   ```
+
+3. **Result:** Skill available in:
+   - **Cursor** — via `~/.agents/skills/` (or `~/.cursor/plugins/cache/`)
+   - **Claude Code** — via `~/.claude/skills/` (real copy)
+   - **Codex** — via `~/.agents/skills/` or `~/.codex/skills/`
+
+## Example
+
+For `vercel-react-best-practices` from `https://github.com/vercel-labs/agent-skills`:
+
+```bash
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-react-best-practices --yes --global
+rm -rf ~/.claude/skills/vercel-react-best-practices
+cp -R ~/.agents/skills/vercel-react-best-practices ~/.claude/skills/
+```

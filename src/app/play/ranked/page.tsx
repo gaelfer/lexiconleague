@@ -27,6 +27,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, TROPHY_WIN, TROPHY_LOSS, getWinStreakMultiplier } from "@/lib/game/rank";
 import { getVocabGradeForRanked, PLACEMENT_VOCAB_GRADE } from "@/lib/game/questions";
+import { SURFACE } from "@/lib/design-tokens";
 
 type Phase = "lobby" | "searching" | "prematch" | "playing" | "results";
 
@@ -332,7 +333,7 @@ export default function RankedPage() {
     setPhase("lobby");
   }
 
-  const bg = light ? "bg-[#F8FAFC]" : "bg-[#0F172A]";
+  const bg = light ? "bg-[#F8FAFC]" : "";
   const text = light ? "text-[#0F172A]" : "text-white";
   const textMuted = light ? "text-[#64748B]" : "text-white/60";
   const cardBg = light ? "bg-white" : "bg-[#1E293B]";
@@ -340,7 +341,7 @@ export default function RankedPage() {
 
   if (authLoading) {
     return (
-      <main className={`min-h-screen flex items-center justify-center ${bg}`}>
+      <main className={`min-h-screen flex items-center justify-center ${bg}`} style={!light ? { background: SURFACE } : undefined}>
         <p className={`font-semibold animate-pulse ${textMuted}`}>Loading...</p>
       </main>
     );
@@ -454,7 +455,7 @@ export default function RankedPage() {
   // ── Searching ───────────────────────────────────────────────────────────────
   if (phase === "searching") {
     return (
-      <main className={`min-h-screen ${bg} flex flex-col items-center justify-center px-6`}>
+      <main className={`min-h-screen flex flex-col items-center justify-center px-6 ${bg}`} style={!light ? { background: SURFACE } : undefined}>
         <div className="w-full max-w-sm text-center space-y-8">
           <div className="relative">
             <div className={`w-32 h-32 mx-auto rounded-full border-4 ${light ? "border-[#E2E8F0]" : "border-white/20"} border-t-[#34D399] animate-spin`} />
@@ -484,7 +485,7 @@ export default function RankedPage() {
   // ── Pre-match VS screen ─────────────────────────────────────────────────────
   if (phase === "prematch" && opponent) {
     return (
-      <main className={`min-h-[100dvh] min-h-screen ${bg} flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden`}>
+      <main className={`min-h-[100dvh] min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 py-6 overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
         <div className="w-full max-w-lg space-y-6 sm:space-y-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-4">
             {/* Player */}
@@ -546,7 +547,7 @@ export default function RankedPage() {
   const streakProgress = Math.min(100, (currentStreak / 10) * 100);
 
   return (
-    <main className={`min-h-screen ${bg} flex flex-col items-center justify-center px-6`}>
+    <main className={`min-h-screen flex flex-col items-center justify-center px-6 ${bg}`} style={!light ? { background: SURFACE } : undefined}>
       <div className="absolute top-5 left-5 right-5 flex items-center justify-between">
         <Link
           href="/dashboard"

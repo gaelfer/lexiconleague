@@ -9,6 +9,7 @@ import { syncProfileForUser, syncCurrentProfile } from "@/lib/user/profile-sync"
 import { VocabLevel } from "@/types";
 import ThemeToggle from "@/components/ThemeToggle";
 import LogoIcon from "@/components/icons/LogoIcon";
+import { BLUE, SURFACE } from "@/lib/design-tokens";
 
 const VOCAB_LEVELS: { value: VocabLevel; label: string; sublabel?: string }[] = [
   { value: 3, label: "Grade 3" },
@@ -23,11 +24,9 @@ const VOCAB_LEVELS: { value: VocabLevel; label: string; sublabel?: string }[] = 
   { value: "ap-lit", label: "AP Literature", sublabel: "& Composition" },
 ];
 
-const BLUE = "#3B82F6";
-
 export default function OnboardingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0F172A] flex items-center justify-center"><div className="text-white/60">Loading…</div></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: SURFACE }}><div className="text-[#94A3B8]">Loading…</div></div>}>
       <OnboardingPageInner />
     </Suspense>
   );
@@ -97,28 +96,27 @@ function OnboardingPageInner() {
     }
   }
 
-  const bg = light ? "bg-white" : "bg-[#0F172A]";
   const text = light ? "text-[#0F172A]" : "text-white";
-  const textMuted = light ? "text-[#64748B]" : "text-white/60";
-  const inputBg = light ? "bg-white border-[#E2E8F0]" : "bg-white/5 border-white/20 text-white";
+  const textMuted = light ? "text-[#64748B]" : "text-[#94A3B8]";
+  const inputBg = light ? "bg-white border-[#E2E8F0] text-[#0F172A]" : `bg-[#1E293B] border-white/10 text-white`;
 
   if (authLoading || loading) {
     return (
-      <main className={`min-h-screen ${bg} flex items-center justify-center`}>
+      <main className="min-h-screen flex items-center justify-center" style={{ background: light ? "#F8FAFC" : SURFACE }}>
         <div className={`${textMuted} font-medium`}>Loading…</div>
       </main>
     );
   }
 
   return (
-    <main className={`min-h-screen ${bg} flex flex-col items-center justify-center px-6 py-12`}>
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12" style={{ background: light ? "#F8FAFC" : SURFACE }}>
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <LogoIcon className="w-14 h-14 mx-auto mb-4" />
-          <h1 className={`text-2xl font-extrabold ${text} mb-1`}>Welcome to Lexicon League!</h1>
+          <h1 className={`text-2xl font-extrabold ${text} mb-1`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Welcome to Lexicon League!</h1>
           <p className={`text-sm ${textMuted}`}>Choose your username and default vocabulary level.</p>
         </div>
 
@@ -170,8 +168,8 @@ function OnboardingPageInner() {
           <button
             type="submit"
             disabled={saving || !username.trim()}
-            className="w-full py-3.5 rounded-2xl font-extrabold text-white text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: BLUE }}
+            className="w-full py-3.5 rounded-xl font-extrabold text-white text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: `linear-gradient(135deg, ${BLUE} 0%, #1D4ED8 100%)`, boxShadow: "0 4px 12px rgba(59,130,246,0.4)" }}
           >
             {saving ? "Saving…" : "Continue"}
           </button>
