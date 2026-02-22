@@ -1,15 +1,6 @@
-import dynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
 import { getChapter } from '@/lib/story/chapters';
-
-/**
- * StoryGameCanvas is dynamically imported with `ssr: false` because Phaser
- * accesses window / document and cannot run on the server.
- */
-const StoryGameCanvas = dynamic(
-  () => import('@/components/story/StoryGameCanvas'),
-  { ssr: false },
-);
+import StoryGameLoader from '@/components/story/StoryGameLoader';
 
 interface ChapterPageProps {
   params: Promise<{ chapterId: string }>;
@@ -23,12 +14,7 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
     notFound();
   }
 
-  return (
-    // Full-viewport, no scrollbars — Phaser owns this space
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <StoryGameCanvas chapterId={chapterId} />
-    </div>
-  );
+  return <StoryGameLoader chapterId={chapterId} />;
 }
 
 export function generateStaticParams() {

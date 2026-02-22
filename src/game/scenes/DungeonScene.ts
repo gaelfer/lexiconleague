@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import Player from '../entities/Player';
 import { EventBus } from '../EventBus';
 
@@ -307,7 +307,7 @@ export default class DungeonScene extends Phaser.Scene {
     if (idx !== -1 && this.doorColliders[idx]) {
       this.doorColliders[idx].destroy();
     }
-    (door.image.body as Phaser.Physics.Arcade.StaticBody).setEnable(false);
+    (door.image as Phaser.Physics.Arcade.Image).disableBody();
 
     // Fade out door sprite
     this.tweens.add({

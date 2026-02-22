@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { EventBus } from '../EventBus';
 
 /**
@@ -28,7 +28,7 @@ export default class BootScene extends Phaser.Scene {
 
   private makePlayerTexture() {
     // Mint circle with a darker nub indicating facing direction (down by default)
-    const g = this.make.graphics({ add: false });
+    const g = this.make.graphics({ x: 0, y: 0, add: false } as never);
     g.fillStyle(0x34d399);
     g.fillCircle(20, 20, 18);
     // Direction nub (top = facing up indicator at bottom of circle for "down")
@@ -40,7 +40,7 @@ export default class BootScene extends Phaser.Scene {
 
   private makeDoorTextures() {
     // Closed door — red with a lock icon
-    const closed = this.make.graphics({ add: false });
+    const closed = this.make.graphics({ x: 0, y: 0, add: false } as never);
     closed.fillStyle(0x7f1d1d);
     closed.fillRect(0, 0, 40, 120);
     closed.fillStyle(0xdc2626);
@@ -55,7 +55,7 @@ export default class BootScene extends Phaser.Scene {
     closed.destroy();
 
     // Open door — subtle green ghost
-    const open = this.make.graphics({ add: false });
+    const open = this.make.graphics({ x: 0, y: 0, add: false } as never);
     open.fillStyle(0x34d399, 0.15);
     open.fillRect(0, 0, 40, 120);
     open.lineStyle(1, 0x34d399, 0.4);
@@ -66,7 +66,7 @@ export default class BootScene extends Phaser.Scene {
 
   private makeEnemyTexture() {
     // Corrupted red inkling
-    const g = this.make.graphics({ add: false });
+    const g = this.make.graphics({ x: 0, y: 0, add: false } as never);
     g.fillStyle(0xef4444);
     g.fillCircle(16, 16, 14);
     g.fillStyle(0x7f1d1d);
@@ -80,7 +80,7 @@ export default class BootScene extends Phaser.Scene {
   }
 
   private makeCheckpointTexture() {
-    const g = this.make.graphics({ add: false });
+    const g = this.make.graphics({ x: 0, y: 0, add: false } as never);
     // Glowing ink pool
     g.fillStyle(0x34d399, 0.3);
     g.fillEllipse(24, 12, 48, 24);
@@ -93,7 +93,7 @@ export default class BootScene extends Phaser.Scene {
   }
 
   private makeCoinTexture() {
-    const g = this.make.graphics({ add: false });
+    const g = this.make.graphics({ x: 0, y: 0, add: false } as never);
     g.fillStyle(0xfbbf24);
     g.fillCircle(8, 8, 8);
     g.fillStyle(0xfde68a);
