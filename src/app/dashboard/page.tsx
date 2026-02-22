@@ -511,25 +511,23 @@ function Home() {
           </div>
         </div>
 
-        {/* Classroom Mode — Coming Soon */}
-        <div className="relative rounded-2xl overflow-hidden border-[3px] cursor-default select-none min-w-0" style={{ borderColor: "rgba(14, 165, 233, 0.5)", background: light ? "linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(14, 165, 233, 0.15) 50%, rgba(14, 165, 233, 0.08) 100%)" : "linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(14, 165, 233, 0.1) 50%, rgba(15, 23, 42, 0.6) 100%)", boxShadow: "0 6px 24px rgba(14, 165, 233, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)" }}>
-          <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full blur-3xl opacity-30 pointer-events-none" style={{ background: "#0EA5E9" }} />
-          <div className="relative z-10 p-4 sm:p-6 h-full flex flex-col min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-2 sm:mb-3">
-              <div className="relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-[18px] sm:rounded-[22px] flex items-center justify-center overflow-visible mx-auto sm:mx-0" style={{ background: "linear-gradient(145deg, #38BDF8 0%, #0EA5E9 40%, #0284C7 100%)", boxShadow: "0 6px 16px rgba(14, 165, 233, 0.45), inset 0 2px 0 rgba(255,255,255,0.25), 0 0 0 3px rgba(255,255,255,0.15)", transform: "rotate(-3deg)" }}>
-                <InkAvatar config={{ base: "droplet_01", color: "#0EA5E9", eyes: "eyes_03", accessory: "quill_01", aura: "none" }} size={48} className="drop-shadow-lg" />
-              </div>
-              <div className="flex-1 min-w-0 text-center sm:text-left">
-                <div className="inline-flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-                  <h3 className="font-extrabold text-base sm:text-lg" style={{ color: "#0284C7" }}>Classroom Mode</h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white whitespace-nowrap" style={{ backgroundColor: "#0369A1", boxShadow: "0 2px 6px rgba(2, 132, 199, 0.4)" }}>Coming Soon</span>
-                </div>
-                <p className={`text-xs font-medium mt-1 ${textMuted}`}>For teachers · 20+ player lobbies</p>
-              </div>
+        {/* Classroom Mode */}
+        <Link href="/play/classroom" className="block relative">
+          <div className={`rounded-xl p-6 ${cardBg} border ${cardBorder} transition-all duration-200 h-full relative overflow-visible ${!light ? "hover:border-[#0EA5E9]/40 hover:shadow-[0_20px_56px_rgba(14,165,233,0.12)]" : "hover:border-[#0EA5E9]/40"}`}>
+            <div className="absolute -top-3 -right-2 opacity-90 pointer-events-none" style={{ transform: "rotate(10deg)" }}>
+              <InkAvatar config={{ base: "droplet_01", color: "#38BDF8", eyes: "eyes_03", accessory: "quill_01", aura: "none" }} size={64} />
             </div>
-            <p className={`text-xs sm:text-sm font-medium flex-1 ${textMuted} text-center sm:text-left`}>Host live sessions for your whole class. Compete together, track progress, and make learning a team sport.</p>
+            <div className="flex items-center gap-2 mb-2">
+              <UsersIcon className="w-5 h-5 shrink-0" color="#0EA5E9" />
+              <h3 className={`${text} font-bold text-lg`}>Classroom</h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white" style={{ backgroundColor: "#0EA5E9" }}>
+                Alpha
+              </span>
+            </div>
+            <p className={`${textMuted} text-sm mb-4`}>Host a live class battle royale. Up to 30 players per room.</p>
+            <span className="text-sm font-bold" style={{ color: "#0EA5E9" }}>Create or join lobby →</span>
           </div>
-        </div>
+        </Link>
       </section>
 
       {/* ── Quick nav row ── */}
