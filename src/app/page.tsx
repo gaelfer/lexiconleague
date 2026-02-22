@@ -613,9 +613,9 @@ export default function MarketingPage() {
                 glow:   "rgba(14,165,233,0.18)",
                 avatar: { base: "droplet_01", color: "#0EA5E9", eyes: "eyes_03", accessory: "quill_01", aura: "none" },
                 sub:    "For Teachers",
-                tags:   ["20+ player lobbies", "Live vocabulary challenges", "Real-time progress tracking", "Coming Soon"],
+                tags:   ["20+ player lobbies", "Live vocabulary challenges", "Real-time progress tracking", "Alpha"],
                 desc:   "Host live sessions for your whole class. Compete together and track progress in real time.",
-                cta:    "Coming Soon",
+                cta:    "Try Alpha",
                 href:   "/play/classroom",
               },
             ].map((mode) => (
@@ -921,44 +921,37 @@ export default function MarketingPage() {
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════════
-          10. COMING SOON — STORY MODE & CLASSROOM MODE
+          10. COMING SOON — STORY MODE
       ════════════════════════════════════════════════════════════════════════ */}
       <section id="story-mode" style={{ padding: "80px 24px" }}>
         <div
           className="story-grid"
           style={{
-            background: "linear-gradient(135deg, rgba(190,18,60,0.12) 0%, rgba(15,23,42,0.6) 30%, rgba(14,165,233,0.12) 100%)",
+            background: "linear-gradient(135deg, rgba(190,18,60,0.12) 0%, rgba(15,23,42,0.6) 100%)",
             border: "1px solid rgba(255,255,255,0.07)",
             borderRadius: "20px",
             maxWidth: "1100px",
             margin: "0 auto",
             overflow: "hidden",
             position: "relative",
-            boxShadow: "0 6px 24px rgba(190,18,60,0.08), 0 6px 24px rgba(14,165,233,0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
+            boxShadow: "0 6px 24px rgba(190,18,60,0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
           }}
         >
-          {/* Ambient glows */}
           <div style={{ position: "absolute", top: "50%", left: "15%", transform: "translate(-50%,-50%)", width: "360px", height: "360px", borderRadius: "50%", background: "radial-gradient(circle, rgba(190,18,60,0.14) 0%, transparent 65%)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", top: "50%", right: "15%", transform: "translate(50%,-50%)",  width: "360px", height: "360px", borderRadius: "50%", background: "radial-gradient(circle, rgba(14,165,233,0.14) 0%, transparent 65%)", pointerEvents: "none" }} />
 
           <div className="story-inner" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "48px", alignItems: "center", padding: "72px 60px", position: "relative", zIndex: 1 }}>
-            {/* Left: text */}
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-                <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: "100px", fontSize: "0.62rem", fontWeight: 800, color: "white", letterSpacing: "0.12em", textTransform: "uppercase", background: "linear-gradient(90deg, #9F1239 0%, #0369A1 100%)", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>Coming Soon</span>
+                <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: "100px", fontSize: "0.62rem", fontWeight: 800, color: "white", letterSpacing: "0.12em", textTransform: "uppercase", background: "#9F1239", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>Coming Soon</span>
               </div>
               <h2 style={{ fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)", fontWeight: 800, color: "white", marginBottom: "16px", lineHeight: 1.08, fontFamily: DISPLAY }}>
-                Story Mode & Classroom Mode
+                Story Mode
               </h2>
-              <p style={{ fontSize: "1rem", color: MUTED, lineHeight: 1.75, marginBottom: "20px" }}>
-                <strong style={{ color: "#BE123C" }}>Story Mode:</strong> Chapters, boss battles, and exclusive loot. A narrative adventure through the world of words. Defeat vocab villains and unlock story rewards.
-              </p>
               <p style={{ fontSize: "1rem", color: MUTED, lineHeight: 1.75 }}>
-                <strong style={{ color: "#0284C7" }}>Classroom Mode:</strong> Built for teachers. Host live sessions with 20+ students, assign vocabulary and punctuation challenges, and track class progress in real time.
+                <strong style={{ color: "#BE123C" }}>Story Mode:</strong> Chapters, boss battles, and exclusive loot. A narrative adventure through the world of words. Defeat vocab villains and unlock story rewards.
               </p>
             </div>
 
-            {/* Right: Inklings */}
             <div className="story-avatars" style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "24px", flexShrink: 0 }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                 <div style={{ position: "relative", padding: "24px 28px 20px", background: "linear-gradient(180deg, rgba(190,18,60,0.15) 0%, rgba(30,30,50,0.4) 60%)", borderRadius: "16px", border: "1px solid rgba(190,18,60,0.22)", boxShadow: "0 4px 16px rgba(190,18,60,0.14)" }}>
@@ -966,13 +959,6 @@ export default function MarketingPage() {
                   <InkAvatar config={{ base: "droplet_01", color: "#DC2626", eyes: "eyes_02", accessory: "none", aura: "none" }} size={160} />
                 </div>
                 <span style={{ marginTop: "8px", fontSize: "0.68rem", fontWeight: 700, color: "#BE123C" }}>Story</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <div style={{ position: "relative", padding: "24px 28px 20px", background: "linear-gradient(180deg, rgba(14,165,233,0.12) 0%, rgba(20,35,55,0.4) 60%)", borderRadius: "16px", border: "1px solid rgba(14,165,233,0.22)", boxShadow: "0 4px 16px rgba(14,165,233,0.14)" }}>
-                  <div style={{ position: "absolute", bottom: "14px", left: "12px", right: "12px", height: "3px", background: "linear-gradient(90deg, rgba(14,165,233,0.3), rgba(14,165,233,0.5), rgba(14,165,233,0.3))", borderRadius: "2px", opacity: 0.7 }} />
-                  <InkAvatar config={{ base: "droplet_01", color: "#0EA5E9", eyes: "eyes_03", accessory: "quill_01", aura: "none" }} size={160} />
-                </div>
-                <span style={{ marginTop: "8px", fontSize: "0.68rem", fontWeight: 700, color: "#0284C7" }}>Classroom</span>
               </div>
             </div>
           </div>
