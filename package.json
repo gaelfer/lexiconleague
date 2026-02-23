@@ -10,7 +10,9 @@
     "remotion:studio": "remotion studio remotion/index.ts",
     "remotion:render": "mkdir -p out/remotion && remotion render remotion/index.ts LexiconLeagueHype out/remotion/lexiconleague-hype.mp4",
     "generate-favicon": "node scripts/generate-favicon.cjs",
-    "install-skill": "node scripts/install-skill-all.mjs"
+    "install-skill": "node scripts/install-skill-all.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@remotion/player": "^4.0.427",
@@ -34,6 +36,7 @@
     "remotion": "^4.0.427",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

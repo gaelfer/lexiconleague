@@ -2,9 +2,9 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useTransition } from "react";
+import { Suspense, useState, useTransition, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthRedirectBase } from "@/lib/auth/redirect";
 import { signInWithUsernameOrEmail } from "@/app/auth/actions";
@@ -17,22 +17,32 @@ import { MINT, BLUE, DARK, CARD, SURFACE } from "@/lib/design-tokens";
 
 type View = "providers" | "email";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/dashboard";
+  const isTeacherFlow = next === "/teacher" || next?.startsWith("/teacher");
   const { light } = useTheme();
-  const [view, setView] = useState<View>("providers");
+  const [view, setView] = useState<View>(isTeacherFlow ? "email" : "providers");
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
+  // Show error from callback redirect (e.g. OAuth failed)
+  useEffect(() => {
+    const err = searchParams.get("error");
+    if (err) setError(decodeURIComponent(err));
+  }, [searchParams]);
+
   async function handleOAuth(provider: "google" | "apple" | "azure") {
     setError("");
     const supabase = createClient();
+    const callbackUrl = `${getAuthRedirectBase()}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${getAuthRedirectBase()}/auth/callback`,
+        redirectTo: callbackUrl,
         ...(provider === "google" && {
           queryParams: { access_type: "offline" },
         }),
@@ -50,7 +60,7 @@ export default function LoginPage() {
       if (result.error) {
         setError(result.error);
       } else {
-        router.push("/dashboard");
+        router.push(next);
         router.refresh();
       }
     });
@@ -117,7 +127,19 @@ export default function LoginPage() {
 
       <div className={`flex-1 flex flex-col items-center justify-center px-6 py-12 ${panelBg}`} style={!light ? { background: SURFACE } : undefined}>
         <div className="w-full max-w-sm">
-          <div className="flex justify-end mb-4"><ThemeToggle /></div>
+          <div className="flex items-center justify-between mb-4">
+            {(next === "/teacher" || next?.startsWith("/teacher")) ? (
+              <Link href="/teacher" className="text-sm font-semibold flex items-center gap-1.5 transition-colors hover:opacity-80" style={{ color: light ? "#64748B" : "#94A3B8" }}>
+                <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+                </svg>
+                Back to Teacher Portal
+              </Link>
+            ) : (
+              <span />
+            )}
+            <ThemeToggle />
+          </div>
           <div className="lg:hidden flex flex-col items-center gap-3 mb-8">
             <LogoIcon className="w-12 h-12" />
             <span className={`text-2xl font-extrabold ${textCls}`} style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
@@ -127,17 +149,30 @@ export default function LoginPage() {
 
           <div className="mb-8">
             <h2 className={`text-3xl font-extrabold mb-1 font-display ${textCls}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              Welcome back!
+              {isTeacherFlow ? "Teacher sign in" : "Welcome back!"}
             </h2>
             <p className={`text-sm font-medium ${textMutedCls}`}>
-              Sign in to continue your journey.{" "}
-              <Link href="/auth/signup" className="font-bold hover:underline" style={{ color: BLUE }}>
-                New here? Join free
-              </Link>
+              {isTeacherFlow ? (
+                <>Use your school email to sign in. Google sign-in is for student accounts only.</>
+              ) : (
+                <>
+                  Sign in to continue your journey.{" "}
+                  <Link href="/auth/signup" className="font-bold hover:underline" style={{ color: BLUE }}>
+                    New here? Join free
+                  </Link>
+                </>
+              )}
             </p>
+            {isTeacherFlow && (
+              <p className={`text-sm font-medium mt-1 ${textMutedCls}`}>
+                <Link href="/auth/signup?next=/teacher" className="font-bold hover:underline" style={{ color: BLUE }}>
+                  New teacher? Create account
+                </Link>
+              </p>
+            )}
           </div>
 
-          {view === "providers" ? (
+          {view === "providers" && !isTeacherFlow ? (
             <div className="space-y-3">
               <button
                 onClick={() => handleOAuth("google")}
@@ -169,16 +204,23 @@ export default function LoginPage() {
             </div>
           ) : (
             <form onSubmit={handleEmailLogin} className="space-y-4">
-              <button
-                type="button"
-                onClick={() => { setView("providers"); setError(""); }}
-                className={`flex items-center gap-1.5 text-sm font-semibold mb-4 transition-colors ${textMutedCls} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                  <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
-                </svg>
-                All sign-in options
-              </button>
+              {!isTeacherFlow && (
+                <button
+                  type="button"
+                  onClick={() => { setView("providers"); setError(""); }}
+                  className={`flex items-center gap-1.5 text-sm font-semibold mb-4 transition-colors ${textMutedCls} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+                  </svg>
+                  All sign-in options
+                </button>
+              )}
+              {isTeacherFlow && (
+                <p className={`text-xs ${textMutedCls} mb-2`}>
+                  Student? <Link href="/auth/login" className="font-semibold hover:underline" style={{ color: BLUE }}>Sign in as student</Link>
+                </p>
+              )}
 
               <div className="space-y-1.5">
                 <label className={`block text-sm font-bold ${textCls}`}>Username or email</label>
@@ -231,5 +273,13 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" style={{ background: SURFACE }} />}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

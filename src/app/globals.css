@@ -161,6 +161,24 @@ body {
 .animate-float-medium { animation: float-medium 6s ease-in-out infinite; }
 .animate-float-slower { animation: float-slower 12s ease-in-out infinite; }
 
+/* Teacher portal loader */
+@keyframes teacher-loader-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+@keyframes teacher-loader-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes teacher-loader-shimmer {
+  0% { width: 30%; }
+  50% { width: 70%; }
+  100% { width: 30%; }
+}
+.animate-teacher-pulse { animation: teacher-loader-pulse 2s ease-in-out infinite; }
+.animate-teacher-spin { animation: teacher-loader-spin 3s linear infinite; }
+.animate-teacher-shimmer { animation: teacher-loader-shimmer 1.5s ease-in-out infinite; }
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--card); border-radius: 4px; }

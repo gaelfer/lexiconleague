@@ -23,6 +23,7 @@ import RankBadge from "@/components/RankBadge";
 import TrophyIcon from "@/components/icons/TrophyIcon";
 import FlameIcon from "@/components/icons/FlameIcon";
 import BookIcon from "@/components/icons/BookIcon";
+import LogoIcon from "@/components/icons/LogoIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import { getTierProgress, getTrophiesToNextTier, getTierFromTrophies, TROPHY_WIN, TROPHY_LOSS, getWinStreakMultiplier } from "@/lib/game/rank";
@@ -557,14 +558,10 @@ export default function RankedPage() {
           href="/dashboard"
           className={`text-sm font-bold transition-colors flex items-center gap-1 ${textMuted} ${light ? "hover:text-[#0F172A]" : "hover:text-white"}`}
         >
-        <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-          <path
-            fillRule="evenodd"
-            d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
-            clipRule="evenodd"
-          />
-        </svg>
-        Back
+        <div className={`w-7 h-7 rounded-lg p-0.5 border ${light ? "border-[#E2E8F0] bg-white" : "border-white/10 bg-[#1E293B]"}`}>
+          <LogoIcon className="w-full h-full" />
+        </div>
+        Dashboard
       </Link>
         <div className="flex items-center gap-2">
           <ThemeToggle />

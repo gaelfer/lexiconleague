@@ -1098,7 +1098,7 @@ function StudyResults({
           Choose different tier
         </button>
         <Link href="/dashboard" className={`w-full py-3.5 rounded-xl font-bold text-sm text-center border transition-colors ${light ? "border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A]" : "border-white/10 text-white/60 hover:text-white"}`}>
-          Back to home
+          Back to dashboard
         </Link>
       </div>
     </div>

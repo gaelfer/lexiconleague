@@ -17,6 +17,10 @@ export interface DbProfile {
   id: string;
   username: string;
   email: string | null;
+  account_type?: "student" | "teacher" | null;
+  teacher_approved?: boolean | null;
+  teacher_school_id?: string | null;
+  teacher_verified_at?: string | null;
   rank_tier: string;
   trophies: number;
   xp: number;
@@ -70,6 +74,10 @@ export function dbProfileToUserProfile(row: DbProfile): UserProfile {
     id: row.id,
     email: row.email ?? "",
     username: row.username,
+    account_type: row.account_type ?? "student",
+    teacher_approved: row.teacher_approved ?? false,
+    teacher_school_id: row.teacher_school_id ?? null,
+    teacher_verified_at: row.teacher_verified_at ?? null,
     rank_tier: getTierFromTrophies(trophies) as RankTier,
     trophies,
     xp: row.xp ?? 0,

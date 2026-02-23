@@ -316,6 +316,14 @@ export default function MarketingPage() {
           {/* Right buttons */}
           <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
             <Link
+              href="/teacher"
+              style={{ padding: "9px 18px", borderRadius: "8px", border: `1.5px solid ${MINT}`, color: MINT, fontSize: "0.84rem", fontWeight: 600, textDecoration: "none", transition: "all 0.2s", whiteSpace: "nowrap", background: `${MINT}0D` }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = `${MINT}22`; e.currentTarget.style.color = "white"; e.currentTarget.style.borderColor = MINT; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = `${MINT}0D`; e.currentTarget.style.color = MINT; e.currentTarget.style.borderColor = MINT; }}
+            >
+              For Teachers
+            </Link>
+            <Link
               href="/auth/login"
               style={{ padding: "9px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.13)", color: "rgba(255,255,255,0.78)", fontSize: "0.84rem", fontWeight: 600, textDecoration: "none", transition: "border-color 0.2s, color 0.2s", whiteSpace: "nowrap" }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.color = "white"; }}
@@ -357,6 +365,7 @@ export default function MarketingPage() {
               { label: "How It Works", href: "#how-it-works" },
               { label: "Game Modes",   href: "#game-modes" },
               { label: "Study",        href: "#vocabulary" },
+              { label: "For Teachers", href: "/teacher" },
             ].map((l) => (
               <a key={l.label} href={l.href} onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", color: MUTED, fontSize: "0.95rem", fontWeight: 500, textDecoration: "none" }}>
                 {l.label}
@@ -1068,6 +1077,7 @@ export default function MarketingPage() {
                   { label: "Ranked Mode",  href: "/ranked" },
                   { label: "Study Mode",   href: "/study" },
                   { label: "Classroom Mode", href: "/play/classroom" },
+                  { label: "Teacher Portal", href: "/teacher" },
                   { label: "Leaderboard",  href: "/ranked" },
                 ],
               },

@@ -5,16 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
-import { useParty } from "@/context/PartyContext";
 import { useTheme } from "@/context/ThemeContext";
 import {
   acceptFriendRequest,
   declineFriendRequest,
 } from "@/lib/supabase/friends";
 import {
-  acceptPartyInvitation,
-  declinePartyInvitation,
-} from "@/lib/supabase/party-invitations";
+  acceptPartyInvite,
+  declinePartyInvite,
+} from "@/lib/supabase/parties";
 import { getProfile } from "@/lib/user/storage";
 import { canClaimDailyReward } from "@/lib/user/daily-rewards";
 import { getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
@@ -24,7 +23,7 @@ import {
   removePendingNotification,
   PendingNotification,
 } from "@/lib/user/pending-notifications";
-import { dismissAcceptedFriendRequest, dismissAcceptedPartyInvite } from "@/lib/user/dismissed-notifications";
+import { dismissAcceptedFriendRequest } from "@/lib/user/dismissed-notifications";
 import InkAvatar from "@/components/InkAvatar";
 import { DEFAULT_AVATAR_CONFIG } from "@/types";
 
@@ -48,8 +47,7 @@ function getUnclaimedLevelRewards(profile: ReturnType<typeof getProfile>) {
 export default function NotificationBell() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const { friendRequests, acceptedFriendRequests, acceptedPartyInvites, partyInvitations, refresh } = useNotifications();
-  const { addMember, setPartyLeader } = useParty();
+  const { friendRequests, acceptedFriendRequests, partyInvitations, refresh } = useNotifications();
   const { light } = useTheme();
   const [open, setOpen] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
@@ -70,7 +68,6 @@ export default function NotificationBell() {
     return () => window.removeEventListener("ll-pending-notifications", handler);
   }, []);
 
-  // Don't show notifications for things you're already on the page to see/claim (uniform behavior)
   const showDailyReward = hasDailyReward && pathname !== "/shop";
   const showLevelRewards = unclaimedLevelRewards.length > 0 && pathname !== "/levels";
   const showFriendStuff = pathname !== "/friends";
@@ -90,7 +87,9 @@ export default function NotificationBell() {
   );
 
   const total =
-    (showFriendStuff ? friendRequests.length + acceptedFriendRequests.length + acceptedPartyInvites.length + partyInvitations.length : 0) +
+    (showFriendStuff
+      ? friendRequests.length + acceptedFriendRequests.length + partyInvitations.length
+      : 0) +
     (showDailyReward ? 1 : 0) +
     (showLevelRewards ? unclaimedLevelRewards.length : 0) +
     filteredPending.length;
@@ -122,19 +121,16 @@ export default function NotificationBell() {
   async function handleAcceptParty(invitationId: string) {
     if (!user) return;
     setActing(invitationId);
-    const res = await acceptPartyInvitation(user.id, invitationId);
-    if (res.success && res.inviter) {
-      setPartyLeader(res.inviter.id); // Inviter is the party leader
-      addMember(res.inviter);
-      await refresh();
-    }
+    // acceptPartyInvite joins the party in DB; PartyContext syncs via Realtime
+    await acceptPartyInvite(user.id, invitationId);
+    await refresh();
     setActing(null);
   }
 
   async function handleDeclineParty(invitationId: string) {
     if (!user) return;
     setActing(invitationId);
-    await declinePartyInvitation(user.id, invitationId);
+    await declinePartyInvite(user.id, invitationId);
     await refresh();
     setActing(null);
   }
@@ -146,7 +142,7 @@ export default function NotificationBell() {
 
   function handleDismissAcceptedFriend(id: string) {
     dismissAcceptedFriendRequest(id);
-    refresh(); // Context also listens for ll-dismissed-friend-accept; refresh ensures immediate UI update
+    refresh();
   }
 
   const bg = light ? "bg-white" : "bg-[#1E293B]";
@@ -221,10 +217,7 @@ export default function NotificationBell() {
                   </Link>
                 )}
                 {filteredPending.map((n) => (
-                  <div
-                    key={n.id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b ${border}`}
-                  >
+                  <div key={n.id} className={`flex items-center gap-3 px-4 py-3 border-b ${border}`}>
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${n.type === "rank_up" ? "bg-[#D4AF37]" : "bg-[#3B82F6]"}`}>
                       {n.type === "rank_up" ? (
                         <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -260,46 +253,9 @@ export default function NotificationBell() {
                     </div>
                   </div>
                 ))}
-                {showFriendStuff && acceptedPartyInvites.map((r) => (
-                  <div
-                    key={r.id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b ${border}`}
-                  >
-                    <InkAvatar
-                      config={{ ...DEFAULT_AVATAR_CONFIG, ...(r.invitee_avatar_config ?? {}) }}
-                      size="sm"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${text}`}>
-                        <span className="font-bold">{r.invitee_username ?? "Someone"}</span> accepted your party invite!
-                      </p>
-                      <div className="flex gap-2 mt-1.5">
-                        <Link
-                          href="/play/casual"
-                          onClick={() => { dismissAcceptedPartyInvite(r.id); setOpen(false); }}
-                          className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#22C55E] text-white hover:opacity-90"
-                        >
-                          View
-                        </Link>
-                        <button
-                          onClick={() => dismissAcceptedPartyInvite(r.id)}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-lg ${light ? "bg-[#F1F5F9] text-[#64748B]" : "bg-white/10 text-white/80"}`}
-                        >
-                          Dismiss
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
                 {showFriendStuff && acceptedFriendRequests.map((r) => (
-                  <div
-                    key={r.id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b ${border}`}
-                  >
-                    <InkAvatar
-                      config={{ ...DEFAULT_AVATAR_CONFIG, ...r.to_avatar_config }}
-                      size="sm"
-                    />
+                  <div key={r.id} className={`flex items-center gap-3 px-4 py-3 border-b ${border}`}>
+                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...r.to_avatar_config }} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium ${text}`}>
                         <span className="font-bold">{r.to_username}</span> accepted your friend request!
@@ -323,14 +279,8 @@ export default function NotificationBell() {
                   </div>
                 ))}
                 {showFriendStuff && friendRequests.map((r) => (
-                  <div
-                    key={r.id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b ${border}`}
-                  >
-                    <InkAvatar
-                      config={{ ...DEFAULT_AVATAR_CONFIG, ...r.from_avatar_config }}
-                      size="sm"
-                    />
+                  <div key={r.id} className={`flex items-center gap-3 px-4 py-3 border-b ${border}`}>
+                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...r.from_avatar_config }} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium ${text}`}>
                         <span className="font-bold">{r.from_username}</span> wants to be friends
@@ -355,18 +305,15 @@ export default function NotificationBell() {
                   </div>
                 ))}
                 {showFriendStuff && partyInvitations.map((inv) => (
-                  <div
-                    key={inv.id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b ${border}`}
-                  >
-                    <InkAvatar
-                      config={{ ...DEFAULT_AVATAR_CONFIG, ...inv.inviter_avatar_config }}
-                      size="sm"
-                    />
+                  <div key={inv.id} className={`flex items-center gap-3 px-4 py-3 border-b ${border}`}>
+                    <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...(inv.inviter_avatar_config ?? {}) }} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium ${text}`}>
                         <span className="font-bold">{inv.inviter_username}</span> invited you to their party
                       </p>
+                      {inv.party_code && (
+                        <p className={`text-xs ${textMuted} font-mono`}>Code: {inv.party_code}</p>
+                      )}
                       <div className="flex gap-2 mt-1.5">
                         <button
                           onClick={() => handleAcceptParty(inv.id)}
@@ -391,7 +338,7 @@ export default function NotificationBell() {
           </div>
           {total > 0 && (
             <div className={`flex border-t ${border}`}>
-              {showFriendStuff && (friendRequests.length > 0 || acceptedFriendRequests.length > 0 || acceptedPartyInvites.length > 0 || partyInvitations.length > 0) && (
+              {showFriendStuff && (friendRequests.length > 0 || acceptedFriendRequests.length > 0 || partyInvitations.length > 0) && (
                 <Link
                   href="/friends"
                   onClick={() => setOpen(false)}

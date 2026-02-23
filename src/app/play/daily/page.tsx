@@ -219,21 +219,21 @@ export default function DailyChallengePage() {
         </div>
       </header>
 
-      <div className="relative z-10 flex flex-col items-center px-4 pb-12 pt-4 max-w-lg mx-auto w-full gap-6">
+      <div className="relative z-10 flex flex-col items-center px-4 pb-12 pt-4 max-w-lg mx-auto w-full min-w-0 gap-6">
 
         {/* Title */}
-        <div className="flex flex-col items-center gap-1 text-center">
+        <div className="flex flex-col items-center gap-1 text-center w-full min-w-0 px-1 overflow-hidden">
           <div className="flex items-center gap-2 mb-1">
             <div
-              className={`w-8 h-8 rounded-lg flex items-center justify-center ${light ? "bg-amber-50" : ""}`}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${light ? "bg-amber-50" : ""}`}
               style={{ background: !light ? "rgba(205, 127, 50, 0.2)" : undefined, color: light ? "#92400E" : BRONZE }}
             >
               <CalendarIcon className="w-5 h-5" />
             </div>
             <span className={`text-sm font-semibold uppercase tracking-widest ${textMuted}`}>Daily Challenge</span>
           </div>
-          <h1 className={`text-3xl font-bold ${text}`}>{dateLabel}</h1>
-          <p className={`text-sm mt-2 ${textMuted}`}>
+          <h1 className={`text-2xl sm:text-3xl font-bold ${text} break-words`}>{dateLabel}</h1>
+          <p className={`text-sm mt-2 ${textMuted} break-words w-full max-w-full overflow-hidden`}>
             <span className="font-semibold" style={{ color: BRONZE }}>Topic:</span> {topic} · <span className="font-semibold" style={{ color: BRONZE }}>Grade:</span> {grade}
           </p>
         </div>
@@ -276,12 +276,12 @@ export default function DailyChallengePage() {
 
               {/* Rewards row — only on first completion */}
               {bonusAwarded && (
-                <div className={`rounded-xl px-4 py-3 flex items-center justify-between`} style={{ background: light ? `${MINT}15` : `${MINT}12` }}>
-                  <div className="flex items-center gap-2">
-                    <SparkIcon className="w-4 h-4" color={MINT} />
+                <div className={`rounded-xl px-4 py-3 flex items-center justify-between gap-2 min-w-0 flex-wrap`} style={{ background: light ? `${MINT}15` : `${MINT}12` }}>
+                  <div className="flex items-center gap-2 min-w-0 shrink-0">
+                    <SparkIcon className="w-4 h-4 shrink-0" color={MINT} />
                     <span className="text-sm font-bold" style={{ color: MINT }}>Completion bonus</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <div className="flex items-center gap-1">
                       <InkDropIcon className="w-3.5 h-3.5" color={MINT} />
                       <span className="text-sm font-bold" style={{ color: MINT }}>+{DAILY_COMPLETION_BONUS.drops}</span>
@@ -343,7 +343,7 @@ export default function DailyChallengePage() {
         {/* Lobby card */}
         {phase === "lobby" && (
           <div
-            className={`w-full rounded-2xl border ${cardBg} relative overflow-visible`}
+            className={`w-full min-w-0 rounded-2xl border ${cardBg} relative overflow-hidden`}
             style={{ borderColor: light ? "rgba(205, 127, 50, 0.35)" : "rgba(205, 127, 50, 0.45)" }}
           >
             {/* Decorative inkling — top right */}
@@ -365,9 +365,9 @@ export default function DailyChallengePage() {
               </div>
             </div>
 
-            <div className={`border-t ${cardBorder} px-6 py-5 flex flex-col gap-4`}>
+            <div className={`border-t ${cardBorder} px-6 py-5 flex flex-col gap-4 min-w-0 overflow-hidden`}>
               {/* Challenge info */}
-              <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="grid grid-cols-3 gap-3 text-center min-w-0">
                 <div className={`rounded-xl py-3 px-2 ${light ? "bg-amber-50/80" : ""}`} style={!light ? { background: "rgba(205, 127, 50, 0.12)" } : undefined}>
                   <p className="text-xl font-black" style={{ color: BRONZE }}>{DAILY_CHALLENGE_QUESTION_COUNT}</p>
                   <p className={`text-xs font-semibold mt-0.5 ${textMuted}`}>Questions</p>

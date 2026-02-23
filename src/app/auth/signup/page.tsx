@@ -35,10 +35,12 @@ export default function SignupPage() {
 function SignupPageInner() {
   const searchParams = useSearchParams();
   const fromPage = searchParams.get("from") ?? "";
+  const next = searchParams.get("next") ?? "";
   const gateMessage = GATE_MESSAGES[fromPage] ?? "";
+  const isTeacherFlow = next === "/teacher" || next.startsWith("/teacher");
+  const [view, setView] = useState<View>(isTeacherFlow ? "email" : "providers");
 
   const { light } = useTheme();
-  const [view, setView] = useState<View>("providers");
   const [username, setUsername] = useState("");
   const [grade, setGrade] = useState("");
   const [email, setEmail] = useState("");
@@ -51,10 +53,11 @@ function SignupPageInner() {
   async function handleOAuth(provider: "google" | "apple" | "azure") {
     setError("");
     const supabase = createClient();
+    const callbackUrl = `${getAuthRedirectBase()}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${getAuthRedirectBase()}/auth/callback`,
+        redirectTo: callbackUrl,
         ...(provider === "google" && {
           queryParams: { access_type: "offline" },
         }),
@@ -77,12 +80,13 @@ function SignupPageInner() {
     }
     startTransition(async () => {
       const supabase = createClient();
+      const emailRedirectTo = `${getAuthRedirectBase()}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { username, grade },
-          emailRedirectTo: `${getAuthRedirectBase()}/auth/callback`,
+          emailRedirectTo,
         },
       });
       if (error) {
@@ -105,7 +109,7 @@ function SignupPageInner() {
           <h2 className="text-2xl font-extrabold font-display" style={{ color: light ? "#0F172A" : "white", fontFamily: "'Playfair Display', Georgia, serif" }}>Check your inbox!</h2>
           <p className="text-sm font-medium" style={{ color: light ? "#64748B" : "#94A3B8" }}>{success}</p>
           <Link
-            href="/auth/login"
+            href={isTeacherFlow ? "/auth/login?next=/teacher" : "/auth/login"}
             className="inline-block px-6 py-3 rounded-xl font-bold text-white text-sm transition-all hover:shadow-lg"
             style={{ background: `linear-gradient(135deg, ${BLUE} 0%, #1D4ED8 100%)`, boxShadow: "0 4px 12px rgba(59,130,246,0.4)" }}
           >
@@ -181,7 +185,19 @@ function SignupPageInner() {
 
       <div className={`flex-1 flex flex-col items-center justify-center px-6 py-12 ${light ? "bg-[#F8FAFC]" : ""}`} style={!light ? { background: SURFACE } : undefined}>
         <div className="w-full max-w-sm">
-          <div className="flex justify-end mb-4"><ThemeToggle /></div>
+          <div className="flex items-center justify-between mb-4">
+            {isTeacherFlow ? (
+              <Link href="/teacher" className="text-sm font-semibold flex items-center gap-1.5 transition-colors hover:opacity-80" style={{ color: light ? "#64748B" : "#94A3B8" }}>
+                <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+                </svg>
+                Back to Teacher Portal
+              </Link>
+            ) : (
+              <span />
+            )}
+            <ThemeToggle />
+          </div>
           <div className="lg:hidden flex flex-col items-center gap-3 mb-8">
             <LogoIcon className="w-12 h-12" />
             <span className={`text-2xl font-extrabold ${light ? "text-[#0F172A]" : "text-white"}`}>
@@ -197,17 +213,25 @@ function SignupPageInner() {
 
           <div className="mb-8">
             <h2 className={`text-3xl font-extrabold mb-1 font-display ${light ? "text-[#0F172A]" : "text-white"}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              Create your account
+              {isTeacherFlow ? "Create teacher account" : "Create your account"}
             </h2>
             <p className={`text-sm font-medium ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
               Free forever.{" "}
-              <Link href="/auth/login" className="font-bold hover:underline" style={{ color: BLUE }}>
+              <Link href={isTeacherFlow ? "/auth/login?next=/teacher" : "/auth/login"} className="font-bold hover:underline" style={{ color: BLUE }}>
                 Already have one? Sign in
               </Link>
             </p>
+            {!isTeacherFlow && (
+              <p className={`text-sm font-medium mt-1 ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
+                Are you a teacher?{" "}
+                <Link href="/auth/teacher-signup" className="font-bold hover:underline" style={{ color: BLUE }}>
+                  Use teacher signup
+                </Link>
+              </p>
+            )}
           </div>
 
-          {view === "providers" ? (
+          {view === "providers" && !isTeacherFlow ? (
             <div className="space-y-3">
               <button
                 onClick={() => handleOAuth("google")}
@@ -239,16 +263,23 @@ function SignupPageInner() {
             </div>
           ) : (
             <form onSubmit={handleEmailSignup} className="space-y-4">
-              <button
-                type="button"
-                onClick={() => { setView("providers"); setError(""); }}
-                className={`flex items-center gap-1.5 text-sm font-semibold mb-2 transition-colors ${light ? "text-[#64748B] hover:text-[#0F172A]" : "text-[#94A3B8] hover:text-white"}`}
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                  <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
-                </svg>
-                All sign-up options
-              </button>
+              {!isTeacherFlow && (
+                <button
+                  type="button"
+                  onClick={() => { setView("providers"); setError(""); }}
+                  className={`flex items-center gap-1.5 text-sm font-semibold mb-2 transition-colors ${light ? "text-[#64748B] hover:text-[#0F172A]" : "text-[#94A3B8] hover:text-white"}`}
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+                  </svg>
+                  All sign-up options
+                </button>
+              )}
+              {isTeacherFlow && (
+                <p className={`text-xs ${light ? "text-[#64748B]" : "text-[#94A3B8]"} mb-2`}>
+                  Student? <Link href="/auth/signup" className="font-semibold hover:underline" style={{ color: BLUE }}>Sign up as student</Link>
+                </p>
+              )}
 
               <div className="space-y-1.5">
                 <label className={`block text-sm font-bold ${light ? "text-[#0F172A]" : "text-white"}`}>Username <span className={`font-semibold ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>(your display name)</span></label>

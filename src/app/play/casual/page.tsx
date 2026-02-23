@@ -14,6 +14,7 @@ import ResultsScreen from "@/components/ResultsScreen";
 import InkAvatar from "@/components/InkAvatar";
 import BookIcon from "@/components/icons/BookIcon";
 import PencilIcon from "@/components/icons/PencilIcon";
+import LogoIcon from "@/components/icons/LogoIcon";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
 import {
@@ -26,7 +27,8 @@ import {
   MATCHMAKING_TIMEOUT_MS,
 } from "@/lib/game/matchmaking";
 import { getSeededQuestionsForMode } from "@/lib/game/questions";
-import { broadcastPartyQueue } from "@/lib/supabase/party-realtime";
+import { broadcastPartyQueue } from "@/lib/supabase/parties";
+import { recordRecentPlayers } from "@/lib/supabase/recent-players";
 import { calculateScore } from "@/lib/game/rank";
 import type { OpponentInfo } from "@/lib/game/matchmaking";
 
@@ -272,7 +274,7 @@ function getStartedAtFromSeed(seed: string): number {
 export default function CasualPage() {
   const { user } = useAuth();
   const { light } = useTheme();
-  const { members, isLeader, canQueue1v1, canQueue3v3, partyQueuePayload, setPartyQueuePayload } = useParty();
+  const { partyId, members, isLeader, canQueue1v1, canQueue3v3, partyQueuePayload, setPartyQueuePayload } = useParty();
   const [phase, setPhase] = useState<Phase>("select");
   const [mode, setMode] = useState<CasualMode>("1v1");
   const [subject, setSubject] = useState<Subject>("vocabulary");
@@ -550,7 +552,7 @@ export default function CasualPage() {
   function startBotMatch(queueSubject: Subject, queueGrade: VocabLevel | undefined, queuePunctuationLevel?: 1 | 2 | 3) {
     const { opps, tms, seed, botResults } = matchWithBots(queueSubject, queueGrade, queuePunctuationLevel);
     if (mode === "3v3" && members.length > 0 && user && isLeader && botResults) {
-      void broadcastPartyQueue(user.id, {
+      void broadcastPartyQueue(partyId ?? user.id, {
         mode,
         subject: queueSubject,
         vocabGrade: queueGrade,
@@ -639,7 +641,7 @@ export default function CasualPage() {
     setPhase("matchmaking");
 
     if (members.length > 0 && isLeader) {
-      await broadcastPartyQueue(user.id, {
+      await broadcastPartyQueue(partyId ?? user.id, {
         mode: "3v3",
         subject: queueSubject,
         vocabGrade: queueGrade,
@@ -1141,7 +1143,7 @@ export default function CasualPage() {
     if ((mode === "1v1" || mode === "3v3") && members.length > 0 && user && isLeader) {
       const { opps, tms, seed, botResults } = matchWithBots(queueSubject, queueGrade, queuePunctuationLevel);
       if (botResults) {
-        await broadcastPartyQueue(user.id, {
+        await broadcastPartyQueue(partyId ?? user.id, {
           mode,
           subject: queueSubject,
           vocabGrade: queueGrade,
@@ -1234,6 +1236,15 @@ export default function CasualPage() {
       } catch (e) {
         console.error("[Casual] Trophy sync failed:", e);
         // Sync failed; local state is correct, Supabase will catch up on next load
+      }
+
+      // Record human participants as recent players (opponents + party teammates)
+      const humanIds = [
+        ...opponents.filter((o) => !o.isBot && o.id).map((o) => o.id as string),
+        ...members.filter((m) => m.id !== user.id).map((m) => m.id),
+      ];
+      if (humanIds.length > 0) {
+        recordRecentPlayers(user.id, humanIds).catch(() => {});
       }
     }
   }
@@ -1627,7 +1638,7 @@ export default function CasualPage() {
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
             </svg>
-            Back
+            Modes
           </button>
           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#60A5FA]"}`}>
             {mode} · Vocabulary
@@ -1709,7 +1720,7 @@ export default function CasualPage() {
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
             </svg>
-            Back
+            Modes
           </button>
           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#60A5FA]"}`}>
             {mode} · Punctuation
@@ -2043,10 +2054,10 @@ export default function CasualPage() {
     <main className={`min-h-[100dvh] flex flex-col overflow-x-hidden ${bg}`} style={!light ? { background: SURFACE } : undefined}>
       <header className="flex items-center justify-between px-5 py-4">
         <Link href="/dashboard" className={`flex items-center gap-1.5 text-sm font-bold ${textMuted} hover:opacity-80 transition-opacity`}>
-          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-            <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
-          </svg>
-          Back
+          <div className={`w-7 h-7 rounded-lg p-0.5 border ${light ? "border-[#E2E8F0] bg-white" : "border-white/10 bg-[#1E293B]"}`}>
+            <LogoIcon className="w-full h-full" />
+          </div>
+          Dashboard
         </Link>
         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${light ? "bg-[#DBEAFE] text-[#3B82F6]" : "bg-[#3B82F6]/20 text-[#60A5FA]"}`}>
           Casual

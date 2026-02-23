@@ -4,8 +4,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { PartyProvider } from "@/context/PartyContext";
 import { NotificationProvider } from "@/context/NotificationContext";
-import PartyBar from "@/components/PartyBar";
-import PartyRealtimeSync from "@/components/PartyRealtimeSync";
+import PartyWidgetWrapper from "@/components/PartyWidgetWrapper";
 import OnboardingGate from "@/components/OnboardingGate";
 import ProfileSyncOnLoad from "@/components/ProfileSyncOnLoad";
 
@@ -37,10 +36,9 @@ export default function RootLayout({
             <PartyProvider>
               <NotificationProvider>
                 <OnboardingGate>
-                  <PartyRealtimeSync />
                   <ProfileSyncOnLoad />
                   {children}
-                <PartyBar />
+                  <PartyWidgetWrapper />
                 </OnboardingGate>
               </NotificationProvider>
             </PartyProvider>

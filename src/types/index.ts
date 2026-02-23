@@ -103,6 +103,10 @@ export interface UserProfile {
   id: string;
   email: string;
   username: string;
+  account_type?: "student" | "teacher";
+  teacher_approved?: boolean;
+  teacher_school_id?: string | null;
+  teacher_verified_at?: string | null;
   rank_tier: RankTier;
   trophies: number;
   xp: number;
@@ -210,4 +214,139 @@ export interface UserSkillStats {
   skill_tag: SkillTag;
   accuracy: number;
   attempts: number;
+}
+
+// ── Classroom ────────────────────────────────────────────────────────────────
+export interface ClassroomRoom {
+  id: string;
+  room_code: string;
+  host_user_id?: string | null;
+  status: "active" | "closed";
+  locked: boolean;
+  max_players: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ClassroomSession {
+  id: string;
+  room_id: string;
+  seed: string;
+  subject: Subject;
+  vocab_level?: string | null;
+  punctuation_level?: number | null;
+  host_plays: boolean;
+  allow_late_join?: boolean;
+  started_at: string;
+  ended_at?: string | null;
+  status: "running" | "completed" | "aborted";
+  ended_reason?: string | null;
+}
+
+export interface ClassroomParticipant {
+  participant_id: string;
+  display_name: string;
+  role: "host" | "student";
+  joined_at?: string | null;
+  left_at?: string | null;
+  was_kicked?: boolean;
+}
+
+export interface ClassroomResult {
+  participant_id: string;
+  score: number;
+  correct: number;
+  incorrect: number;
+  accuracy: number;
+  finished_at?: string | null;
+  skill_breakdown?: Record<string, unknown>;
+}
+
+// ── Teacher Portal ────────────────────────────────────────────────────────────
+export interface School {
+  id: string;
+  name: string;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+}
+
+export type TeacherVerificationStatus = "pending" | "approved" | "rejected" | "auto_approved" | null;
+
+export interface TeacherPortalStatus {
+  account_type: "student" | "teacher";
+  teacher_approved: boolean;
+  teacher_school_id: string | null;
+  teacher_verified_at: string | null;
+  teacher_type: "homeschool" | "public" | null;
+  teacher_grade: string | null;
+  teacher_subject: string | null;
+  teacher_onboarding_completed: boolean;
+  verification_status: TeacherVerificationStatus;
+  verification_reason: string | null;
+  verification_created_at: string | null;
+  verification_reviewed_at: string | null;
+}
+
+export interface TeacherVerificationRequest {
+  id: string;
+  user_id: string;
+  school_id: string;
+  school_email: string;
+  email_domain: string;
+  status: Exclude<TeacherVerificationStatus, null>;
+  decision_reason?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TeacherClass {
+  id: string;
+  name: string;
+  grade_label?: string | null;
+  subject?: string | null;
+  archived: boolean;
+  join_code?: string | null;
+  created_at: string;
+  updated_at: string;
+  roster_count: number;
+}
+
+export interface RosterStudent {
+  id: string;
+  class_id: string;
+  display_name: string;
+  student_identifier?: string | null;
+  linked_user_id?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CsvImportResultRow {
+  row: {
+    display_name?: string;
+    student_identifier?: string;
+    notes?: string;
+  };
+  error: string;
+}
+
+export interface StudentClass {
+  id: string;
+  name: string;
+  grade_label?: string | null;
+  subject?: string | null;
+  teacher_name?: string | null;
+  roster_count: number;
+}
+
+export interface Classmate {
+  id: string;
+  display_name: string;
+  student_identifier?: string | null;
+  linked_user_id?: string | null;
+  avatar_config?: Record<string, unknown> | null;
 }

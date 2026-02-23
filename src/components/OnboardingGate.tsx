@@ -17,11 +17,19 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
       setChecked(true);
       return;
     }
-    if (pathname?.startsWith("/auth/") || pathname === "/onboarding") {
+    if (
+      pathname?.startsWith("/auth/") ||
+      pathname === "/onboarding" ||
+      pathname?.startsWith("/teacher")
+    ) {
       setChecked(true);
       return;
     }
     fetchProfile(user.id).then((profile) => {
+      if (profile?.account_type === "teacher") {
+        setChecked(true);
+        return;
+      }
       if (profile && profile.onboarding_completed === false) {
         router.replace(`/onboarding?next=${encodeURIComponent(pathname || "/dashboard")}`);
         return;

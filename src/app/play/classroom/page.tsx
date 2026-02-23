@@ -1,12 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { VOCAB_LEVEL_LABELS, getSeededQuestionsForMode } from "@/lib/game/questions";
 import { generateMatchSeed } from "@/lib/game/matchmaking";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import {
+  createClassroomRoom,
+  finalizeClassroomSession,
+  getClassroomFeatureFlags,
+  getTeacherToken,
+  logClassroomEvent,
+  saveTeacherToken,
+  startClassroomSession,
+  submitClassroomResult,
+  validateClassroomJoin,
+  verifyTeacherAccess,
+} from "@/lib/supabase/classroom";
 import { createGuestProfile, getProfile, INITIAL_PROFILE } from "@/lib/user/storage";
 import { BLUE, MINT, DISPLAY_FONT, BODY_FONT } from "@/lib/design-tokens";
 import GameScreen from "@/components/GameScreen";
@@ -26,6 +39,9 @@ interface ClassroomPlayer {
 }
 
 interface StartPayload {
+  version: 1;
+  eventId: string;
+  sessionId?: string;
   seed: string;
   startedAt: number;
   questionCount: number;
@@ -36,6 +52,9 @@ interface StartPayload {
 }
 
 interface ScorePayload {
+  version: 1;
+  eventId: string;
+  sessionId?: string;
   seed: string;
   playerId: string;
   username: string;
@@ -48,10 +67,11 @@ interface ScorePayload {
 }
 
 type ControlPayload =
-  | { action: "kick"; targetId: string; by: string }
-  | { action: "lock"; locked: boolean; by: string }
-  | { action: "end-match"; seed: string; by: string }
-  | { action: "recreate-lobby"; by: string };
+  | { action: "kick"; targetId: string; by: string; version: 1; eventId: string }
+  | { action: "lock"; locked: boolean; by: string; version: 1; eventId: string }
+  | { action: "end-match"; seed: string; by: string; sessionId?: string; version: 1; eventId: string }
+  | { action: "recreate-lobby"; by: string; version: 1; eventId: string }
+  | { action: "heartbeat"; by: string; at: number; sessionId?: string; version: 1; eventId: string };
 
 const isSupabaseConfigured =
   typeof process.env.NEXT_PUBLIC_SUPABASE_URL === "string" &&
@@ -76,6 +96,12 @@ const PUNCTUATION_LEVEL_LABELS: Record<PunctuationLevel, string> = {
   3: "Advanced",
 };
 const PUNCTUATION_OPTIONS: PunctuationLevel[] = [1, 2, 3];
+const HOST_HEARTBEAT_MS = 5000;
+const HOST_TIMEOUT_MS = 30000;
+
+function makeEventId(): string {
+  return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function generateClassroomCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -168,8 +194,25 @@ function parseHostSettings(
 }
 
 export default function ClassroomPage() {
+  return (
+    <Suspense fallback={<ClassroomLoadingFallback />}>
+      <ClassroomPageInner />
+    </Suspense>
+  );
+}
+
+function ClassroomLoadingFallback() {
+  return (
+    <main className="min-h-[100dvh] flex items-center justify-center px-6 bg-[#0B1220] text-white">
+      Loading classroom...
+    </main>
+  );
+}
+
+function ClassroomPageInner() {
   const { user } = useAuth();
   const { light } = useTheme();
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [phase, setPhase] = useState<Phase>("entry");
   const [joinCode, setJoinCode] = useState("");
@@ -189,18 +232,32 @@ export default function ClassroomPage() {
   const [roomLocked, setRoomLocked] = useState(false);
   const [forceFinishSignal, setForceFinishSignal] = useState(0);
   const [waitingForTeacherReset, setWaitingForTeacherReset] = useState(false);
+  const [featureFlags, setFeatureFlags] = useState({
+    classroom_persistence_v1: false,
+    classroom_reports_v1: false,
+    classroom_access_code_v1: false,
+  });
+  const [teacherToken, setTeacherToken] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [joining, setJoining] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef = useRef<any>(null);
   const playTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const subscribeRetryRef = useRef(0);
+  const joinAttemptRef = useRef(0);
   const activeSeedRef = useRef<string | null>(null);
   const phaseRef = useRef<Phase>("entry");
   const joinedAtRef = useRef<number>(0);
+  const eventIdsSeenRef = useRef<Set<string>>(new Set());
+  const hostHeartbeatAtRef = useRef<number>(Date.now());
   const isSubscribedRef = useRef(false);
 
   useEffect(() => {
     const p = getProfile() ?? createGuestProfile();
     setProfile(p);
+    getClassroomFeatureFlags().then(setFeatureFlags).catch(() => {});
   }, []);
 
   const playerId = useMemo(() => user?.id ?? profile.id ?? "guest", [user?.id, profile.id]);
@@ -214,6 +271,8 @@ export default function ClassroomPage() {
     [profile.avatar_config]
   );
 
+  const fromTeacher = searchParams.get("host") === "1";
+
   const cleanupTimers = useCallback(() => {
     if (playTimerRef.current) {
       clearTimeout(playTimerRef.current);
@@ -222,6 +281,10 @@ export default function ClassroomPage() {
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
+    }
+    if (heartbeatTimerRef.current) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
     }
   }, []);
 
@@ -247,6 +310,9 @@ export default function ClassroomPage() {
   const resetRoomState = useCallback(() => {
     cleanupTimers();
     activeSeedRef.current = null;
+    eventIdsSeenRef.current.clear();
+    hostHeartbeatAtRef.current = Date.now();
+    setCurrentSessionId(null);
     setScores({});
     setResult(null);
     setQuestions([]);
@@ -272,16 +338,28 @@ export default function ClassroomPage() {
 
   const enterLobby = useCallback(
     async (code: string, host: boolean) => {
+      if (joining) return;
+      if (!host && !user) {
+        setError("Sign in to join a classroom.");
+        void logClassroomEvent("classroom_join_failed", { userId: undefined, properties: { reason: "auth_required" } });
+        return;
+      }
       if (!isSupabaseConfigured) {
         setError("Classroom mode needs Supabase realtime to be configured.");
+        void logClassroomEvent("classroom_join_failed", { userId: user?.id, properties: { reason: "supabase_not_configured" } });
         return;
       }
 
       const normalized = normalizeCode(code);
       if (normalized.length !== CLASSROOM_CODE_LEN) {
         setError("Classroom code must be 6 characters.");
+        void logClassroomEvent("classroom_join_failed", { userId: user?.id, properties: { reason: "invalid_code" } });
         return;
       }
+
+      const nextAttempt = joinAttemptRef.current + 1;
+      joinAttemptRef.current = nextAttempt;
+      setJoining(true);
 
       cleanupChannel();
       resetRoomState();
@@ -298,6 +376,53 @@ export default function ClassroomPage() {
       setPhase("lobby");
       joinedAtRef.current = Date.now();
 
+      if (!host && featureFlags.classroom_persistence_v1) {
+        const canJoin = await validateClassroomJoin(normalized);
+        if (!canJoin.success) {
+          setJoining(false);
+          setPhase("entry");
+          setError(canJoin.error ?? "Could not join room");
+          void logClassroomEvent("classroom_join_failed", { userId: user?.id, properties: { reason: "validate_join_failed", room_code: normalized } });
+          return;
+        }
+      }
+
+      if (host && featureFlags.classroom_access_code_v1) {
+        const existing = getTeacherToken(normalized);
+        let token = existing;
+        if (!token) {
+          const teacherCode = window.prompt("Set a teacher access code for this room (min 4 chars):", "");
+          if (!teacherCode || teacherCode.trim().length < 4) {
+            setJoining(false);
+            setPhase("entry");
+            setError("Teacher access code is required to host a classroom.");
+            void logClassroomEvent("classroom_teacher_access_failed", { userId: user?.id, properties: { reason: "missing_teacher_code", room_code: normalized } });
+            return;
+          }
+          const created = await createClassroomRoom(normalized, teacherCode.trim(), MAX_CLASSROOM_PLAYERS);
+          if (!created.success) {
+            setJoining(false);
+            setPhase("entry");
+            setError(created.error ?? "Could not create classroom room");
+            void logClassroomEvent("classroom_room_create_failed", { userId: user?.id, properties: { room_code: normalized, error: created.error ?? "unknown" } });
+            return;
+          }
+          const verified = await verifyTeacherAccess(normalized, teacherCode.trim());
+          if (!verified.success || !verified.access) {
+            setJoining(false);
+            setPhase("entry");
+            setError(verified.error ?? "Could not verify teacher access");
+            void logClassroomEvent("classroom_teacher_access_failed", { userId: user?.id, properties: { room_code: normalized, error: verified.error ?? "unknown" } });
+            return;
+          }
+          token = verified.access.teacherToken;
+          saveTeacherToken(normalized, token);
+        }
+        setTeacherToken(token ?? null);
+      } else if (host) {
+        setTeacherToken(null);
+      }
+
       const supabase = createClient();
       const channel = supabase.channel(`classroom:${normalized}`, {
         config: { presence: { key: playerId } },
@@ -313,6 +438,7 @@ export default function ClassroomPage() {
 
         if (!host && parsed.length > MAX_CLASSROOM_PLAYERS && amInRoom) {
           cleanupChannel();
+          setJoining(false);
           setPhase("entry");
           setError("That classroom is full (30 players max).");
           return;
@@ -325,6 +451,7 @@ export default function ClassroomPage() {
           phaseRef.current !== "results"
         ) {
           cleanupChannel();
+          setJoining(false);
           setPhase("entry");
           setError("The host ended this classroom.");
           return;
@@ -341,12 +468,16 @@ export default function ClassroomPage() {
       channel.on("broadcast", { event: CLASSROOM_START_EVENT }, (msg: { payload?: StartPayload }) => {
         const payload = msg.payload;
         if (!payload?.seed || typeof payload.startedAt !== "number") return;
+        if (payload.eventId && eventIdsSeenRef.current.has(payload.eventId)) return;
+        if (payload.eventId) eventIdsSeenRef.current.add(payload.eventId);
 
         if (payload.seed === activeSeedRef.current) {
           return;
         }
 
         activeSeedRef.current = payload.seed;
+        setCurrentSessionId(payload.sessionId ?? null);
+        hostHeartbeatAtRef.current = Date.now();
         setScores({});
         setResult(null);
         const subject: Subject = payload.subject === "punctuation" ? "punctuation" : "vocabulary";
@@ -356,7 +487,7 @@ export default function ClassroomPage() {
         setSelectedVocab(payload.vocabLevel);
         setSelectedPunctuation(punctuationLevel);
         setHostPlays(payload.hostPlays);
-        if (isHost && !payload.hostPlays) {
+        if (host && !payload.hostPlays) {
           setQuestions([]);
         } else {
           setQuestions(
@@ -392,6 +523,8 @@ export default function ClassroomPage() {
       channel.on("broadcast", { event: CLASSROOM_SCORE_EVENT }, (msg: { payload?: ScorePayload }) => {
         const payload = msg.payload;
         if (!payload || !payload.seed || !payload.playerId) return;
+        if (payload.eventId && eventIdsSeenRef.current.has(payload.eventId)) return;
+        if (payload.eventId) eventIdsSeenRef.current.add(payload.eventId);
         if (activeSeedRef.current && payload.seed !== activeSeedRef.current) return;
         setScores((prev) => ({ ...prev, [payload.playerId]: payload }));
       });
@@ -399,6 +532,8 @@ export default function ClassroomPage() {
       channel.on("broadcast", { event: CLASSROOM_CONTROL_EVENT }, (msg: { payload?: ControlPayload }) => {
         const payload = msg.payload;
         if (!payload) return;
+        if (payload.eventId && eventIdsSeenRef.current.has(payload.eventId)) return;
+        if (payload.eventId) eventIdsSeenRef.current.add(payload.eventId);
 
         if (payload.action === "kick" && payload.targetId === playerId) {
           cleanupChannel();
@@ -417,7 +552,13 @@ export default function ClassroomPage() {
           return;
         }
 
+        if (payload.action === "heartbeat") {
+          hostHeartbeatAtRef.current = payload.at || Date.now();
+          return;
+        }
+
         if (payload.action === "end-match") {
+          if (payload.sessionId) setCurrentSessionId(payload.sessionId);
           if (payload.seed && activeSeedRef.current && payload.seed !== activeSeedRef.current) return;
           if (phaseRef.current === "playing") {
             setForceFinishSignal((prev) => prev + 1);
@@ -438,19 +579,39 @@ export default function ClassroomPage() {
       });
 
       channel.subscribe(async (status: string) => {
+        if (joinAttemptRef.current !== nextAttempt) return;
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          const retries = subscribeRetryRef.current;
+          if (retries < 2) {
+            subscribeRetryRef.current = retries + 1;
+            const delay = 400 * (retries + 1);
+            setError(`Realtime connection retry ${retries + 1}/2…`);
+            setTimeout(() => {
+              void enterLobby(normalized, host);
+            }, delay);
+            return;
+          }
+          setJoining(false);
+          setError("Could not connect to classroom realtime channel.");
+          setPhase("entry");
+          return;
+        }
         if (status !== "SUBSCRIBED") return;
+        subscribeRetryRef.current = 0;
         isSubscribedRef.current = true;
         const state = channel.presenceState() as Record<string, Array<Record<string, unknown>>>;
         const existing = parsePresenceState(state);
         const hostSettings = parseHostSettings(state);
         if (!host && existing.length >= MAX_CLASSROOM_PLAYERS) {
           cleanupChannel();
+          setJoining(false);
           setPhase("entry");
           setError("That classroom is full (30 players max).");
           return;
         }
         if (!host && hostSettings.roomLocked) {
           cleanupChannel();
+          setJoining(false);
           setPhase("entry");
           setError("This classroom is locked by the host.");
           return;
@@ -474,22 +635,39 @@ export default function ClassroomPage() {
           selectedPunctuation: host ? DEFAULT_PUNCTUATION_LEVEL : undefined,
           hostPlays: host ? true : undefined,
         });
+        void logClassroomEvent("classroom_join_success", { userId: user?.id, properties: { room_code: normalized, host } });
+        setJoining(false);
       });
     },
-    [cleanupChannel, cleanupTimers, isHost, playerAvatar, playerId, playerName, resetRoomState]
+    [cleanupChannel, featureFlags.classroom_access_code_v1, featureFlags.classroom_persistence_v1, joining, playerAvatar, playerId, playerName, resetRoomState, user?.id]
   );
 
+  // Auto-enter as host when coming from teacher classroom creator (?code=X&host=1)
+  const teacherCreateAttemptedRef = useRef(false);
+  useEffect(() => {
+    const code = searchParams.get("code")?.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CLASSROOM_CODE_LEN);
+    const host = searchParams.get("host") === "1";
+    if (!code || code.length !== CLASSROOM_CODE_LEN || !host || teacherCreateAttemptedRef.current || joining) return;
+    teacherCreateAttemptedRef.current = true;
+    void enterLobby(code, true);
+  }, [searchParams, enterLobby, joining]);
+
   function createClassroom() {
+    if (joining) return;
     setError(null);
     void enterLobby(generateClassroomCode(), true);
   }
 
   function joinClassroom() {
+    if (joining) return;
     setError(null);
     void enterLobby(joinCode, false);
   }
 
-  function leaveClassroom() {
+  async function leaveClassroom() {
+    if (isHost && featureFlags.classroom_persistence_v1 && currentSessionId && (phaseRef.current === "countdown" || phaseRef.current === "playing" || phaseRef.current === "hosting")) {
+      await finalizeClassroomSession(currentSessionId, "host_left", teacherToken ?? undefined);
+    }
     cleanupChannel();
     resetRoomState();
     setPlayers([]);
@@ -504,10 +682,36 @@ export default function ClassroomPage() {
     setWaitingForTeacherReset(false);
   }
 
-  function startBattleRoyale() {
+  async function startBattleRoyale() {
     if (!isHost || !channelRef.current) return;
     const seed = generateMatchSeed();
+    let sessionId: string | undefined;
+    if (featureFlags.classroom_persistence_v1) {
+      const startRes = await startClassroomSession({
+        roomCode: classroomCode,
+        seed,
+        subject: selectedSubject,
+        vocabLevel: String(selectedVocab),
+        punctuationLevel: selectedPunctuation,
+        hostPlays,
+        startedAtIso: new Date(Date.now() + PREMATCH_DELAY_MS).toISOString(),
+        allowLateJoin: false,
+        teacherToken: teacherToken ?? undefined,
+      });
+      if (!startRes.success || !startRes.sessionId) {
+        setError(startRes.error ?? "Could not start classroom session");
+        void logClassroomEvent("classroom_session_start_failed", { userId: user?.id, properties: { room_code: classroomCode, error: startRes.error ?? "unknown" } });
+        return;
+      }
+      sessionId = startRes.sessionId;
+      setCurrentSessionId(sessionId);
+      void logClassroomEvent("classroom_session_start_success", { userId: user?.id, sessionId, properties: { room_code: classroomCode } });
+    }
+
     const payload: StartPayload = {
+      version: 1,
+      eventId: makeEventId(),
+      sessionId,
       seed,
       questionCount: QUESTION_COUNT,
       startedAt: Date.now() + PREMATCH_DELAY_MS,
@@ -518,6 +722,7 @@ export default function ClassroomPage() {
     };
 
     activeSeedRef.current = seed;
+    eventIdsSeenRef.current.add(payload.eventId);
     setWaitingForTeacherReset(false);
     setScores({});
     setResult(null);
@@ -551,7 +756,7 @@ export default function ClassroomPage() {
       setPhase(hostPlays ? "playing" : "hosting");
     }, PREMATCH_DELAY_MS);
 
-    channelRef.current.send({
+    await channelRef.current.send({
       type: "broadcast",
       event: CLASSROOM_START_EVENT,
       payload,
@@ -565,7 +770,7 @@ export default function ClassroomPage() {
     channelRef.current.send({
       type: "broadcast",
       event: CLASSROOM_CONTROL_EVENT,
-      payload: { action: "lock", locked: nextLocked, by: playerId } satisfies ControlPayload,
+      payload: { action: "lock", locked: nextLocked, by: playerId, version: 1, eventId: makeEventId() } satisfies ControlPayload,
     });
   }
 
@@ -575,19 +780,23 @@ export default function ClassroomPage() {
     channelRef.current.send({
       type: "broadcast",
       event: CLASSROOM_CONTROL_EVENT,
-      payload: { action: "kick", targetId, by: playerId } satisfies ControlPayload,
+      payload: { action: "kick", targetId, by: playerId, version: 1, eventId: makeEventId() } satisfies ControlPayload,
     });
   }
 
-  function endMatchNow() {
+  async function endMatchNow() {
     if (!isHost || !channelRef.current) return;
     const seed = activeSeedRef.current;
     if (!seed) return;
+    const sessionId = currentSessionId ?? undefined;
     channelRef.current.send({
       type: "broadcast",
       event: CLASSROOM_CONTROL_EVENT,
-      payload: { action: "end-match", seed, by: playerId } satisfies ControlPayload,
+      payload: { action: "end-match", seed, by: playerId, sessionId, version: 1, eventId: makeEventId() } satisfies ControlPayload,
     });
+    if (featureFlags.classroom_persistence_v1 && currentSessionId) {
+      await finalizeClassroomSession(currentSessionId, "completed", teacherToken ?? undefined);
+    }
     if (phaseRef.current === "playing") {
       setForceFinishSignal((prev) => prev + 1);
     } else if (phaseRef.current === "hosting") {
@@ -607,7 +816,7 @@ export default function ClassroomPage() {
     } catch {}
   }
 
-  function handleComplete(gameResult: GameResult) {
+  async function handleComplete(gameResult: GameResult) {
     setResult(gameResult);
     setPhase("results");
 
@@ -615,6 +824,9 @@ export default function ClassroomPage() {
     if (!seed) return;
 
     const payload: ScorePayload = {
+      version: 1,
+      eventId: makeEventId(),
+      sessionId: currentSessionId ?? undefined,
       seed,
       playerId,
       username: playerName,
@@ -626,7 +838,26 @@ export default function ClassroomPage() {
       finishedAt: Date.now(),
     };
 
+    eventIdsSeenRef.current.add(payload.eventId);
     setScores((prev) => ({ ...prev, [playerId]: payload }));
+
+    if (featureFlags.classroom_persistence_v1 && currentSessionId) {
+      const submitRes = await submitClassroomResult({
+        sessionId: currentSessionId,
+        participantKey: playerId,
+        userId: user?.id,
+        username: playerName,
+        role: isHost ? "host" : "student",
+        score: gameResult.score,
+        correct: gameResult.correct,
+        incorrect: gameResult.incorrect,
+        accuracy: gameResult.accuracy,
+        finishedAtIso: new Date().toISOString(),
+      });
+      if (!submitRes.success) {
+        void logClassroomEvent("classroom_result_submit_failed", { userId: user?.id, sessionId: currentSessionId, properties: { error: submitRes.error ?? "unknown" } });
+      }
+    }
 
     if (channelRef.current) {
       try {
@@ -639,17 +870,20 @@ export default function ClassroomPage() {
     }
   }
 
-  function backToLobby() {
+  async function backToLobby() {
     if (!isHost) {
       setWaitingForTeacherReset(true);
       setPhase("lobby");
       return;
     }
+    if (featureFlags.classroom_persistence_v1 && currentSessionId) {
+      await finalizeClassroomSession(currentSessionId, "completed", teacherToken ?? undefined);
+    }
     if (channelRef.current) {
       channelRef.current.send({
         type: "broadcast",
         event: CLASSROOM_CONTROL_EVENT,
-        payload: { action: "recreate-lobby", by: playerId } satisfies ControlPayload,
+        payload: { action: "recreate-lobby", by: playerId, version: 1, eventId: makeEventId() } satisfies ControlPayload,
       });
     }
     setWaitingForTeacherReset(false);
@@ -661,6 +895,52 @@ export default function ClassroomPage() {
     if (!isHost) return;
     trackSelfPresence();
   }, [hostPlays, isHost, roomLocked, selectedSubject, selectedVocab, selectedPunctuation, trackSelfPresence]);
+
+  useEffect(() => {
+    if (!channelRef.current || !isHost) return;
+    const active = phase === "lobby" || phase === "countdown" || phase === "playing" || phase === "hosting";
+    if (!active) return;
+    hostHeartbeatAtRef.current = Date.now();
+    heartbeatTimerRef.current = setInterval(() => {
+      hostHeartbeatAtRef.current = Date.now();
+      channelRef.current?.send({
+        type: "broadcast",
+        event: CLASSROOM_CONTROL_EVENT,
+        payload: {
+          action: "heartbeat",
+          by: playerId,
+          at: Date.now(),
+          sessionId: currentSessionId ?? undefined,
+          version: 1,
+          eventId: makeEventId(),
+        } satisfies ControlPayload,
+      });
+    }, HOST_HEARTBEAT_MS);
+    return () => {
+      if (heartbeatTimerRef.current) {
+        clearInterval(heartbeatTimerRef.current);
+        heartbeatTimerRef.current = null;
+      }
+    };
+  }, [currentSessionId, isHost, phase, playerId]);
+
+  useEffect(() => {
+    if (isHost) return;
+    const active = phase === "countdown" || phase === "playing" || phase === "hosting";
+    if (!active) return;
+    const timer = setInterval(async () => {
+      const stale = Date.now() - hostHeartbeatAtRef.current > HOST_TIMEOUT_MS;
+      if (!stale) return;
+      if (featureFlags.classroom_persistence_v1 && currentSessionId) {
+        await finalizeClassroomSession(currentSessionId, "host_timeout");
+      }
+      setError("Host disconnected for too long. Session ended.");
+      setForceFinishSignal((prev) => prev + 1);
+      setPhase("results");
+      clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [currentSessionId, featureFlags.classroom_persistence_v1, isHost, phase]);
 
   const activePlayers = useMemo(
     () => (hostPlays ? players : players.filter((p) => !p.isHost)),
@@ -767,8 +1047,8 @@ export default function ClassroomPage() {
         `}</style>
 
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", maxWidth: 1000, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
-          <Link href="/dashboard" style={{ padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, border: `1px solid ${D.borderMed}`, color: D.textMuted, textDecoration: "none", background: D.card }}>
-            ← Dashboard
+          <Link href={fromTeacher ? "/teacher" : "/dashboard"} style={{ padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, border: `1px solid ${D.borderMed}`, color: D.textMuted, textDecoration: "none", background: D.card }}>
+            {fromTeacher ? "← Teacher Portal" : "← Dashboard"}
           </Link>
           <button
             onClick={endMatchNow}
@@ -933,10 +1213,10 @@ export default function ClassroomPage() {
         <header style={{ position: "relative", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", maxWidth: 920, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
           {phase === "entry" ? (
             <Link
-              href="/dashboard"
+              href={fromTeacher ? "/teacher" : "/dashboard"}
               style={{ fontSize: 13, fontWeight: 600, color: D.textMuted, textDecoration: "none", padding: "8px 14px", borderRadius: 10, border: `1px solid ${D.borderMed}`, background: D.card }}
             >
-              ← Dashboard
+              {fromTeacher ? "← Teacher Portal" : "← Dashboard"}
             </Link>
           ) : (
             <button
@@ -977,12 +1257,23 @@ export default function ClassroomPage() {
                 <p style={{ fontSize: 15, color: D.textMuted, margin: 0, lineHeight: 1.6 }}>
                   Up to {MAX_CLASSROOM_PLAYERS} players · One shared question set · Real-time leaderboard
                 </p>
+                {featureFlags.classroom_reports_v1 && (
+                  <div style={{ marginTop: 12 }}>
+                    <Link
+                      href="/classroom/reports"
+                      style={{ fontSize: 13, fontWeight: 700, color: D.accent, textDecoration: "none" }}
+                    >
+                      Open teacher reports →
+                    </Link>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 16 }}>
                 {/* Create card */}
                 <button
                   onClick={createClassroom}
+                  disabled={joining}
                   className="cr-btn"
                   style={{
                     background: light
@@ -1062,7 +1353,7 @@ export default function ClassroomPage() {
                   />
                   <button
                     onClick={joinClassroom}
-                    disabled={normalizeCode(joinCode).length !== CLASSROOM_CODE_LEN}
+                    disabled={joining || normalizeCode(joinCode).length !== CLASSROOM_CODE_LEN}
                     className="cr-btn"
                     style={{
                       width: "100%",
@@ -1240,6 +1531,38 @@ export default function ClassroomPage() {
                     <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: D.textMuted, margin: 0 }}>
                       {isHost ? "Game Settings" : "Lobby Status"}
                     </p>
+                    {!isHost && (
+                      <Link
+                        href="/study"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: D.accent,
+                          background: D.accentDim,
+                          border: `1px solid ${light ? "rgba(59,130,246,0.2)" : "rgba(59,130,246,0.2)"}`,
+                          textDecoration: "none",
+                          transition: "opacity 0.2s",
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                        </svg>
+                        Practice in Study Mode
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </Link>
+                    )}
 
                     {/* Subject + level */}
                     <div>
@@ -1499,6 +1822,24 @@ export default function ClassroomPage() {
                 >
                   {isHost ? "Back to Lobby" : "Back to Room"}
                 </button>
+                {isHost && featureFlags.classroom_reports_v1 && currentSessionId && (
+                  <Link
+                    href={`/classroom/reports/${currentSessionId}${teacherToken ? `?teacherToken=${encodeURIComponent(teacherToken)}` : ""}${fromTeacher ? (teacherToken ? "&" : "?") + "from=teacher" : ""}`}
+                    className="cr-btn"
+                    style={{ padding: "12px 26px", borderRadius: 13, fontSize: 14, fontWeight: 700, color: "#fff", textDecoration: "none", background: `linear-gradient(135deg, ${D.success}, #059669)` }}
+                  >
+                    Open Report
+                  </Link>
+                )}
+                {isHost && (
+                  <button
+                    onClick={copyCode}
+                    className="cr-btn"
+                    style={{ padding: "12px 26px", borderRadius: 13, fontSize: 14, fontWeight: 700, background: D.successDim, color: D.success, border: `1px solid ${D.borderMed}` }}
+                  >
+                    {copied ? "Retry PIN Copied" : "Share Retry PIN"}
+                  </button>
+                )}
                 <button
                   onClick={leaveClassroom}
                   className="cr-btn"

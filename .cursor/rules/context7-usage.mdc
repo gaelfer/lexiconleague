@@ -1,0 +1,40 @@
+---
+description: Use Context7 MCP for up-to-date library documentation and code generation
+alwaysApply: true
+---
+
+# Context7 — Up-to-Date Documentation
+
+**Always use the Context7 MCP** when you need:
+
+- Library or API documentation
+- Code generation for frameworks, SDKs, or packages
+- Setup or configuration steps for external libraries
+- Version-specific API usage (e.g., Next.js 14, Supabase, Phaser)
+
+## When to Invoke Context7
+
+Use Context7 tools (`resolve-library-id`, `query-docs`) when:
+
+1. **Generating code** that uses a third-party library — fetch current docs first
+2. **Answering "how do I..."** questions about a library — avoid outdated or hallucinated APIs
+3. **Implementing integrations** (auth, database, APIs) — ensure correct, versioned patterns
+4. **Debugging** library-related issues — verify current API signatures and behavior
+
+## How to Use
+
+- The user can add `use context7` to prompts; you should invoke Context7 tools proactively when the above applies
+- For known libraries, use the slash syntax: `use library /supabase/supabase` or `use library /vercel/next.js`
+- Specify versions when relevant: e.g., "Next.js 14 middleware" so Context7 fetches the right docs
+
+## Without Context7
+
+- Generic or outdated code examples
+- Hallucinated APIs that don't exist
+- Wrong patterns for the user's package versions
+
+## With Context7
+
+- Real code examples from official sources
+- Accurate, version-specific documentation
+- No hallucinated APIs
