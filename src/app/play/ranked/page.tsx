@@ -371,7 +371,11 @@ export default function RankedPage() {
       subject === "vocabulary"
         ? isPlacement
           ? PLACEMENT_VOCAB_GRADE
-          : getVocabGradeForRanked(profile.placement_vocab_grade, profile.mmr)
+          : profile.rank_tier === "Diamond"
+            ? "ap-lang"
+            : profile.rank_tier === "Emerald"
+              ? "ap-lit"
+              : getVocabGradeForRanked(profile.placement_vocab_grade, profile.mmr)
         : undefined;
     return (
       <GameScreen

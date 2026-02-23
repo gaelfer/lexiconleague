@@ -101,6 +101,22 @@ export default function GameScreen({ mode, subject, onComplete, forceFinishSigna
     return () => clearTimeout(t);
   }, [startGame]);
 
+  // A=1, B=2, C=3, D=4 keybinds for answer selection
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (selectedAnswer !== null || !currentQuestion) return;
+      const key = e.key.toLowerCase();
+      const map: Record<string, number> = { a: 0, b: 1, c: 2, d: 3 };
+      const idx = map[key];
+      if (idx !== undefined && idx < currentQuestion.choices.length) {
+        e.preventDefault();
+        submitAnswer(idx);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectedAnswer, currentQuestion, submitAnswer]);
+
   if (!currentQuestion || !isStarted) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
