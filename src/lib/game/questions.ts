@@ -1,4 +1,9 @@
 import { Question, VocabGrade, VocabLevel, PunctuationLevel } from "@/types";
+import {
+  getPunctuationQuestionsByModule as getRawPunctuationQuestionsByModule,
+  PUNCTUATION_CURRICULUM_MODULES,
+  PUNCTUATION_CURRICULUM_QUESTIONS,
+} from "./punctuation-curriculum";
 
 // ── Tier label helpers ─────────────────────────────────────────────────────────
 export const VOCAB_LEVEL_LABELS: Record<VocabLevel, string> = {
@@ -512,6 +517,7 @@ const PUNCTUATION_BEGINNER: Question[] = [
   { id: "p018", subject: "punctuation", difficulty: 1, skill_tag: "commas", prompt: "Which sentence uses a comma correctly after an introductory word?", choices: ["Yes we can go to the park.", "Yes, we can go to the park.", "Yes we, can go to the park.", "Yes we can go, to the park."], answer_index: 1, punctuationLevel: 1 },
   { id: "p019", subject: "punctuation", difficulty: 1, skill_tag: "apostrophes", prompt: "Which is the correct possessive form?", choices: ["James book", "James's book", "James' book", "James book's"], answer_index: 1, punctuationLevel: 1 },
   { id: "p020", subject: "punctuation", difficulty: 1, skill_tag: "commas", prompt: "Which sentence uses commas correctly?", choices: ["On Tuesday we have gym.", "On Tuesday, we have gym.", "On, Tuesday we have gym.", "On Tuesday we, have gym."], answer_index: 1, punctuationLevel: 1 },
+  ...PUNCTUATION_CURRICULUM_QUESTIONS.filter((q) => q.punctuationLevel === 1),
 ];
 
 const PUNCTUATION_INTERMEDIATE: Question[] = [
@@ -530,6 +536,7 @@ const PUNCTUATION_INTERMEDIATE: Question[] = [
   { id: "p028", subject: "punctuation", difficulty: 2, skill_tag: "commas", prompt: "Which sentence uses commas correctly with a direct address?", choices: ["Sarah please pass the salt.", "Sarah, please pass the salt.", "Sarah please, pass the salt.", "Sarah, please, pass the salt."], answer_index: 1, punctuationLevel: 2 },
   { id: "p029", subject: "punctuation", difficulty: 2, skill_tag: "semicolons", prompt: "Which sentence correctly uses a semicolon before a conjunctive adverb?", choices: ["I was tired; however, I finished my homework.", "I was tired however; I finished my homework.", "I was tired; however I finished my homework.", "I was tired however, I finished my homework."], answer_index: 0, punctuationLevel: 2 },
   { id: "p030", subject: "punctuation", difficulty: 2, skill_tag: "commas", prompt: "Which sentence uses commas correctly with an appositive?", choices: ["My friend Emma loves to read.", "My friend, Emma, loves to read.", "My friend Emma, loves to read.", "My, friend Emma loves to read."], answer_index: 1, punctuationLevel: 2 },
+  ...PUNCTUATION_CURRICULUM_QUESTIONS.filter((q) => q.punctuationLevel === 2),
 ];
 
 const PUNCTUATION_ADVANCED: Question[] = [
@@ -548,6 +555,7 @@ const PUNCTUATION_ADVANCED: Question[] = [
   { id: "p043", subject: "punctuation", difficulty: 3, skill_tag: "quotation-marks", prompt: "Which sentence punctuates an exclamation within dialogue correctly?", choices: ['She shouted, "Watch out!"', 'She shouted, "Watch out"!', 'She shouted "Watch out!"', 'She shouted, "Watch out"!'], answer_index: 0, punctuationLevel: 3 },
   { id: "p044", subject: "punctuation", difficulty: 3, skill_tag: "commas", prompt: "Which sentence uses a hyphen correctly in a compound modifier?", choices: ["She is a well-known author.", "She is a well known author.", "She is a well-known-author.", "She is a well known-author."], answer_index: 0, punctuationLevel: 3 },
   { id: "p045", subject: "punctuation", difficulty: 3, skill_tag: "semicolons", prompt: "Which sentence uses a semicolon correctly with transitional phrases?", choices: ["I studied all night; as a result, I passed the test.", "I studied all night as a result; I passed the test.", "I studied all night; as a result I passed the test.", "I studied all night, as a result; I passed the test."], answer_index: 0, punctuationLevel: 3 },
+  ...PUNCTUATION_CURRICULUM_QUESTIONS.filter((q) => q.punctuationLevel === 3),
 ];
 
 export const PUNCTUATION_BY_LEVEL: Record<PunctuationLevel, Question[]> = {
@@ -561,6 +569,18 @@ export const PUNCTUATION_QUESTIONS: Question[] = [
   ...PUNCTUATION_INTERMEDIATE,
   ...PUNCTUATION_ADVANCED,
 ];
+
+export { PUNCTUATION_CURRICULUM_MODULES } from "./punctuation-curriculum";
+
+export function getPunctuationQuestionsByModule(moduleId: string, count: number = 12): Question[] {
+  const selected = getRawPunctuationQuestionsByModule(moduleId, PUNCTUATION_QUESTIONS, count);
+  const sessionSeed = Math.random().toString(36).slice(2, 12);
+  return selected.map((q, i) => shuffleQuestionChoices(q, `${sessionSeed}_${q.id}_${i}`));
+}
+
+export function getPunctuationModuleById(moduleId: string) {
+  return PUNCTUATION_CURRICULUM_MODULES.find((module) => module.id === moduleId);
+}
 
 /** Shuffle answer choices and update answer_index. Uses seed for deterministic shuffle (e.g. ranked). */
 export function shuffleQuestionChoices(question: Question, seed?: string): Question {

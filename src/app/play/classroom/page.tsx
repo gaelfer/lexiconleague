@@ -13,7 +13,7 @@ import GameScreen from "@/components/GameScreen";
 import InkAvatar from "@/components/InkAvatar";
 import ThemeToggle from "@/components/ThemeToggle";
 import GlobalNotificationBar from "@/components/GlobalNotificationBar";
-import type { GameResult, InkAvatarConfig, Question, VocabLevel } from "@/types";
+import type { GameResult, InkAvatarConfig, Question, VocabLevel, Subject, PunctuationLevel } from "@/types";
 
 type Phase = "entry" | "lobby" | "countdown" | "playing" | "hosting" | "results";
 
@@ -29,7 +29,9 @@ interface StartPayload {
   seed: string;
   startedAt: number;
   questionCount: number;
+  subject: Subject;
   vocabLevel: VocabLevel;
+  punctuationLevel: PunctuationLevel;
   hostPlays: boolean;
 }
 
@@ -65,7 +67,15 @@ const CLASSROOM_START_EVENT = "classroom_start";
 const CLASSROOM_SCORE_EVENT = "classroom_score";
 const CLASSROOM_CONTROL_EVENT = "classroom_control";
 const DEFAULT_VOCAB_LEVEL: VocabLevel = 5;
+const DEFAULT_SUBJECT: Subject = "vocabulary";
+const DEFAULT_PUNCTUATION_LEVEL: PunctuationLevel = 2;
 const VOCAB_OPTIONS: VocabLevel[] = [3, 4, 5, 6, 7, "english1", "english2", "english3", "ap-lang", "ap-lit"];
+const PUNCTUATION_LEVEL_LABELS: Record<PunctuationLevel, string> = {
+  1: "Beginner",
+  2: "Intermediate",
+  3: "Advanced",
+};
+const PUNCTUATION_OPTIONS: PunctuationLevel[] = [1, 2, 3];
 
 function generateClassroomCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -128,19 +138,33 @@ function parseVocabLevel(value: string): VocabLevel {
   return isVocabLevel(value) ? value : DEFAULT_VOCAB_LEVEL;
 }
 
+function parsePunctuationLevel(value: string): PunctuationLevel {
+  const asNumber = Number(value);
+  if (asNumber === 1 || asNumber === 3) return asNumber;
+  return DEFAULT_PUNCTUATION_LEVEL;
+}
+
 function parseHostSettings(
   state: Record<string, Array<Record<string, unknown>>>
-): { roomLocked: boolean; vocabLevel: VocabLevel; hostPlays: boolean } {
+): { roomLocked: boolean; vocabLevel: VocabLevel; subject: Subject; punctuationLevel: PunctuationLevel; hostPlays: boolean } {
   for (const metas of Object.values(state)) {
     for (const meta of metas) {
       if (!meta.isHost) continue;
       const roomLocked = Boolean(meta.roomLocked);
       const vocabLevel = isVocabLevel(meta.selectedVocab) ? meta.selectedVocab : DEFAULT_VOCAB_LEVEL;
+      const subject: Subject = meta.selectedSubject === "punctuation" ? "punctuation" : "vocabulary";
+      const punctuationLevel: PunctuationLevel = meta.selectedPunctuation === 1 || meta.selectedPunctuation === 3 ? meta.selectedPunctuation : 2;
       const hostPlays = typeof meta.hostPlays === "boolean" ? meta.hostPlays : true;
-      return { roomLocked, vocabLevel, hostPlays };
+      return { roomLocked, vocabLevel, subject, punctuationLevel, hostPlays };
     }
   }
-  return { roomLocked: false, vocabLevel: DEFAULT_VOCAB_LEVEL, hostPlays: true };
+  return {
+    roomLocked: false,
+    vocabLevel: DEFAULT_VOCAB_LEVEL,
+    subject: DEFAULT_SUBJECT,
+    punctuationLevel: DEFAULT_PUNCTUATION_LEVEL,
+    hostPlays: true,
+  };
 }
 
 export default function ClassroomPage() {
@@ -158,7 +182,9 @@ export default function ClassroomPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [result, setResult] = useState<GameResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<Subject>(DEFAULT_SUBJECT);
   const [selectedVocab, setSelectedVocab] = useState<VocabLevel>(DEFAULT_VOCAB_LEVEL);
+  const [selectedPunctuation, setSelectedPunctuation] = useState<PunctuationLevel>(DEFAULT_PUNCTUATION_LEVEL);
   const [hostPlays, setHostPlays] = useState(true);
   const [roomLocked, setRoomLocked] = useState(false);
   const [forceFinishSignal, setForceFinishSignal] = useState(0);
@@ -237,10 +263,12 @@ export default function ClassroomPage() {
       isHost,
       joinedAt: joinedAtRef.current,
       roomLocked: isHost ? roomLocked : undefined,
+      selectedSubject: isHost ? selectedSubject : undefined,
       selectedVocab: isHost ? selectedVocab : undefined,
+      selectedPunctuation: isHost ? selectedPunctuation : undefined,
       hostPlays: isHost ? hostPlays : undefined,
     });
-  }, [hostPlays, isHost, playerAvatar, playerId, playerName, roomLocked, selectedVocab]);
+  }, [hostPlays, isHost, playerAvatar, playerId, playerName, roomLocked, selectedSubject, selectedVocab, selectedPunctuation]);
 
   const enterLobby = useCallback(
     async (code: string, host: boolean) => {
@@ -262,7 +290,9 @@ export default function ClassroomPage() {
       setClassroomCode(normalized);
       setIsHost(host);
       setRoomLocked(false);
+      setSelectedSubject(DEFAULT_SUBJECT);
       setSelectedVocab(DEFAULT_VOCAB_LEVEL);
+      setSelectedPunctuation(DEFAULT_PUNCTUATION_LEVEL);
       setHostPlays(true);
       setWaitingForTeacherReset(false);
       setPhase("lobby");
@@ -301,7 +331,9 @@ export default function ClassroomPage() {
         }
 
         setRoomLocked(hostSettings.roomLocked);
+        setSelectedSubject(hostSettings.subject);
         setSelectedVocab(hostSettings.vocabLevel);
+        setSelectedPunctuation(hostSettings.punctuationLevel);
         setHostPlays(hostSettings.hostPlays);
         setPlayers(parsed.slice(0, MAX_CLASSROOM_PLAYERS));
       });
@@ -317,12 +349,25 @@ export default function ClassroomPage() {
         activeSeedRef.current = payload.seed;
         setScores({});
         setResult(null);
+        const subject: Subject = payload.subject === "punctuation" ? "punctuation" : "vocabulary";
+        const punctuationLevel: PunctuationLevel =
+          payload.punctuationLevel === 1 || payload.punctuationLevel === 3 ? payload.punctuationLevel : DEFAULT_PUNCTUATION_LEVEL;
+        setSelectedSubject(subject);
         setSelectedVocab(payload.vocabLevel);
+        setSelectedPunctuation(punctuationLevel);
         setHostPlays(payload.hostPlays);
         if (isHost && !payload.hostPlays) {
           setQuestions([]);
         } else {
-          setQuestions(getSeededQuestionsForMode("vocabulary", payload.seed, payload.questionCount, payload.vocabLevel));
+          setQuestions(
+            getSeededQuestionsForMode(
+              subject,
+              payload.seed,
+              payload.questionCount,
+              payload.vocabLevel,
+              punctuationLevel
+            )
+          );
         }
 
         const delay = Math.max(0, payload.startedAt - Date.now());
@@ -411,7 +456,9 @@ export default function ClassroomPage() {
           return;
         }
         if (!host) {
+          setSelectedSubject(hostSettings.subject);
           setSelectedVocab(hostSettings.vocabLevel);
+          setSelectedPunctuation(hostSettings.punctuationLevel);
           setRoomLocked(hostSettings.roomLocked);
           setHostPlays(hostSettings.hostPlays);
         }
@@ -422,7 +469,9 @@ export default function ClassroomPage() {
           isHost: host,
           joinedAt: joinedAtRef.current,
           roomLocked: host ? false : undefined,
+          selectedSubject: host ? DEFAULT_SUBJECT : undefined,
           selectedVocab: host ? DEFAULT_VOCAB_LEVEL : undefined,
+          selectedPunctuation: host ? DEFAULT_PUNCTUATION_LEVEL : undefined,
           hostPlays: host ? true : undefined,
         });
       });
@@ -449,6 +498,8 @@ export default function ClassroomPage() {
     setPhase("entry");
     setIsHost(false);
     setRoomLocked(false);
+    setSelectedSubject(DEFAULT_SUBJECT);
+    setSelectedPunctuation(DEFAULT_PUNCTUATION_LEVEL);
     setHostPlays(true);
     setWaitingForTeacherReset(false);
   }
@@ -460,7 +511,9 @@ export default function ClassroomPage() {
       seed,
       questionCount: QUESTION_COUNT,
       startedAt: Date.now() + PREMATCH_DELAY_MS,
+      subject: selectedSubject,
       vocabLevel: selectedVocab,
+      punctuationLevel: selectedPunctuation,
       hostPlays,
     };
 
@@ -469,7 +522,15 @@ export default function ClassroomPage() {
     setScores({});
     setResult(null);
     if (hostPlays) {
-      setQuestions(getSeededQuestionsForMode("vocabulary", seed, QUESTION_COUNT, selectedVocab));
+      setQuestions(
+        getSeededQuestionsForMode(
+          selectedSubject,
+          seed,
+          QUESTION_COUNT,
+          selectedVocab,
+          selectedPunctuation
+        )
+      );
     } else {
       setQuestions([]);
     }
@@ -599,7 +660,7 @@ export default function ClassroomPage() {
   useEffect(() => {
     if (!isHost) return;
     trackSelfPresence();
-  }, [hostPlays, isHost, roomLocked, selectedVocab, trackSelfPresence]);
+  }, [hostPlays, isHost, roomLocked, selectedSubject, selectedVocab, selectedPunctuation, trackSelfPresence]);
 
   const activePlayers = useMemo(
     () => (hostPlays ? players : players.filter((p) => !p.isHost)),
@@ -685,7 +746,7 @@ export default function ClassroomPage() {
         )}
         <GameScreen
           mode="casual"
-          subject="vocabulary"
+          subject={selectedSubject}
           questionsOverride={questions}
           onComplete={handleComplete}
           playerAvatarConfig={playerAvatar}
@@ -740,8 +801,12 @@ export default function ClassroomPage() {
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: D.textMuted, margin: "0 0 2px" }}>Vocab</p>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: D.text }}>{VOCAB_LEVEL_LABELS[selectedVocab]}</p>
+                  <p style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: D.textMuted, margin: "0 0 2px" }}>Subject</p>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: D.text }}>
+                    {selectedSubject === "punctuation"
+                      ? `Punctuation (${PUNCTUATION_LEVEL_LABELS[selectedPunctuation]})`
+                      : `Vocabulary (${VOCAB_LEVEL_LABELS[selectedVocab]})`}
+                  </p>
                 </div>
               </div>
             </div>
@@ -940,7 +1005,7 @@ export default function ClassroomPage() {
                     Host a Round
                   </p>
                   <p style={{ fontSize: 13, color: D.textMuted, margin: "0 0 22px", lineHeight: 1.55 }}>
-                    Generate a game PIN and control your classroom. Set vocab level and start when ready.
+                    Generate a game PIN and control your classroom. Choose vocabulary or punctuation, then start when ready.
                   </p>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: D.accent }}>
                     Create Classroom
@@ -1176,24 +1241,64 @@ export default function ClassroomPage() {
                       {isHost ? "Game Settings" : "Lobby Status"}
                     </p>
 
-                    {/* Vocab level */}
+                    {/* Subject + level */}
                     <div>
-                      <p style={{ fontSize: 12, fontWeight: 600, color: D.textMuted, margin: "0 0 8px" }}>Vocabulary Level</p>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: D.textMuted, margin: "0 0 8px" }}>Subject</p>
                       {isHost ? (
                         <select
-                          value={selectedVocab}
-                          onChange={(e) => setSelectedVocab(parseVocabLevel(e.target.value))}
+                          value={selectedSubject}
+                          onChange={(e) => setSelectedSubject(e.target.value === "punctuation" ? "punctuation" : "vocabulary")}
                           className="cr-select"
                           style={{ width: "100%", borderRadius: 10, padding: "9px 12px", fontSize: 13, fontWeight: 600, color: D.text, background: D.cardAlt, border: `1px solid ${D.borderMed}` }}
                         >
-                          {VOCAB_OPTIONS.map((level) => (
-                            <option key={String(level)} value={level}>
-                              {VOCAB_LEVEL_LABELS[level]}
-                            </option>
-                          ))}
+                          <option value="vocabulary">Vocabulary</option>
+                          <option value="punctuation">Punctuation</option>
                         </select>
                       ) : (
-                        <p style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>{VOCAB_LEVEL_LABELS[selectedVocab]}</p>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                          {selectedSubject === "punctuation" ? "Punctuation" : "Vocabulary"}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: D.textMuted, margin: "0 0 8px" }}>
+                        {selectedSubject === "punctuation" ? "Punctuation Level" : "Vocabulary Level"}
+                      </p>
+                      {isHost ? (
+                        selectedSubject === "punctuation" ? (
+                          <select
+                            value={selectedPunctuation}
+                            onChange={(e) => setSelectedPunctuation(parsePunctuationLevel(e.target.value))}
+                            className="cr-select"
+                            style={{ width: "100%", borderRadius: 10, padding: "9px 12px", fontSize: 13, fontWeight: 600, color: D.text, background: D.cardAlt, border: `1px solid ${D.borderMed}` }}
+                          >
+                            {PUNCTUATION_OPTIONS.map((level) => (
+                              <option key={level} value={level}>
+                                {`Level ${level} · ${PUNCTUATION_LEVEL_LABELS[level]}`}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <select
+                            value={selectedVocab}
+                            onChange={(e) => setSelectedVocab(parseVocabLevel(e.target.value))}
+                            className="cr-select"
+                            style={{ width: "100%", borderRadius: 10, padding: "9px 12px", fontSize: 13, fontWeight: 600, color: D.text, background: D.cardAlt, border: `1px solid ${D.borderMed}` }}
+                          >
+                            {VOCAB_OPTIONS.map((level) => (
+                              <option key={String(level)} value={level}>
+                                {VOCAB_LEVEL_LABELS[level]}
+                              </option>
+                            ))}
+                          </select>
+                        )
+                      ) : (
+                        <p style={{ fontSize: 14, fontWeight: 700, color: D.text, margin: 0 }}>
+                          {selectedSubject === "punctuation"
+                            ? `Level ${selectedPunctuation} · ${PUNCTUATION_LEVEL_LABELS[selectedPunctuation]}`
+                            : VOCAB_LEVEL_LABELS[selectedVocab]}
+                        </p>
                       )}
                     </div>
 

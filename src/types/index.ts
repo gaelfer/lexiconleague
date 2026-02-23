@@ -11,7 +11,20 @@ export type SkillTag =
   | "apostrophes"
   | "quotation-marks"
   | "semicolons"
-  | "capitalization";
+  | "capitalization"
+  | "contractions"
+  | "end-marks"
+  | "dialogue-punctuation"
+  | "introductory-elements"
+  | "nonrestrictive-elements"
+  | "coordinate-adjectives"
+  | "colons"
+  | "dashes"
+  | "hyphens"
+  | "fragments-run-ons"
+  | "conjunctions"
+  | "sentence-variety"
+  | "paired-punctuation";
 
 export type VocabGrade = 3 | 4 | 5 | 6 | 7;
 /**

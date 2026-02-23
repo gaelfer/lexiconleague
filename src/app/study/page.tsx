@@ -7,7 +7,13 @@ import { useTheme } from "@/context/ThemeContext";
 import { getProfile, saveProfile, createGuestProfile } from "@/lib/user/storage";
 import { createClient } from "@/lib/supabase/client";
 import { VocabLevel, UserProfile, Question } from "@/types";
-import { VOCAB_BY_LEVEL, VOCAB_LEVEL_LABELS } from "@/lib/game/questions";
+import {
+  VOCAB_BY_LEVEL,
+  VOCAB_LEVEL_LABELS,
+  PUNCTUATION_CURRICULUM_MODULES,
+  PUNCTUATION_QUESTIONS,
+  getPunctuationQuestionsByModule,
+} from "@/lib/game/questions";
 import InkAvatar from "@/components/InkAvatar";
 import InkDropIcon from "@/components/icons/InkDropIcon";
 import SparkIcon from "@/components/icons/SparkIcon";
@@ -166,7 +172,7 @@ interface WordState {
 type SessionPhase = "answer" | "feedback";
 
 interface StudySession {
-  tier: VocabLevel;
+  tier: VocabLevel | "punctuation";
   unit: string;
   mainQueue: WordState[];       // remaining new words
   reviewQueue: WordState[];     // words to revisit
@@ -263,6 +269,7 @@ const STREAK_MILESTONES: Record<number, number> = { 3: 5, 7: 15, 14: 25, 30: 50 
 
 // ── Page types ────────────────────────────────────────────────────────────────
 type PagePhase = "tier-select" | "unit-select" | "studying" | "results";
+type StudyTrack = "vocabulary" | "punctuation";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 function BookOpenIcon({ className = "w-6 h-6", color = "currentColor" }: { className?: string; color?: string }) {
@@ -335,6 +342,7 @@ export default function StudyPage() {
   const { light } = useTheme();
 
   const [phase, setPhase] = useState<PagePhase>("tier-select");
+  const [selectedTrack, setSelectedTrack] = useState<StudyTrack>("vocabulary");
   const [selectedTier, setSelectedTier] = useState<VocabLevel | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [session, setSession] = useState<StudySession | null>(null);
@@ -382,6 +390,41 @@ export default function StudyPage() {
     setSession({
       tier,
       unit,
+      mainQueue: queue.slice(1),
+      reviewQueue: [],
+      current: first,
+      sessionPhase: "answer",
+      lastCorrect: null,
+      lastAnswerIdx: null,
+      wordMastery,
+      masteryDelta: {},
+      correct: 0,
+      incorrect: 0,
+      reviewedIds: first ? [first.question.id] : [],
+    });
+    setPhase("studying");
+  }, [user]);
+
+  const startPunctuationSession = useCallback((moduleId: string) => {
+    const pool = getPunctuationQuestionsByModule(moduleId, SESSION_QUESTION_COUNT);
+    const userId = user?.id ?? "guest";
+    const localMastery = loadLocalMastery(userId);
+    const queue: WordState[] = pool.map((q) => ({
+      question: q,
+      timesReviewed: 0,
+      needsReview: false,
+    }));
+
+    const wordMastery: Record<string, number> = {};
+    for (const ws of queue) {
+      wordMastery[ws.question.id] = localMastery[ws.question.id] ?? 0;
+    }
+
+    const first = queue[0] ?? null;
+
+    setSession({
+      tier: "punctuation",
+      unit: moduleId,
       mainQueue: queue.slice(1),
       reviewQueue: [],
       current: first,
@@ -571,47 +614,95 @@ export default function StudyPage() {
         {phase === "tier-select" && (
           <div className="flex flex-col gap-6">
             <div>
-              <h1 className={`text-2xl font-bold ${text}`}>Choose your tier</h1>
-              <p className={`text-sm mt-1 ${textMuted}`}>Select the level you want to study. Progress saves automatically.</p>
+              <h1 className={`text-2xl font-bold ${text}`}>Choose your track</h1>
+              <p className={`text-sm mt-1 ${textMuted}`}>Study vocabulary tiers or punctuation curriculum modules.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {ALL_TIERS.map((tier) => {
-                const label = VOCAB_LEVEL_LABELS[tier];
-                const desc = TIER_DESCRIPTIONS[tier];
-                const diff = TIER_DIFFICULTY[tier];
-                const diffColor = DIFFICULTY_COLOR[diff];
-                const isHS = typeof tier === "string";
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSelectedTrack("vocabulary")}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold border ${selectedTrack === "vocabulary" ? "text-white" : (light ? "text-[#64748B]" : "text-white/60")}`}
+                style={selectedTrack === "vocabulary" ? { backgroundColor: BLUE, borderColor: BLUE } : undefined}
+              >
+                Vocabulary
+              </button>
+              <button
+                onClick={() => setSelectedTrack("punctuation")}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold border ${selectedTrack === "punctuation" ? "text-white" : (light ? "text-[#64748B]" : "text-white/60")}`}
+                style={selectedTrack === "punctuation" ? { backgroundColor: BLUE, borderColor: BLUE } : undefined}
+              >
+                Punctuation
+              </button>
+            </div>
 
-                return (
-                  <button
-                    key={String(tier)}
-                    onClick={() => { setSelectedTier(tier); setPhase("unit-select"); }}
-                    className={`text-left rounded-xl p-4 ${cardBg} border ${cardBorder} transition-all hover:border-[${BLUE}]/40 hover:shadow-md active:scale-[0.98] group`}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className={`font-bold text-base ${text}`}>{label}</span>
-                      <div className="flex flex-col items-end gap-1">
-                        {isHS && (
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${light ? "bg-[#F1F5F9] text-[#64748B]" : "bg-white/10 text-white/50"}`}>
-                            High School
+            {selectedTrack === "vocabulary" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {ALL_TIERS.map((tier) => {
+                  const label = VOCAB_LEVEL_LABELS[tier];
+                  const desc = TIER_DESCRIPTIONS[tier];
+                  const diff = TIER_DIFFICULTY[tier];
+                  const diffColor = DIFFICULTY_COLOR[diff];
+                  const isHS = typeof tier === "string";
+
+                  return (
+                    <button
+                      key={String(tier)}
+                      onClick={() => { setSelectedTier(tier); setSelectedUnit(null); setPhase("unit-select"); }}
+                      className={`text-left rounded-xl p-4 ${cardBg} border ${cardBorder} transition-all hover:border-[${BLUE}]/40 hover:shadow-md active:scale-[0.98] group`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className={`font-bold text-base ${text}`}>{label}</span>
+                        <div className="flex flex-col items-end gap-1">
+                          {isHS && (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${light ? "bg-[#F1F5F9] text-[#64748B]" : "bg-white/10 text-white/50"}`}>
+                              High School
+                            </span>
+                          )}
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: diffColor + "20", color: diffColor }}>
+                            {diff}
                           </span>
-                        )}
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: diffColor + "20", color: diffColor }}>
-                          {diff}
+                        </div>
+                      </div>
+                      <p className={`text-xs ${textMuted} line-clamp-2`}>{desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {PUNCTUATION_CURRICULUM_MODULES.map((module) => (
+                  <button
+                    key={module.id}
+                    onClick={() => {
+                      setSelectedTier(null);
+                      setSelectedUnit(module.id);
+                      startPunctuationSession(module.id);
+                    }}
+                    className={`text-left rounded-xl p-4 ${cardBg} border ${cardBorder} transition-all hover:border-[${BLUE}]/40 hover:shadow-md active:scale-[0.98]`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className={`font-bold ${text}`}>{module.title}</p>
+                        <p className={`text-xs mt-1 ${textMuted}`}>{module.summary}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${light ? "bg-[#F1F5F9] text-[#64748B]" : "bg-white/10 text-white/50"}`}>
+                          {module.pathway}
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: BLUE + "20", color: BLUE }}>
+                          Level {module.punctuationLevel}
                         </span>
                       </div>
                     </div>
-                    <p className={`text-xs ${textMuted} line-clamp-2`}>{desc}</p>
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* ── UNIT SELECT ──────────────────────────────────────────────────── */}
-        {phase === "unit-select" && selectedTier !== null && (
+        {phase === "unit-select" && selectedTier !== null && selectedTrack === "vocabulary" && (
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-3">
               <button
@@ -674,7 +765,11 @@ export default function StudyPage() {
             cardBorder={cardBorder}
             onAnswer={handleAnswer}
             onNext={handleNext}
-            selectedTier={selectedTier!}
+            sessionLabel={
+              session.tier === "punctuation"
+                ? (PUNCTUATION_CURRICULUM_MODULES.find((m) => m.id === session.unit)?.title ?? "Punctuation")
+                : VOCAB_LEVEL_LABELS[selectedTier!]
+            }
           />
         )}
 
@@ -690,10 +785,16 @@ export default function StudyPage() {
             textFaint={textFaint}
             cardBg={cardBg}
             cardBorder={cardBorder}
-            selectedTier={selectedTier!}
+            sessionLabel={
+              session.tier === "punctuation"
+                ? (PUNCTUATION_CURRICULUM_MODULES.find((m) => m.id === session.unit)?.title ?? "Punctuation")
+                : (selectedTier ? VOCAB_LEVEL_LABELS[selectedTier] : "Punctuation")
+            }
             selectedUnit={selectedUnit!}
             onStudyAgain={() => {
-              if (selectedTier && selectedUnit) {
+              if (session.tier === "punctuation" && selectedUnit) {
+                startPunctuationSession(selectedUnit);
+              } else if (selectedTier && selectedUnit) {
                 startSession(selectedTier, selectedUnit);
               }
             }}
@@ -702,6 +803,7 @@ export default function StudyPage() {
               setSelectedUnit(null);
               setSession(null);
               setSessionRewards(null);
+              setSelectedTrack("vocabulary");
               setPhase("tier-select");
             }}
           />
@@ -722,7 +824,7 @@ function StudyQuestion({
   cardBorder,
   onAnswer,
   onNext,
-  selectedTier,
+  sessionLabel,
 }: {
   session: StudySession;
   light: boolean;
@@ -733,7 +835,7 @@ function StudyQuestion({
   cardBorder: string;
   onAnswer: (idx: number) => void;
   onNext: () => void;
-  selectedTier: VocabLevel;
+  sessionLabel: string;
 }) {
   const q = session.current!.question;
   const mastery = session.wordMastery[q.id] ?? 0;
@@ -760,7 +862,7 @@ function StudyQuestion({
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
           <div className="flex justify-between text-xs mb-1.5">
-            <span className={textFaint}>{VOCAB_LEVEL_LABELS[selectedTier]}</span>
+            <span className={textFaint}>{sessionLabel}</span>
             <span className={textFaint}>{session.reviewedIds.length} / {session.reviewedIds.length + totalRemaining} words</span>
           </div>
           <div className={`w-full h-1.5 rounded-full overflow-hidden ${light ? "bg-[#E2E8F0]" : "bg-white/10"}`}>
@@ -775,7 +877,7 @@ function StudyQuestion({
       </div>
 
       {/* Mastery bar for current word */}
-      <MasteryBar pct={mastery} label="Word mastery" light={light} />
+      <MasteryBar pct={mastery} label="Item mastery" light={light} />
 
       {/* Question card */}
       <div className={`rounded-2xl p-6 ${cardBg} border ${cardBorder}`}>
@@ -860,7 +962,7 @@ function StudyResults({
   textFaint,
   cardBg,
   cardBorder,
-  selectedTier,
+  sessionLabel,
   selectedUnit,
   onStudyAgain,
   onChangeTier,
@@ -874,7 +976,7 @@ function StudyResults({
   textFaint: string;
   cardBg: string;
   cardBorder: string;
-  selectedTier: VocabLevel;
+  sessionLabel: string;
   selectedUnit: string;
   onStudyAgain: () => void;
   onChangeTier: () => void;
@@ -896,7 +998,7 @@ function StudyResults({
           <InkAvatar config={{ base: "droplet_01", color: BLUE, eyes: "eyes_03", accessory: "none", aura: "none" }} size={72} />
         </div>
         <h2 className={`text-2xl font-bold ${text}`}>Session complete!</h2>
-        <p className={`text-sm ${textMuted} mt-1`}>{VOCAB_LEVEL_LABELS[selectedTier]} · {session.reviewedIds.length} words reviewed</p>
+        <p className={`text-sm ${textMuted} mt-1`}>{sessionLabel} · {session.reviewedIds.length} words reviewed</p>
       </div>
 
       {/* Streak badge */}
@@ -957,7 +1059,7 @@ function StudyResults({
           <p className={`text-xs font-semibold uppercase tracking-wide ${textFaint} mb-3`}>Mastery gains</p>
           <div className="flex flex-col gap-3">
             {improvedWords.slice(0, 6).map(([wordId, delta]) => {
-              const allQuestions = Object.values(VOCAB_BY_LEVEL).flat();
+              const allQuestions = [...Object.values(VOCAB_BY_LEVEL).flat(), ...PUNCTUATION_QUESTIONS];
               const q = allQuestions.find((w) => w.id === wordId);
               const mastery = session.wordMastery[wordId] ?? 0;
               if (!q) return null;
