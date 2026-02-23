@@ -666,6 +666,14 @@ export function getMixedQuestions(count: number = 20): Question[] {
   return selected.map((q, i) => shuffleQuestionChoices(q, `${sessionSeed}_${q.id}_${i}`));
 }
 
+/** Deterministic mixed questions — same seed always returns same questions in same order. */
+export function getSeededMixedQuestions(seed: string, count: number = 30): Question[] {
+  const all = [...VOCAB_QUESTIONS, ...PUNCTUATION_QUESTIONS];
+  const shuffled = seededShuffle(all, seed);
+  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+  return selected.map((q, i) => shuffleQuestionChoices(q, `${seed}_${q.id}_${i}`));
+}
+
 export function getSeededQuestions(
   subject: "vocabulary" | "punctuation",
   seed: string,
@@ -674,6 +682,23 @@ export function getSeededQuestions(
   const pool = subject === "vocabulary" ? VOCAB_QUESTIONS : PUNCTUATION_QUESTIONS;
   const shuffled = seededShuffle(pool, seed);
   const selected = shuffled.slice(0, Math.min(count, pool.length));
+  return selected.map((q, i) => shuffleQuestionChoices(q, `${seed}_${q.id}_${i}`));
+}
+
+/** Seeded questions from a specific vocab level, optionally filtered by unit skill tags. */
+export function getSeededQuestionsForUnit(
+  level: VocabLevel,
+  skillTags: string[],
+  seed: string,
+  count: number = 20
+): Question[] {
+  const pool = VOCAB_BY_LEVEL[level] ?? VOCAB_QUESTIONS;
+  const filtered = skillTags.length > 0
+    ? pool.filter((q) => skillTags.includes(q.skill_tag))
+    : pool;
+  const usePool = filtered.length >= 8 ? filtered : pool;
+  const shuffled = seededShuffle([...usePool], seed);
+  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
   return selected.map((q, i) => shuffleQuestionChoices(q, `${seed}_${q.id}_${i}`));
 }
 

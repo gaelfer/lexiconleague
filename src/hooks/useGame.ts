@@ -21,11 +21,14 @@ interface UseGameOptions {
   onAnswerProgress?: (answered: number, score: number) => void;
   /** For ranked: returns opponent's final score. Win/loss/trophies use score comparison. */
   getOpponentScore?: () => number | null;
+  /** Override game duration in seconds (e.g. 45 for daily challenge). Defaults to GAME_DURATION. */
+  duration?: number;
 }
 
-export function useGame({ mode, subject, questions, onComplete, forceFinishSignal, onAnswerProgress, getOpponentScore }: UseGameOptions) {
+export function useGame({ mode, subject, questions, onComplete, forceFinishSignal, onAnswerProgress, getOpponentScore, duration }: UseGameOptions) {
+  const totalTime = duration ?? GAME_DURATION;
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
+  const [timeLeft, setTimeLeft] = useState(totalTime);
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -163,6 +166,7 @@ export function useGame({ mode, subject, questions, onComplete, forceFinishSigna
     currentQuestion: questions[currentIndex] ?? null,
     currentIndex,
     timeLeft,
+    totalTime,
     correctCount,
     incorrectCount,
     selectedAnswer,

@@ -10,7 +10,6 @@ import { getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
 import { isLevelRewardClaimed } from "@/lib/user/storage";
 import TimerRing from "./TimerRing";
 import InkAvatar from "./InkAvatar";
-import { GAME_DURATION } from "@/lib/game/rank";
 
 interface TeamMemberDisplay {
   username: string;
@@ -45,9 +44,11 @@ interface GameScreenProps {
   vocabGrade?: VocabLevel;
   /** Pre-computed questions (e.g. for party sync - same match for all) */
   questionsOverride?: Question[];
+  /** Override game duration in seconds (e.g. 45 for daily challenge). Defaults to GAME_DURATION. */
+  gameDuration?: number;
 }
 
-export default function GameScreen({ mode, subject, onComplete, forceFinishSignal, onAnswerProgress, opponentAnswered, opponentScore, opponent, opponents, teamMembers, teammateScores, playerAvatarConfig, getOpponentScore, vocabGrade, questionsOverride }: GameScreenProps) {
+export default function GameScreen({ mode, subject, onComplete, forceFinishSignal, onAnswerProgress, opponentAnswered, opponentScore, opponent, opponents, teamMembers, teammateScores, playerAvatarConfig, getOpponentScore, vocabGrade, questionsOverride, gameDuration }: GameScreenProps) {
   const questions = useMemo(
     () => questionsOverride ?? getQuestionsForMode(subject, 30, vocabGrade),
     [subject, vocabGrade, questionsOverride]
@@ -57,6 +58,7 @@ export default function GameScreen({ mode, subject, onComplete, forceFinishSigna
     currentQuestion,
     currentIndex,
     timeLeft,
+    totalTime,
     correctCount,
     incorrectCount,
     selectedAnswer,
@@ -68,6 +70,7 @@ export default function GameScreen({ mode, subject, onComplete, forceFinishSigna
     mode,
     subject,
     questions,
+    duration: gameDuration,
     onComplete: (result) => {
       const prevProfile = getProfile();
       const prevTier = prevProfile?.rank_tier;
@@ -197,7 +200,7 @@ export default function GameScreen({ mode, subject, onComplete, forceFinishSigna
           <p className="text-[#0F172A] font-extrabold text-xl sm:text-2xl tabular-nums">{correctCount * 10}</p>
         </div>
 
-        <TimerRing timeLeft={timeLeft} totalTime={GAME_DURATION} />
+        <TimerRing timeLeft={timeLeft} totalTime={totalTime} />
 
         <div className="text-right min-w-0 flex-1">
           <p className="text-[#64748B] text-xs font-bold uppercase tracking-wider">Accuracy</p>

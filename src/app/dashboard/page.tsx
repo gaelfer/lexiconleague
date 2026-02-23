@@ -21,6 +21,8 @@ import { getTierProgress, getTrophiesInTier, getTrophiesToNextTier, getTierFromT
 import { getLevelProgress, getLevel, LEVEL_REWARDS } from "@/lib/user/levels";
 import { canClaimDailyReward } from "@/lib/user/daily-rewards";
 import { RANK_COLORS } from "@/types";
+import { getDailySeed, DAILY_CHALLENGE_MAX_ATTEMPTS, getDailyChallengeTopicAndGrade } from "@/lib/game/daily-challenge";
+import { getDailyChallengeState, DailyChallengeState } from "@/lib/user/daily-challenge-storage";
 
 import { BLUE, MINT, DARK, CARD, SURFACE } from "@/lib/design-tokens";
 
@@ -129,11 +131,13 @@ function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
+  const [dailyState, setDailyState] = useState<DailyChallengeState>({ date: "", attempts: 0, bestScore: 0, bestCorrect: 0, rewarded: false });
 
   useEffect(() => {
     const p = getProfile() ?? createGuestProfile();
     setProfile(p);
     setProfileLoaded(true);
+    setDailyState(getDailyChallengeState());
   }, []);
 
   useEffect(() => {
@@ -490,6 +494,67 @@ function Home() {
             <span className="text-sm font-bold shrink-0" style={{ color: "#8B5CF6" }}>Start studying →</span>
           </div>
         </Link>
+
+        {/* Daily Challenge */}
+        {(() => {
+          const today = new Date();
+          const dateLabel = today.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          const { topic, grade } = getDailyChallengeTopicAndGrade();
+          const attemptsUsed = dailyState.date === getDailySeed() ? dailyState.attempts : 0;
+          const attemptsLeft = DAILY_CHALLENGE_MAX_ATTEMPTS - attemptsUsed;
+          const hasPlayed = attemptsUsed > 0;
+          const allDone = attemptsLeft === 0;
+          return (
+            <Link href="/play/daily" className="block relative sm:col-span-2">
+              <div className={`rounded-xl px-6 py-5 ${cardBg} border transition-all duration-200 relative overflow-visible flex flex-col sm:flex-row sm:items-center gap-4 ${light ? cardBorder : ""} ${!light ? "hover:border-[#CD7F32]/50 hover:shadow-[0_20px_56px_rgba(205,127,50,0.15)]" : "hover:border-[#CD7F32]/50"}`} style={!light ? { borderColor: "rgba(205, 127, 50, 0.35)" } : undefined}>
+                {/* Orange guy — top right, outside the card */}
+                <div className="absolute -top-4 -right-2 pointer-events-none z-10" style={{ transform: "rotate(10deg)" }}>
+                  <InkAvatar config={{ base: "droplet_03", color: "#F59E0B", eyes: "eyes_06", accessory: "crown_01", aura: "aura_glow_01" }} size={64} />
+                </div>
+                {/* Left: label + date */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: light ? "#F5E6D3" : "rgba(205, 127, 50, 0.2)" }}>
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#CD7F32" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className={`${text} font-bold text-base`}>Daily Challenge</h3>
+                      {!hasPlayed && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+                    </div>
+                    <p className={`text-xs ${textMuted}`}>{dateLabel} · {grade} · {topic}</p>
+                  </div>
+                </div>
+                {/* Middle: attempt pips + score */}
+                <div className="flex items-center gap-4 sm:flex-1 sm:justify-center flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    {Array.from({ length: DAILY_CHALLENGE_MAX_ATTEMPTS }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ background: i < attemptsUsed ? "#CD7F32" : light ? "#E2E8F0" : "#334155" }}
+                      />
+                    ))}
+                    <span className={`text-xs font-semibold ml-1 ${textMuted}`}>
+                      {allDone ? "Done!" : `${attemptsLeft} left`}
+                    </span>
+                  </div>
+                  {hasPlayed && (
+                    <div className="flex items-center gap-1">
+                      <span className={`text-xs ${textMuted}`}>Best:</span>
+                      <span className="text-xs font-bold" style={{ color: "#CD7F32" }}>{dailyState.bestScore}</span>
+                    </div>
+                  )}
+                </div>
+                {/* Right: CTA */}
+                <span className="text-sm font-bold shrink-0 mr-2" style={{ color: "#CD7F32" }}>
+                  {allDone ? "View leaderboard →" : hasPlayed ? "Play again →" : "Play now →"}
+                </span>
+              </div>
+            </Link>
+          );
+        })()}
 
         {/* Story Mode — Coming Soon */}
         <div className="relative rounded-2xl overflow-hidden border-[3px] cursor-default select-none min-w-0" style={{ borderColor: "rgba(190, 18, 60, 0.5)", background: light ? "linear-gradient(135deg, rgba(190, 18, 60, 0.08) 0%, rgba(190, 18, 60, 0.15) 50%, rgba(190, 18, 60, 0.08) 100%)" : "linear-gradient(135deg, rgba(190, 18, 60, 0.2) 0%, rgba(190, 18, 60, 0.1) 50%, rgba(15, 23, 42, 0.6) 100%)", boxShadow: "0 6px 24px rgba(190, 18, 60, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)" }}>

@@ -4,6 +4,8 @@
  */
 export const MINT = "#34D399";
 export const BLUE = "#3B82F6";
+export const BRONZE = "#CD7F32";
+export const AMBER = "#F59E0B";
 export const DARK = "#0F172A";
 export const CARD = "#1E293B";
 export const SURFACE = "#080F1A";
