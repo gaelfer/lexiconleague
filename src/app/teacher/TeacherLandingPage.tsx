@@ -143,6 +143,7 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
           .teacher-hero-grid { grid-template-columns: 1fr !important; text-align: center !important; }
           .teacher-hero-ctas { justify-content: center !important; }
           .teacher-modes-grid { grid-template-columns: 1fr !important; }
+          .teacher-testimonials { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 860px) {
           .teacher-nav-desktop { display: none !important; }
@@ -180,6 +181,8 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
               { label: "How It Works", href: "#how-it-works" },
               { label: "Tools", href: "#tools" },
               { label: "Curriculum", href: "#curriculum" },
+              { label: "Reports", href: "#reports" },
+              { label: "FAQ", href: "#faq" },
             ].map((l) => (
               <a
                 key={l.label}
@@ -231,6 +234,8 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
               { label: "How It Works", href: "#how-it-works" },
               { label: "Tools", href: "#tools" },
               { label: "Curriculum", href: "#curriculum" },
+              { label: "Reports", href: "#reports" },
+              { label: "FAQ", href: "#faq" },
             ].map((l) => (
               <a key={l.label} href={l.href} onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", color: mutedColor, fontSize: "0.95rem", fontWeight: 500, textDecoration: "none" }}>
                 {l.label}
@@ -294,8 +299,11 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
               </span>
             </h1>
 
-            <p style={{ fontSize: "1.05rem", color: mutedColor, lineHeight: 1.78, marginBottom: "44px", maxWidth: "480px", fontWeight: 400 }}>
+            <p style={{ fontSize: "1.05rem", color: mutedColor, lineHeight: 1.78, marginBottom: "24px", maxWidth: "480px", fontWeight: 400 }}>
               Create classes, share join codes, and host live vocabulary battles for 20+ students. View reports, export to CSV, and track progress — all free. Homeschool and public school teachers welcome.
+            </p>
+            <p style={{ fontSize: "0.9rem", color: FAINT, lineHeight: 1.65, marginBottom: "44px", maxWidth: "480px", fontWeight: 400 }}>
+              Students join with a room code. No account required for them — they can play as guests. You set a teacher access code to lock reports and export. Perfect for warm-ups, review, or end-of-unit vocabulary practice.
             </p>
 
             <div className="teacher-hero-ctas" style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
@@ -363,9 +371,9 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
           <div style={{ position: "absolute", top: "36px", left: "calc(16.67% + 16px)", right: "calc(16.67% + 16px)", height: "1px", background: `linear-gradient(90deg, ${AMBER}15, ${AMBER}55, ${AMBER}15)`, zIndex: 0 }} />
 
           {[
-            { Icon: GraduationIcon, title: "Create Your Account", num: "01", desc: "Sign up free with your school email. Choose homeschool or public school, then pick your grade level and subject." },
-            { Icon: UsersIcon, title: "Create Classes & Rosters", num: "02", desc: "Create classes and share 6-character join codes. Students request to join; you approve and assign display names." },
-            { Icon: ChartIcon, title: "Host & Track", num: "03", desc: "Host live vocabulary battles for 20+ players. View session reports and export to CSV for your gradebook." },
+            { Icon: GraduationIcon, title: "Create Your Account", num: "01", desc: "Sign up free with your school email. Choose homeschool or public school, then pick your grade level and subject. Public school teachers may need verification (typically 24–48 hours). Homeschool teachers are approved instantly." },
+            { Icon: UsersIcon, title: "Create Classes & Rosters", num: "02", desc: "Create classes and share 6-character join codes. Students request to join; you approve and assign display names. Import rosters via CSV or add students manually. Each class gets its own code." },
+            { Icon: ChartIcon, title: "Host & Track", num: "03", desc: "Create a classroom room, set a teacher access code (4+ chars), and share the room code with students. Host live 60-second vocabulary rounds. After each session, view reports and export to CSV for your gradebook." },
           ].map((step) => {
             const Icon = step.Icon;
             return (
@@ -403,9 +411,10 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
 
           <div className="teacher-modes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px" }}>
             {[
-              { title: "Classes & Rosters", accent: AMBER, sub: "Manage Your Class", tags: ["Create classes", "Approve join requests", "Assign display names", "CSV import"], desc: "Create classes and manage student rosters. Students request to join with a 6-character code." },
-              { title: "Live Sessions", accent: GOLD, sub: "20+ Players", tags: ["Real-time battles", "60-second rounds", "Vocabulary challenges", "Host controls"], desc: "Host live vocabulary battles for your whole class. Students join with a room code." },
-              { title: "Reports & Export", accent: AMBER_DARK, sub: "Track Progress", tags: ["Per-session reports", "Participation data", "CSV export", "Gradebook ready"], desc: "View detailed reports after each session. Export to CSV for your gradebook." },
+              { title: "Classes & Rosters", accent: AMBER, sub: "Manage Your Class", tags: ["Create classes", "Approve join requests", "Assign display names", "CSV import"], desc: "Create classes and manage student rosters. Students request to join with a 6-character code. Approve requests and assign display names for gradebook. Import rosters from CSV for bulk setup." },
+              { title: "Join Codes & Room Codes", accent: GOLD, sub: "Easy Student Access", tags: ["6-char class codes", "6-char room codes", "Teacher access code", "No student login"], desc: "Share a 6-character class code so students can request to join your roster. For live sessions, create a room and share a 6-character room code. Students join as guests — no account required. You set a teacher access code to protect reports." },
+              { title: "Live Sessions", accent: AMBER_DARK, sub: "20+ Players", tags: ["Real-time battles", "60-second rounds", "Vocabulary challenges", "Host controls"], desc: "Host live vocabulary battles for your whole class. Students join with the room code. You control when rounds start. Each round is 60 seconds. Supports 20+ players per session. Perfect for warm-ups, review, or end-of-unit practice." },
+              { title: "Reports & Export", accent: AMBER, sub: "Track Progress", tags: ["Per-session reports", "Participation data", "CSV export", "Gradebook ready"], desc: "View detailed reports after each session: who participated, how long they played, and performance. Export to CSV for your gradebook. Reports are protected by your teacher access code." },
             ].map((mode) => (
               <div
                 key={mode.title}
@@ -443,7 +452,7 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
               Built for Every Grade
             </h2>
             <p style={{ fontSize: "1rem", color: mutedColor, lineHeight: 1.75, marginBottom: "32px" }}>
-              Grades 3–12. ELA, vocabulary, language arts. Definitions, synonyms, antonyms, context clues, word parts. 60-second rounds — perfect for classroom engagement.
+              Grades 3–12. ELA, vocabulary, language arts. Definitions, synonyms, antonyms, context clues, word parts. 60-second rounds — perfect for classroom engagement. Aligned with vocabulary and language arts standards. Choose your grade level during setup to match question difficulty.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {["Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map((t) => (
@@ -464,6 +473,129 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
                 </span>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* REPORTS DEEP-DIVE */}
+      <section id="reports" style={{ maxWidth: "1100px", margin: "0 auto", padding: "110px 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: "64px" }}>
+          <SLabel>SESSION REPORTS</SLabel>
+          <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 800, color: textColor, fontFamily: DISPLAY }}>
+            See What You Need
+          </h2>
+          <p style={{ fontSize: "1rem", color: mutedColor, maxWidth: "560px", margin: "0 auto", lineHeight: 1.75 }}>
+            After each classroom session, you get a detailed report. Export to CSV for your gradebook or LMS.
+          </p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
+          {[
+            { title: "Participation", items: ["Who joined the session", "How long each student played", "Number of rounds completed"] },
+            { title: "Performance", items: ["Correct vs incorrect answers", "Per-round breakdown", "Session-level summary"] },
+            { title: "Export", items: ["CSV download for gradebook", "Compatible with Google Sheets, Excel", "One row per student per session"] },
+          ].map((block) => (
+            <div key={block.title} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "14px", padding: "28px 24px" }}>
+              <h3 style={{ fontSize: "1rem", fontWeight: 700, color: AMBER, marginBottom: "16px", fontFamily: BODY }}>{block.title}</h3>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                {block.items.map((item) => (
+                  <li key={item} style={{ fontSize: "0.875rem", color: mutedColor, lineHeight: 1.7, marginBottom: "8px", paddingLeft: "20px", position: "relative" }}>
+                    <span style={{ position: "absolute", left: 0, top: "6px", width: "6px", height: "6px", borderRadius: "50%", background: AMBER }} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* WHO IT'S FOR */}
+      <section style={{ background: light ? "#F5F5F4" : DARK, padding: "110px 24px", borderTop: `1px solid ${cardBorder}`, borderBottom: `1px solid ${cardBorder}` }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "64px" }}>
+            <SLabel>WHO IT&apos;S FOR</SLabel>
+            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 800, color: textColor, fontFamily: DISPLAY }}>
+              Homeschool & Public School
+            </h2>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px" }}>
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderLeft: `4px solid ${AMBER}`, borderRadius: "14px", padding: "32px 28px" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: textColor, marginBottom: "12px" }}>Homeschool Teachers</h3>
+              <p style={{ fontSize: "0.9rem", color: mutedColor, lineHeight: 1.7 }}>
+                Approved instantly. No school verification. Create classes, add your students, and host sessions. Great for co-ops or small groups.
+              </p>
+            </div>
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderLeft: `4px solid ${GOLD}`, borderRadius: "14px", padding: "32px 28px" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: textColor, marginBottom: "12px" }}>Public & Private School</h3>
+              <p style={{ fontSize: "0.9rem", color: mutedColor, lineHeight: 1.7 }}>
+                Sign up with your school email. Verification typically takes 24–48 hours. Once approved, you get full access to classes, rosters, and reports.
+              </p>
+            </div>
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderLeft: `4px solid ${AMBER_DARK}`, borderRadius: "14px", padding: "32px 28px" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: textColor, marginBottom: "12px" }}>Tutors & After-School</h3>
+              <p style={{ fontSize: "0.9rem", color: mutedColor, lineHeight: 1.7 }}>
+                Use homeschool signup. Create a class for your tutoring group or after-school program. Track progress across sessions.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "110px 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: "64px" }}>
+          <SLabel>TEACHERS</SLabel>
+          <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 800, color: textColor, fontFamily: DISPLAY }}>
+            What Teachers Are Saying
+          </h2>
+        </div>
+
+        <div className="teacher-testimonials" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
+          {[
+            { quote: "I use Lexicon League for warm-ups and review. The ranked mode keeps my 8th graders engaged and competitive.", name: "Ms. Chen", role: "8th Grade ELA Teacher" },
+            { quote: "Students actually ask to play during free time. The 60-second rounds are perfect — quick enough to fit in, substantive enough to matter.", name: "Mr. Torres", role: "6th Grade ELA" },
+            { quote: "The CSV export is a lifesaver. I drop it into my gradebook and I'm done. No manual data entry.", name: "Ms. Park", role: "Homeschool Teacher" },
+          ].map((t, i) => (
+            <div
+              key={i}
+              style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderTop: `2px solid ${AMBER}38`, borderRadius: "14px", padding: "32px 26px" }}
+            >
+              <div style={{ fontFamily: DISPLAY, fontSize: "5.5rem", color: `${AMBER}16`, lineHeight: 0.75, marginBottom: "16px", userSelect: "none", fontWeight: 900 }}>&ldquo;</div>
+              <p style={{ fontSize: "0.93rem", color: mutedColor, lineHeight: 1.75, marginBottom: "28px", fontStyle: "italic" }}>{t.quote}</p>
+              <div style={{ borderTop: `1px solid ${cardBorder}`, paddingTop: "16px" }}>
+                <p style={{ fontSize: "0.88rem", fontWeight: 700, color: textColor, marginBottom: "3px" }}>{t.name}</p>
+                <p style={{ fontSize: "0.76rem", color: AMBER, fontWeight: 500, fontStyle: "italic" }}>{t.role}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" style={{ background: light ? "#F5F5F4" : DARK, padding: "110px 24px", borderTop: `1px solid ${cardBorder}`, borderBottom: `1px solid ${cardBorder}` }}>
+        <div style={{ maxWidth: "720px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "64px" }}>
+            <SLabel>FAQ</SLabel>
+            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 800, color: textColor, fontFamily: DISPLAY }}>
+              Common Questions
+            </h2>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {[
+              { q: "Do students need accounts?", a: "No. Students join with a room code and can play as guests. If they have Lexicon accounts, they can link those too; either way, they can participate." },
+              { q: "What's the teacher access code?", a: "A 4+ character code you set when creating a classroom room. It protects reports and CSV export — only you (and anyone you share it with) can view session data." },
+              { q: "How long does verification take?", a: "Homeschool teachers are approved instantly. Public school teachers typically get verified within 24–48 hours." },
+              { q: "Is there a limit on classes or sessions?", a: "No. Create as many classes as you need. Host as many sessions as you want. Free forever." },
+              { q: "Can I use this with Google Classroom?", a: "You can share room codes and join codes via any channel — Google Classroom, email, Canvas, etc. Students just need the code to join." },
+            ].map((faq, i) => (
+              <div key={i} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "12px", padding: "24px 28px" }}>
+                <h3 style={{ fontSize: "1rem", fontWeight: 700, color: textColor, marginBottom: "10px", fontFamily: BODY }}>{faq.q}</h3>
+                <p style={{ fontSize: "0.9rem", color: mutedColor, lineHeight: 1.7, margin: 0 }}>{faq.a}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
