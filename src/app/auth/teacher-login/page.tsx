@@ -18,7 +18,7 @@ const GOLD = "#FBBF24";
 function TeacherLoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/teacher";
+  const next = searchParams.get("next") ?? "/teacher/hub";
   const { light } = useTheme();
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");

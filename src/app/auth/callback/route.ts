@@ -57,13 +57,13 @@ export async function GET(request: Request) {
         });
 
         const teacherApproved = Boolean((verificationData as { teacher_approved?: boolean } | null)?.teacher_approved);
-        const teacherRedirect = teacherApproved ? "/teacher" : "/teacher?pending=1";
+        const teacherRedirect = teacherApproved ? "/teacher/hub" : "/teacher?pending=1";
         return redirectWithTeacherMode(origin, teacherRedirect);
       }
 
       // New teacher signup (email) — redirect to teacher portal (will send to onboarding)
       if (accountTypeMeta === "teacher" && isTeacherFlow) {
-        return redirectWithTeacherMode(origin, "/teacher");
+        return redirectWithTeacherMode(origin, "/teacher/hub");
       }
 
       // Check teacher_profiles (not profiles) for teacher status
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
 
       const isTeacher = !!teacherProfile;
       if (isTeacher && isTeacherFlow) {
-        const teacherRedirect = teacherProfile.teacher_approved ? "/teacher" : "/teacher?pending=1";
+        const teacherRedirect = teacherProfile.teacher_approved ? "/teacher/hub" : "/teacher?pending=1";
         return redirectWithTeacherMode(origin, teacherRedirect);
       }
 

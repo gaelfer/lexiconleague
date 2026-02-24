@@ -18,7 +18,7 @@ const GOLD = "#FBBF24";
 
 function TeacherSignupPageInner() {
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/teacher";
+  const next = searchParams.get("next") ?? "/teacher/hub";
   const { light } = useTheme();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -41,7 +41,7 @@ function TeacherSignupPageInner() {
     }
     startTransition(async () => {
       const supabase = createClient();
-      const emailRedirectTo = `${getAuthRedirectBase()}/auth/callback?next=${encodeURIComponent(next || "/teacher")}`;
+      const emailRedirectTo = `${getAuthRedirectBase()}/auth/callback?next=${encodeURIComponent(next || "/teacher/hub")}`;
       const { error } = await supabase.auth.signUp({
         email,
         password,

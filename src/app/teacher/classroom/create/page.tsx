@@ -100,7 +100,7 @@ export default function TeacherClassroomCreatePage() {
 
   return (
     <TeacherLayout
-      backHref="/teacher"
+      backHref="/teacher/hub"
       backLabel="Teacher Hub"
       navLinks={[{ href: "/classroom/reports?from=teacher", label: "Reports" }]}
       title="Create Classroom"

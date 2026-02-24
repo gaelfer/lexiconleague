@@ -217,7 +217,7 @@ function ClassroomReportsPageInner() {
   if (fromTeacher) {
     return (
       <TeacherLayout
-        backHref="/teacher"
+        backHref="/teacher/hub"
         backLabel="Teacher Hub"
         navLinks={[
           { href: "/teacher/classroom/create", label: "Create Classroom" },

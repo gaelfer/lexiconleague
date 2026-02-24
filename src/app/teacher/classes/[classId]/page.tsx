@@ -261,11 +261,11 @@ export default function TeacherClassDetailPage() {
 
   if (!status?.teacher_approved) {
     return (
-      <TeacherLayout backHref="/teacher" backLabel="Teacher Hub">
+      <TeacherLayout backHref="/teacher/hub" backLabel="Teacher Hub">
         <div className={`${teacherCardBorder} p-6 ${teacherCardClass(light)}`}>
           <h1 className={`text-2xl font-extrabold ${text}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Teacher approval required</h1>
           <p className={`text-sm mt-2 ${textMuted}`}>This section is available after teacher account approval.</p>
-          <Link href="/teacher" className="inline-block mt-5 rounded-xl px-4 py-2 text-sm font-semibold text-slate-900" style={{ background: "linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #D97706 100%)" }}>
+          <Link href="/teacher/hub" className="inline-block mt-5 rounded-xl px-4 py-2 text-sm font-semibold text-slate-900" style={{ background: "linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #D97706 100%)" }}>
             Back to Teacher Hub
           </Link>
         </div>

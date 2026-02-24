@@ -146,7 +146,7 @@ function ChartIcon({ className = "w-6 h-6", color = "currentColor" }: { classNam
   );
 }
 
-export default function TeacherLandingPage({ light }: { light: boolean }) {
+export default function TeacherLandingPage({ light, teacherMode = false }: { light: boolean; teacherMode?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -262,22 +262,35 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
             >
               For Students
             </Link>
-            <Link
-              href="/auth/teacher-login?next=/teacher"
-              style={{ padding: "9px 18px", borderRadius: "8px", border: `1px solid ${AMBER}55`, color: AMBER, fontSize: "0.84rem", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = `${AMBER}18`; e.currentTarget.style.color = textColor; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = AMBER; }}
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/auth/teacher-signup"
+            {teacherMode ? (
+              <Link
+                href="/teacher/hub"
+                style={{ padding: "9px 22px", borderRadius: "8px", background: `linear-gradient(135deg, ${GOLD} 0%, ${AMBER} 50%, ${AMBER_DARK} 100%)`, color: "#0F172A", fontSize: "0.84rem", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(245,158,11,0.4)", transition: "opacity 0.2s, box-shadow 0.2s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(245,158,11,0.55)"; e.currentTarget.style.opacity = "0.92"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(245,158,11,0.4)"; e.currentTarget.style.opacity = "1"; }}
+              >
+                Go to Portal
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/teacher-login?next=/teacher/hub"
+                  style={{ padding: "9px 18px", borderRadius: "8px", border: `1px solid ${AMBER}55`, color: AMBER, fontSize: "0.84rem", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = `${AMBER}18`; e.currentTarget.style.color = textColor; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = AMBER; }}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/auth/teacher-signup"
               style={{ padding: "9px 22px", borderRadius: "8px", background: `linear-gradient(135deg, ${GOLD} 0%, ${AMBER} 50%, ${AMBER_DARK} 100%)`, color: "#0F172A", fontSize: "0.84rem", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(245,158,11,0.4)", transition: "opacity 0.2s, box-shadow 0.2s" }}
               onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(245,158,11,0.55)"; e.currentTarget.style.opacity = "0.92"; }}
               onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(245,158,11,0.4)"; e.currentTarget.style.opacity = "1"; }}
             >
               Sign Up Free
             </Link>
+              </>
+            )}
             <button
               onClick={() => setMenuOpen((v) => !v)}
               className="teacher-hamburger"
@@ -304,12 +317,20 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
                 {l.label}
               </a>
             ))}
-            <Link href="/auth/teacher-login?next=/teacher" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: mutedColor, fontSize: "0.95rem", fontWeight: 500, textDecoration: "none" }}>
-              Sign In
-            </Link>
-            <Link href="/auth/teacher-signup" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: AMBER, fontSize: "0.95rem", fontWeight: 700, textDecoration: "none", marginTop: "4px" }}>
-              Sign Up Free
-            </Link>
+            {teacherMode ? (
+              <Link href="/teacher/hub" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: AMBER, fontSize: "0.95rem", fontWeight: 700, textDecoration: "none", marginTop: "4px" }}>
+                Go to Portal
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/teacher-login?next=/teacher/hub" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: mutedColor, fontSize: "0.95rem", fontWeight: 500, textDecoration: "none" }}>
+                  Sign In
+                </Link>
+                <Link href="/auth/teacher-signup" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: AMBER, fontSize: "0.95rem", fontWeight: 700, textDecoration: "none", marginTop: "4px" }}>
+                  Sign Up Free
+                </Link>
+              </>
+            )}
           </div>
         )}
       </nav>
@@ -383,7 +404,7 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
                 <ArrowRight size={15} />
               </Link>
               <Link
-                href="/auth/teacher-login?next=/teacher"
+                href="/auth/teacher-login?next=/teacher/hub"
                 style={{ display: "inline-flex", alignItems: "center", padding: "15px 28px", borderRadius: "10px", border: `2px solid ${AMBER}55`, color: AMBER, fontSize: "1rem", fontWeight: 600, textDecoration: "none", transition: "all 0.2s" }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = `${AMBER}18`; e.currentTarget.style.color = textColor; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = AMBER; }}
@@ -742,7 +763,7 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
               <ArrowRight size={15} />
             </Link>
             <Link
-              href="/auth/teacher-login?next=/teacher"
+              href="/auth/teacher-login?next=/teacher/hub"
               style={{ display: "inline-flex", alignItems: "center", padding: "15px 28px", borderRadius: "10px", border: `2px solid ${AMBER}`, color: AMBER, fontSize: "1rem", fontWeight: 600, textDecoration: "none" }}
             >
               Sign In

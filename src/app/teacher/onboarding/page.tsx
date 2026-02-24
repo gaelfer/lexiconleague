@@ -85,7 +85,7 @@ export default function TeacherOnboardingPage() {
         setError(res.error ?? "Could not complete onboarding");
         return;
       }
-      router.replace("/teacher");
+      router.replace("/teacher/hub");
       return;
     }
 
@@ -106,7 +106,7 @@ export default function TeacherOnboardingPage() {
         setError(res.error ?? "Could not complete onboarding");
         return;
       }
-      router.replace(res.teacherApproved ? "/teacher" : "/teacher?pending=1");
+      router.replace(res.teacherApproved ? "/teacher/hub" : "/teacher?pending=1");
       return;
     }
 
@@ -150,7 +150,7 @@ export default function TeacherOnboardingPage() {
             href="/teacher"
             className={`text-sm font-semibold ${textMuted} hover:text-amber-500 transition-colors flex items-center gap-1.5`}
           >
-            <span aria-hidden>←</span> Back to Teacher Portal
+            <span aria-hidden>←</span> Back to Teacher
           </Link>
           <ThemeToggle />
         </div>
