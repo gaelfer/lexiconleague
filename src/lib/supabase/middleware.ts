@@ -48,5 +48,15 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Teacher sub-routes require teacher_mode cookie (student logged in must not access teacher dashboard)
+  const isTeacherSubRoute = path.startsWith("/teacher/");
+  const teacherMode = request.cookies.get("teacher_mode")?.value === "1";
+  if (user && isTeacherSubRoute && !teacherMode) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/teacher";
+    url.searchParams.delete("next");
+    return NextResponse.redirect(url);
+  }
+
   return supabaseResponse;
 }

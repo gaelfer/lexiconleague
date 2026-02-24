@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { fetchProfile } from "@/lib/supabase/profile";
+import { getTeacherPortalStatus } from "@/lib/supabase/teacher-portal";
 
 /** Redirects to /onboarding when user is logged in but hasn't completed onboarding. */
 export default function OnboardingGate({ children }: { children: React.ReactNode }) {
@@ -25,8 +26,9 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
       setChecked(true);
       return;
     }
-    fetchProfile(user.id).then((profile) => {
-      if (profile?.account_type === "teacher") {
+    Promise.all([fetchProfile(user.id), getTeacherPortalStatus()]).then(([profile, portalStatus]) => {
+      const isTeacher = portalStatus.success && portalStatus.status?.account_type === "teacher";
+      if (isTeacher) {
         setChecked(true);
         return;
       }

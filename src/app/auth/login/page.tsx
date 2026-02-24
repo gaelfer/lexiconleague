@@ -60,7 +60,7 @@ function LoginPageInner() {
       if (result.error) {
         setError(result.error);
       } else {
-        router.push(next);
+        router.push(`/auth/clear-teacher-mode?next=${encodeURIComponent(next)}`);
         router.refresh();
       }
     });

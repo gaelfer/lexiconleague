@@ -1,6 +1,30 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+const TEACHER_MODE_COOKIE = "teacher_mode";
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
+/** Sets teacher_mode cookie and redirects. Used when OAuth callback redirects to teacher. */
+function redirectWithTeacherMode(origin: string, next: string) {
+  const url = new URL(next, origin);
+  const res = NextResponse.redirect(url);
+  res.cookies.set(TEACHER_MODE_COOKIE, "1", {
+    path: "/",
+    maxAge: COOKIE_MAX_AGE,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+  return res;
+}
+
+/** Clears teacher_mode cookie and redirects. Used when OAuth callback redirects to student area. */
+function redirectWithoutTeacherMode(origin: string, next: string) {
+  const url = new URL(next, origin);
+  const res = NextResponse.redirect(url);
+  res.cookies.delete(TEACHER_MODE_COOKIE);
+  return res;
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -24,6 +48,8 @@ export async function GET(request: Request) {
       const accountTypeIntent = typeof userMeta.account_type_intent === "string" ? userMeta.account_type_intent : null;
       const accountTypeMeta = typeof userMeta.account_type === "string" ? userMeta.account_type : null;
 
+      const isTeacherFlow = next.startsWith("/teacher");
+
       if (accountTypeIntent === "teacher" && teacherSchoolId && teacherSchoolEmail) {
         const { data: verificationData } = await supabase.rpc("start_teacher_verification", {
           p_school_id: teacherSchoolId,
@@ -32,29 +58,37 @@ export async function GET(request: Request) {
 
         const teacherApproved = Boolean((verificationData as { teacher_approved?: boolean } | null)?.teacher_approved);
         const teacherRedirect = teacherApproved ? "/teacher" : "/teacher?pending=1";
-        return NextResponse.redirect(`${origin}${teacherRedirect}`);
+        return redirectWithTeacherMode(origin, teacherRedirect);
       }
 
       // New teacher signup (email) — redirect to teacher portal (will send to onboarding)
-      if (accountTypeMeta === "teacher" && next.startsWith("/teacher")) {
-        return NextResponse.redirect(`${origin}/teacher`);
+      if (accountTypeMeta === "teacher" && isTeacherFlow) {
+        return redirectWithTeacherMode(origin, "/teacher");
       }
 
+      // Check teacher_profiles (not profiles) for teacher status
+      const { data: teacherProfile } = await supabase
+        .from("teacher_profiles")
+        .select("teacher_approved")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      const isTeacher = !!teacherProfile;
+      if (isTeacher && isTeacherFlow) {
+        const teacherRedirect = teacherProfile.teacher_approved ? "/teacher" : "/teacher?pending=1";
+        return redirectWithTeacherMode(origin, teacherRedirect);
+      }
+
+      // Student flow: clear teacher mode, check onboarding
       const { data: profile } = await supabase
         .from("profiles")
-        .select("onboarding_completed, account_type, teacher_approved")
+        .select("onboarding_completed")
         .eq("id", data.user.id)
         .single();
 
-      const isTeacher = profile?.account_type === "teacher";
-      if (isTeacher) {
-        const teacherRedirect = profile.teacher_approved ? "/teacher" : "/teacher?pending=1";
-        return NextResponse.redirect(`${origin}${teacherRedirect}`);
-      }
-
       const needsOnboarding = profile && profile.onboarding_completed === false;
       const redirectTo = needsOnboarding ? `/onboarding?next=${encodeURIComponent(next)}` : next;
-      return NextResponse.redirect(`${origin}${redirectTo}`);
+      return redirectWithoutTeacherMode(origin, redirectTo);
     }
 
     // Code exchange failed — surface the error

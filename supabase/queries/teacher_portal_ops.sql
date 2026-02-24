@@ -28,16 +28,15 @@ set
   updated_at = now()
 where id = :request_id;
 
-update public.profiles p
-set
-  account_type = 'teacher',
-  teacher_approved = true,
-  teacher_school_id = tvr.school_id,
-  teacher_verified_at = now(),
-  updated_at = now()
+insert into public.teacher_profiles (user_id, teacher_school_id, teacher_approved, teacher_verified_at, updated_at)
+select tvr.user_id, tvr.school_id, true, now(), now()
 from public.teacher_verification_requests tvr
 where tvr.id = :request_id
-  and p.id = tvr.user_id;
+on conflict (user_id) do update set
+  teacher_school_id = excluded.teacher_school_id,
+  teacher_approved = true,
+  teacher_verified_at = now(),
+  updated_at = now();
 
 -- 3) Reject request
 -- replace :request_id and :reviewer_user_id
@@ -50,15 +49,14 @@ set
   updated_at = now()
 where id = :request_id;
 
-update public.profiles p
-set
-  account_type = 'teacher',
-  teacher_approved = false,
-  teacher_verified_at = null,
-  updated_at = now()
+insert into public.teacher_profiles (user_id, teacher_approved, teacher_verified_at, updated_at)
+select tvr.user_id, false, null, now()
 from public.teacher_verification_requests tvr
 where tvr.id = :request_id
-  and p.id = tvr.user_id;
+on conflict (user_id) do update set
+  teacher_approved = false,
+  teacher_verified_at = null,
+  updated_at = now();
 
 -- 4) Pending approval latency metrics (last 30 days)
 select
