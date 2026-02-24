@@ -37,11 +37,7 @@ function TeacherPortalHomeInner() {
   const [sessions, setSessions] = useState<ClassroomReportListRow[]>([]);
   const [dataError, setDataError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!checking && !isAuthenticated) {
-      router.replace("/auth/login?next=/teacher");
-    }
-  }, [checking, isAuthenticated, router]);
+  // No redirect when unauthenticated — show landing page with curriculum/tools, then login
 
   // Redirect to onboarding if not completed (teachers log in normally, then complete setup)
   useEffect(() => {
@@ -90,6 +86,106 @@ function TeacherPortalHomeInner() {
 
   if (checking) {
     return <TeacherPortalLoader />;
+  }
+
+  // Unauthenticated: show landing page with curriculum, tools, then login CTAs
+  if (!isAuthenticated) {
+    return (
+      <main className={`min-h-screen px-6 py-10 ${light ? "bg-[#F8FAFC]" : "bg-[#0B1220]"}`}>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-10">
+            <Link href="/" className={`text-sm font-semibold ${textMuted} hover:text-[#3B82F6] transition-colors flex items-center gap-1.5`}>
+              <span aria-hidden>←</span> Home
+            </Link>
+            <ThemeToggle />
+          </div>
+
+          <div className="mb-12">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4" style={{ background: "rgba(59,130,246,0.15)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.35)" }}>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+              </svg>
+              Teacher Portal
+            </span>
+            <h1 className={`text-3xl sm:text-4xl font-extrabold ${text}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              Everything You Need to Run Vocabulary in Class
+            </h1>
+            <p className={`text-base mt-2 ${textMuted}`}>
+              LexiconLeague&apos;s Teacher Portal gives you full control over classroom sessions, rosters, and progress tracking. Free for homeschool and public school teachers.
+            </p>
+          </div>
+
+          {/* Curriculum */}
+          <section className={`rounded-2xl border p-6 mb-6 ${card}`}>
+            <h2 className={`text-lg font-bold ${text}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Curriculum & Coverage</h2>
+            <p className={`text-sm mt-2 ${textMuted}`}>
+              Aligned to vocabulary and language arts standards. Choose your grade level and subject during setup.
+            </p>
+            <ul className="mt-4 space-y-2">
+              {[
+                "Grades 3–12 (elementary through high school)",
+                "Subjects: ELA, vocabulary, language arts",
+                "Skill types: definitions, synonyms, antonyms, context clues, word parts",
+                "60-second rounds — perfect for classroom engagement",
+              ].map((item) => (
+                <li key={item} className={`flex items-center gap-2 text-sm ${text}`}>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#3B82F6" }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* Tools */}
+          <section className={`rounded-2xl border p-6 mb-6 ${card}`}>
+            <h2 className={`text-lg font-bold ${text}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Tools You Get Access To</h2>
+            <p className={`text-sm mt-2 ${textMuted}`}>
+              Create classes, share join codes, host live sessions, and export data for your gradebook.
+            </p>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { label: "Classes & Rosters", desc: "Create classes, manage student rosters, approve join requests" },
+                { label: "Join Codes", desc: "Share 6-character codes so students can request to join your class" },
+                { label: "Live Sessions (20+ players)", desc: "Host real-time vocabulary battles for your whole class" },
+                { label: "Session Reports", desc: "View per-session results, participation, and performance" },
+                { label: "CSV Export", desc: "Export session data for gradebooks and records" },
+                { label: "Free Forever", desc: "No subscription, no credit card required" },
+              ].map((t) => (
+                <div key={t.label} className={`rounded-xl border p-4 ${light ? "border-[#E2E8F0] bg-white/50" : "border-white/10 bg-white/5"}`}>
+                  <p className={`font-bold text-sm ${text}`}>{t.label}</p>
+                  <p className={`text-xs mt-1 ${textMuted}`}>{t.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* CTA */}
+          <section className={`rounded-2xl border-2 p-8 ${light ? "border-[#3B82F6]/30 bg-[#EFF6FF]/50" : "border-[#3B82F6]/30 bg-[#1E3A5F]/20"}`}>
+            <h2 className={`text-xl font-bold ${text}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Ready to Get Started?</h2>
+            <p className={`text-sm mt-2 ${textMuted}`}>
+              Sign up or sign in with your school email. Quick setup — choose your grade and subject, then start hosting.
+            </p>
+            <div className="flex flex-wrap gap-3 mt-6">
+              <Link
+                href="/auth/teacher-signup"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+                style={{ background: "linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)", boxShadow: "0 4px 14px rgba(59,130,246,0.4)" }}
+              >
+                Sign Up for Teachers
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              </Link>
+              <Link
+                href="/auth/teacher-login?next=/teacher"
+                className={`inline-flex items-center px-5 py-3 rounded-xl text-sm font-bold border-2 transition-colors ${light ? "border-[#3B82F6] text-[#1D4ED8] hover:bg-[#3B82F6]/10" : "border-[#3B82F6]/50 text-[#60A5FA] hover:bg-[#3B82F6]/10"}`}
+              >
+                Sign In
+              </Link>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
   }
 
   if (!portalEnabled) {

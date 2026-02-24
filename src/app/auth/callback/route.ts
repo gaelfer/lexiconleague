@@ -22,6 +22,7 @@ export async function GET(request: Request) {
       const teacherSchoolId = typeof userMeta.teacher_school_id === "string" ? userMeta.teacher_school_id : null;
       const teacherSchoolEmail = typeof userMeta.teacher_school_email === "string" ? userMeta.teacher_school_email : null;
       const accountTypeIntent = typeof userMeta.account_type_intent === "string" ? userMeta.account_type_intent : null;
+      const accountTypeMeta = typeof userMeta.account_type === "string" ? userMeta.account_type : null;
 
       if (accountTypeIntent === "teacher" && teacherSchoolId && teacherSchoolEmail) {
         const { data: verificationData } = await supabase.rpc("start_teacher_verification", {
@@ -32,6 +33,11 @@ export async function GET(request: Request) {
         const teacherApproved = Boolean((verificationData as { teacher_approved?: boolean } | null)?.teacher_approved);
         const teacherRedirect = teacherApproved ? "/teacher" : "/teacher?pending=1";
         return NextResponse.redirect(`${origin}${teacherRedirect}`);
+      }
+
+      // New teacher signup (email) — redirect to teacher portal (will send to onboarding)
+      if (accountTypeMeta === "teacher" && next.startsWith("/teacher")) {
+        return NextResponse.redirect(`${origin}/teacher`);
       }
 
       const { data: profile } = await supabase

@@ -194,6 +194,16 @@ export async function archiveTeacherClass(classId: string, archived = true): Pro
   return { success: true };
 }
 
+export async function deleteTeacherClass(classId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("delete_class", { p_class_id: classId });
+
+  if (error) return { success: false, error: error.message };
+  const payload = (data ?? {}) as RpcResult;
+  if (!payload.success) return { success: false, error: (payload.error as string) ?? "Could not delete class" };
+  return { success: true };
+}
+
 export async function listTeacherClasses(): Promise<{ success: boolean; rows: TeacherClass[]; error?: string }> {
   const supabase = createClient();
   const { data, error } = await supabase.rpc("list_teacher_classes");

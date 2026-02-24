@@ -4,6 +4,17 @@ import { InkAvatarConfig, DEFAULT_AVATAR_CONFIG } from "@/types";
 
 type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl" | number;
 
+/** Returns true if the color is white or very light (mouth would be invisible) */
+function isLightColor(hex: string): boolean {
+  const h = hex.replace("#", "").toLowerCase();
+  if (h.length !== 6 && h.length !== 3) return false;
+  const r = parseInt(h.length === 6 ? h.slice(0, 2) : h[0] + h[0], 16);
+  const g = parseInt(h.length === 6 ? h.slice(2, 4) : h[1] + h[1], 16);
+  const b = parseInt(h.length === 6 ? h.slice(4, 6) : h[2] + h[2], 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.92;
+}
+
 const SIZE_MAP: Record<string, number> = {
   xs: 32,
   sm: 48,
@@ -110,6 +121,25 @@ export default function InkAvatar({
           className="w-full h-full"
           draggable={false}
         />
+        {/* Black mouth overlay when body is white — mouth in eyes SVG is white and invisible on light body */}
+        {isLightColor(c.color) && (
+          <div className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden>
+            <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+              {c.eyes === "eyes_05" ? (
+                <ellipse cx="50" cy="68" rx="3" ry="2.5" fill="#0F172A" opacity="0.9" />
+              ) : (
+                <path
+                  d="M42 66Q50 72 58 66"
+                  fill="none"
+                  stroke="#0F172A"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  opacity="0.95"
+                />
+              )}
+            </svg>
+          </div>
+        )}
       </div>
 
       {/* Accessory overlays — up to 2 slots, shifted and scaled per body shape */}

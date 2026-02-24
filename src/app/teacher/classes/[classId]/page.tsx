@@ -9,6 +9,7 @@ import {
   addRosterStudent,
   approveClassJoinRequest,
   archiveTeacherClass,
+  deleteTeacherClass,
   importRosterCsv,
   listClassJoinRequests,
   listClassRoster,
@@ -55,6 +56,7 @@ export default function TeacherClassDetailPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [assignNameFor, setAssignNameFor] = useState<string | null>(null);
   const [assignNameValue, setAssignNameValue] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   async function loadData() {
     setLoading(true);
@@ -157,6 +159,19 @@ export default function TeacherClassDetailPage() {
       return;
     }
     await loadData();
+  }
+
+  async function onDelete() {
+    if (!teacherClass || !teacherClass.archived) return;
+    if (!window.confirm(`Permanently delete "${teacherClass.name}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    const result = await deleteTeacherClass(teacherClass.id);
+    setDeleting(false);
+    if (!result.success) {
+      setError(result.error ?? "Could not delete class");
+      return;
+    }
+    router.push("/teacher/classes");
   }
 
   async function onAddStudent(event: FormEvent) {
@@ -285,6 +300,15 @@ export default function TeacherClassDetailPage() {
               <button onClick={onArchive} className="w-full mt-3 rounded-xl px-4 py-2.5 text-sm font-bold text-white" style={{ background: teacherClass.archived ? "#0F766E" : "#B91C1C" }}>
                 {teacherClass.archived ? "Unarchive Class" : "Archive Class"}
               </button>
+              {teacherClass.archived && (
+                <button
+                  onClick={onDelete}
+                  disabled={deleting}
+                  className="w-full mt-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white border-2 border-red-500/50 bg-red-950/50 hover:bg-red-900/50 disabled:opacity-60"
+                >
+                  {deleting ? "Deleting..." : "Delete Class Permanently"}
+                </button>
+              )}
             </section>
 
             {teacherClass.join_code && (

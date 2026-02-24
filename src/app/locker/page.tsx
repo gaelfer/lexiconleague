@@ -35,10 +35,11 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "aura", label: "Aura" },
 ];
 
-function FireIcon({ className = "w-4 h-4" }: { className?: string }) {
+function LeafIcon({ className = "w-4 h-4", color = "currentColor" }: { className?: string; color?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2C12 2 9 7 9 11a3 3 0 0 0 6 0c0-1.3-.5-2.5-1-3.5C15.5 8.5 17 11 17 13a5 5 0 0 1-10 0c0-5 5-11 5-11z" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z" />
+      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
     </svg>
   );
 }
@@ -89,11 +90,11 @@ function SwordIcon({ className = "w-4 h-4", color = "currentColor" }: { classNam
 }
 
 const TAB_ICONS: Record<Tab, (light: boolean) => React.ReactNode> = {
-  base: (l) => <DropletIcon className="w-3.5 h-3.5" color={l ? "#92400E" : "#A87450"} />,
-  color: (l) => <PaletteIcon className="w-3.5 h-3.5" color={l ? "#92400E" : "#A87450"} />,
-  eyes: (l) => <EyeIcon className="w-3.5 h-3.5" color={l ? "#92400E" : "#A87450"} />,
-  accessory: (l) => <SwordIcon className="w-3.5 h-3.5" color={l ? "#92400E" : "#A87450"} />,
-  aura: (l) => <SparkIcon className="w-3.5 h-3.5" color={l ? "#92400E" : "#A87450"} />,
+  base: (l) => <DropletIcon className="w-3.5 h-3.5" color={l ? "#1D4ED8" : "#3B82F6"} />,
+  color: (l) => <PaletteIcon className="w-3.5 h-3.5" color={l ? "#1D4ED8" : "#3B82F6"} />,
+  eyes: (l) => <EyeIcon className="w-3.5 h-3.5" color={l ? "#1D4ED8" : "#3B82F6"} />,
+  accessory: (l) => <SwordIcon className="w-3.5 h-3.5" color={l ? "#1D4ED8" : "#3B82F6"} />,
+  aura: (l) => <SparkIcon className="w-3.5 h-3.5" color={l ? "#1D4ED8" : "#3B82F6"} />,
 };
 
 export default function LockerPage() {
@@ -164,27 +165,27 @@ export default function LockerPage() {
     return isItemUnlocked(itemId, profile);
   }
 
-  // ── Warm cabin color system ──────────────────────────────────────────────
-  const cardBg = light ? "bg-[#FFFBF0]" : "bg-[#1C1008]";
-  const cardBorder = light ? "border-[#D97706]/22" : "border-[#92400E]/38";
-  const cardShadow = light ? "shadow-lg shadow-amber-100/60" : "shadow-xl shadow-black/70";
-  const previewSurface = light ? "bg-[#FEF3C7] border-[#D97706]/30" : "bg-[#0E0803] border-[#B45309]/45";
-  const text = light ? "text-[#1C0F00]" : "text-[#FEF3E2]";
-  const textMuted = light ? "text-[#92400E]" : "text-[#A87450]";
-  const textFaint = light ? "text-[#B45309]/55" : "text-[#5C3010]";
-  const tabActive = "bg-[#B45309] text-[#FEF3E2] shadow-md shadow-amber-900/30";
+  // ── Blue palette ────────────────────────────────────────────────────────
+  const cardBg = light ? "bg-[#F8FAFC]" : "bg-[#0C1222]";
+  const cardBorder = light ? "border-[#3B82F6]/18" : "border-[#1D4ED8]/32";
+  const cardShadow = light ? "shadow-lg shadow-blue-100/60" : "shadow-xl shadow-black/70";
+  const previewSurface = light ? "bg-[#EFF6FF] border-[#3B82F6]/28" : "bg-[#030712] border-[#1D4ED8]/42";
+  const text = light ? "text-[#0F172A]" : "text-[#EFF6FF]";
+  const textMuted = light ? "text-[#1D4ED8]" : "text-[#60A5FA]";
+  const textFaint = light ? "text-[#1E40AF]/55" : "text-[#1D4ED8]";
+  const tabActive = "bg-[#1D4ED8] text-[#EFF6FF] shadow-md shadow-blue-900/30";
   const tabInactive = light
-    ? "bg-[#FEF3C7] text-[#92400E] border border-[#D97706]/25 hover:bg-[#FDE68A]/60 hover:border-[#D97706]/50"
-    : "bg-[#1A0E06] text-[#A87450] border border-[#92400E]/30 hover:bg-[#2A1608] hover:text-[#FEF3E2]";
+    ? "bg-[#EFF6FF] text-[#1D4ED8] border border-[#3B82F6]/25 hover:bg-[#DBEAFE]/80 hover:border-[#3B82F6]/50"
+    : "bg-[#030712] text-[#60A5FA] border border-[#1D4ED8]/30 hover:bg-[#0C1222] hover:text-[#EFF6FF]";
   const selectedCard = light
-    ? "border-[#D97706] bg-[#FEF3C7] shadow-md shadow-amber-200/40"
-    : "border-[#D97706] bg-[#D97706]/15 shadow-md shadow-amber-900/30";
+    ? "border-[#3B82F6] bg-[#EFF6FF] shadow-md shadow-blue-200/40"
+    : "border-[#3B82F6] bg-[#3B82F6]/14 shadow-md shadow-blue-900/30";
   const unselectedCard = light
-    ? "border-[#D97706]/18 bg-[#FFFBF0] hover:border-[#D97706]/55"
-    : "border-[#92400E]/28 bg-[#140C04]/60 hover:border-[#D97706]/55";
+    ? "border-[#3B82F6]/18 bg-[#F8FAFC] hover:border-[#3B82F6]/55"
+    : "border-[#1D4ED8]/28 bg-[#030712]/80 hover:border-[#3B82F6]/55";
   const lockedCard = light
-    ? "border-[#D97706]/12 bg-[#FDF6E3] opacity-50 cursor-not-allowed"
-    : "border-[#92400E]/18 bg-[#0E0804]/50 opacity-50 cursor-not-allowed";
+    ? "border-[#3B82F6]/12 bg-[#EFF6FF] opacity-50 cursor-not-allowed"
+    : "border-[#1D4ED8]/18 bg-[#030712]/50 opacity-50 cursor-not-allowed";
 
   function renderLockerItem(
     item: CosmeticItem | ColorItem,
@@ -206,7 +207,7 @@ export default function LockerPage() {
             <Link
               href="/shop"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-[#1C0F00]/90 text-[#FEF3E2] hover:bg-[#1C0F00] transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-[#0C1222]/90 text-[#EFF6FF] hover:bg-[#0C1222] transition-colors"
             >
               <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
                 <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
@@ -226,21 +227,20 @@ export default function LockerPage() {
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <main className="relative min-h-screen flex flex-col items-center justify-center gap-5 overflow-hidden" style={{ background: "linear-gradient(180deg, #120A02 0%, #1C0E05 50%, #0E0804 100%)" }}>
+      <main className="relative min-h-screen flex flex-col items-center justify-center gap-5 overflow-hidden" style={{ background: "linear-gradient(180deg, #030712 0%, #0C1222 50%, #020617 100%)" }}>
         <style>{`
-          @keyframes flicker {
-            0%, 100% { opacity: 0.3; transform: scale(1) translateY(0); }
-            25% { opacity: 0.5; transform: scale(1.06) translateY(-3px); }
-            50% { opacity: 0.22; transform: scale(0.96) translateY(2px); }
-            75% { opacity: 0.46; transform: scale(1.03) translateY(-1px); }
+          @keyframes candle-drift {
+            0%, 100% { opacity: 0.2; transform: scale(1) translateY(0); }
+            33% { opacity: 0.35; transform: scale(1.04) translateY(-3px); }
+            66% { opacity: 0.18; transform: scale(0.97) translateY(2px); }
           }
-          .animate-flicker { animation: flicker 2.8s ease-in-out infinite; }
+          .animate-candle { animation: candle-drift 4s ease-in-out infinite; }
         `}</style>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[400px] pointer-events-none animate-flicker" style={{ background: "radial-gradient(ellipse at 15% 100%, rgba(249,115,22,0.4) 0%, rgba(220,38,38,0.18) 40%, transparent 70%)" }} />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[400px] pointer-events-none animate-candle" style={{ background: "radial-gradient(ellipse at 15% 100%, rgba(59,130,246,0.22) 0%, rgba(29,78,216,0.08) 50%, transparent 72%)" }} />
         <div className="animate-bounce-soft">
-          <InkAvatar config={{ base: "droplet_02", color: "#F97316", eyes: "eyes_01", accessory: "scarf_01", aura: "none" }} size={72} />
+          <InkAvatar config={{ base: "droplet_01", color: "#22C55E", eyes: "eyes_03", accessory: "none", aura: "none" }} size={72} />
         </div>
-        <p className="text-[#A87450] font-semibold animate-pulse text-sm tracking-wide">Kindling the fire…</p>
+        <p className="text-[#60A5FA] font-semibold animate-pulse text-sm tracking-wide">Unlocking the wardrobe…</p>
       </main>
     );
   }
@@ -249,95 +249,97 @@ export default function LockerPage() {
     <main
       className="min-h-[100dvh] flex flex-col overflow-x-hidden"
       style={light
-        ? { background: "linear-gradient(180deg, #FDF6E3 0%, #FEF3C7 55%, #FFFBEB 100%)" }
-        : { background: "linear-gradient(180deg, #120A02 0%, #1C0E05 40%, #0E0804 100%)" }
+        ? { background: "linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 55%, #F8FAFC 100%)" }
+        : { background: "linear-gradient(180deg, #030712 0%, #0C1222 40%, #020617 100%)" }
       }
     >
       {/* ── Custom keyframes ── */}
       <style>{`
-        @keyframes flicker {
-          0%, 100% { opacity: 0.28; transform: scale(1) translateY(0); }
-          25% { opacity: 0.48; transform: scale(1.06) translateY(-4px); }
-          50% { opacity: 0.2; transform: scale(0.96) translateY(3px); }
-          75% { opacity: 0.44; transform: scale(1.03) translateY(-2px); }
+        @keyframes candle-drift {
+          0%, 100% { opacity: 0.22; transform: scale(1) translateY(0); }
+          33% { opacity: 0.38; transform: scale(1.05) translateY(-4px); }
+          66% { opacity: 0.16; transform: scale(0.97) translateY(3px); }
         }
         @keyframes warm-drift {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           33% { transform: translateY(-6px) rotate(1.5deg); }
           66% { transform: translateY(3px) rotate(-1deg); }
         }
-        .animate-flicker { animation: flicker 3s ease-in-out infinite; }
+        .animate-candle { animation: candle-drift 4.5s ease-in-out infinite; }
+        .animate-candle-2 { animation: candle-drift 6s ease-in-out infinite; animation-delay: 1.5s; }
         .animate-warm-drift { animation: warm-drift 7s ease-in-out infinite; }
         .animate-warm-drift-delay { animation: warm-drift 9s ease-in-out infinite; animation-delay: 2s; }
       `}</style>
 
       {/* ── Fixed cabin background scene ── */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Primary fireplace glow — bottom left */}
+        {/* Candlelight glow — bottom left, soft warm gold */}
         <div
-          className="absolute bottom-0 left-0 w-[600px] h-[500px] animate-flicker"
+          className="absolute bottom-0 left-0 w-[600px] h-[480px] animate-candle"
           style={{
             background: light
-              ? "radial-gradient(ellipse at 15% 100%, rgba(251,146,60,0.28) 0%, rgba(251,191,36,0.14) 40%, transparent 70%)"
-              : "radial-gradient(ellipse at 15% 100%, rgba(249,115,22,0.42) 0%, rgba(220,38,38,0.2) 45%, transparent 72%)",
+              ? "radial-gradient(ellipse at 15% 100%, rgba(59,130,246,0.2) 0%, rgba(29,78,216,0.08) 45%, transparent 72%)"
+              : "radial-gradient(ellipse at 15% 100%, rgba(59,130,246,0.28) 0%, rgba(29,78,216,0.1) 48%, transparent 72%)",
           }}
         />
-        {/* Secondary ember glow — inner core */}
+        {/* Secondary moss-green ambient — right side */}
         <div
-          className="absolute bottom-0 left-0 w-[280px] h-[220px] animate-flicker"
-          style={{
-            animationDelay: "0.8s",
-            background: light
-              ? "radial-gradient(ellipse at 10% 100%, rgba(239,68,68,0.15) 0%, transparent 60%)"
-              : "radial-gradient(ellipse at 10% 100%, rgba(239,68,68,0.3) 0%, transparent 60%)",
-          }}
-        />
-        {/* Window light — top right, suggesting moonlight/lantern outside */}
-        <div
-          className="absolute top-0 right-24 w-28 h-56"
+          className="absolute bottom-0 right-0 w-[400px] h-[360px] animate-candle-2"
           style={{
             background: light
-              ? "linear-gradient(180deg, rgba(147,197,253,0.22) 0%, transparent 100%)"
-              : "linear-gradient(180deg, rgba(59,130,246,0.10) 0%, transparent 100%)",
+              ? "radial-gradient(ellipse at 85% 100%, rgba(59,130,246,0.12) 0%, transparent 65%)"
+              : "radial-gradient(ellipse at 85% 100%, rgba(29,78,216,0.14) 0%, transparent 65%)",
           }}
         />
-        {/* Warm ceiling glow */}
+        {/* Moonlight window — top right */}
         <div
-          className="absolute top-0 left-0 right-0 h-24"
+          className="absolute top-0 right-20 w-32 h-60"
           style={{
             background: light
-              ? "linear-gradient(180deg, rgba(251,191,36,0.06) 0%, transparent 100%)"
-              : "linear-gradient(180deg, rgba(180,83,9,0.08) 0%, transparent 100%)",
+              ? "linear-gradient(180deg, rgba(59,130,246,0.12) 0%, transparent 100%)"
+              : "linear-gradient(180deg, rgba(29,78,216,0.06) 0%, transparent 100%)",
           }}
         />
-        {/* Horizontal wooden beam lines */}
-        <div className="absolute top-[68px] left-0 right-0 h-[2px]" style={{ background: light ? "rgba(146,64,14,0.1)" : "rgba(100,40,8,0.35)" }} />
-        <div className="absolute top-[70px] left-0 right-0 h-[1px]" style={{ background: light ? "rgba(146,64,14,0.05)" : "rgba(100,40,8,0.2)" }} />
-        {/* Floor suggestion */}
-        <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: light ? "rgba(146,64,14,0.12)" : "rgba(80,30,5,0.5)" }} />
-        {/* Ambient far-background inklings — barely visible, part of the room */}
+        {/* Warm ceiling wash */}
+        <div
+          className="absolute top-0 left-0 right-0 h-20"
+          style={{
+            background: light
+              ? "linear-gradient(180deg, rgba(59,130,246,0.04) 0%, transparent 100%)"
+              : "linear-gradient(180deg, rgba(29,78,216,0.06) 0%, transparent 100%)",
+          }}
+        />
+        {/* Wooden beam lines — dark forest timber */}
+        <div className="absolute top-[68px] left-0 right-0 h-[2px]" style={{ background: light ? "rgba(29,78,216,0.1)" : "rgba(30,58,138,0.45)" }} />
+        <div className="absolute top-[70px] left-0 right-0 h-[1px]" style={{ background: light ? "rgba(29,78,216,0.05)" : "rgba(30,58,138,0.25)" }} />
+        {/* Floor */}
+        <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: light ? "rgba(29,78,216,0.1)" : "rgba(15,23,42,0.55)" }} />
+        {/* Ambient background inklings — barely visible tavern patrons */}
         <div className="absolute bottom-12 right-6 opacity-[0.05] pointer-events-none" style={{ transform: "rotate(-10deg)" }}>
-          <InkAvatar config={{ base: "droplet_01", color: "#F97316", eyes: "eyes_01", accessory: "none", aura: "none" }} size={88} />
+          <InkAvatar config={{ base: "droplet_01", color: "#22C55E", eyes: "eyes_01", accessory: "none", aura: "none" }} size={88} />
         </div>
         <div className="absolute top-1/3 left-3 opacity-[0.04] pointer-events-none" style={{ transform: "rotate(18deg)" }}>
           <InkAvatar config={{ base: "droplet_02", color: "#8B5CF6", eyes: "eyes_01", accessory: "none", aura: "none" }} size={72} />
         </div>
         <div className="absolute top-1/4 right-1/3 opacity-[0.03] pointer-events-none" style={{ transform: "rotate(-5deg)" }}>
-          <InkAvatar config={{ base: "droplet_03", color: "#22C55E", eyes: "eyes_01", accessory: "none", aura: "none" }} size={56} />
+          <InkAvatar config={{ base: "droplet_03", color: "#3B82F6", eyes: "eyes_01", accessory: "none", aura: "none" }} size={56} />
         </div>
       </div>
 
       {/* ── Header ── */}
       <header
-        className={`relative z-20 flex items-center justify-between px-5 py-3.5 border-b ${cardBorder}`}
-        style={light
-          ? { background: "rgba(255,251,240,0.85)", backdropFilter: "blur(12px)" }
-          : { background: "rgba(28,16,8,0.85)", backdropFilter: "blur(12px)" }
-        }
+        className={`relative z-20 flex items-center justify-between px-5 py-3.5 border-b`}
+        style={{
+          borderColor: light ? "rgba(59,130,246,0.18)" : "rgba(29,78,216,0.35)",
+          background: light
+            ? "rgba(248,250,252,0.88)"
+            : "rgba(12,18,34,0.88)",
+          backdropFilter: "blur(12px)",
+        }}
       >
         <Link
           href="/dashboard"
-          className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${textMuted} hover:text-[#D97706]`}
+          className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${textMuted} hover:text-[#3B82F6]`}
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
             <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
@@ -345,7 +347,7 @@ export default function LockerPage() {
           Back
         </Link>
         <h1 className={`text-base font-bold flex items-center gap-2 ${text}`} style={{ fontFamily: "'Playfair Display', serif" }}>
-          <FireIcon className="w-4 h-4" style={{ color: "#F97316" } as React.CSSProperties} />
+          <LeafIcon className="w-4 h-4" color="#3B82F6" />
           Ink Locker
         </h1>
         <div className="flex items-center gap-3">
@@ -355,8 +357,8 @@ export default function LockerPage() {
             href="/shop"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors border"
             style={light
-              ? { background: "rgba(254,243,199,0.8)", borderColor: "rgba(217,119,6,0.3)" }
-              : { background: "rgba(28,16,8,0.9)", borderColor: "rgba(180,83,9,0.4)" }
+              ? { background: "rgba(239,246,255,0.9)", borderColor: "rgba(59,130,246,0.28)" }
+              : { background: "rgba(12,18,34,0.9)", borderColor: "rgba(29,78,216,0.42)" }
             }
           >
             <InkDropIcon className="w-4 h-4" color="#34D399" />
@@ -375,21 +377,21 @@ export default function LockerPage() {
 
           {/* Stage title */}
           <div className="flex items-center gap-2 self-start w-full max-w-[300px]">
-            <div className="h-px flex-1" style={{ background: light ? "rgba(217,119,6,0.2)" : "rgba(180,83,9,0.3)" }} />
+            <div className="h-px flex-1" style={{ background: light ? "rgba(90,138,56,0.18)" : "rgba(74,112,48,0.32)" }} />
             <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${textFaint}`}>Your Inkling</span>
-            <div className="h-px flex-1" style={{ background: light ? "rgba(217,119,6,0.2)" : "rgba(180,83,9,0.3)" }} />
+            <div className="h-px flex-1" style={{ background: light ? "rgba(90,138,56,0.18)" : "rgba(74,112,48,0.32)" }} />
           </div>
 
           {/* Preview card with companion inklings */}
           <div className="relative w-full max-w-[300px]">
-            {/* Ember — bouncing orange inkling, left flank */}
+            {/* Ember — bouncing left companion */}
             <div className="absolute -left-7 bottom-[88px] z-20 pointer-events-none" style={{ transform: "rotate(-10deg)" }}>
               <div className="animate-bounce-soft">
                 <InkAvatar config={{ base: "droplet_02", color: "#F97316", eyes: "eyes_01", accessory: "scarf_01", aura: "none" }} size={56} />
               </div>
             </div>
 
-            {/* Scholar — floating wizard inkling, right flank */}
+            {/* Scholar — drifting right companion */}
             <div className="absolute -right-5 bottom-[96px] z-20 pointer-events-none" style={{ transform: "rotate(8deg)" }}>
               <div className="animate-warm-drift">
                 <InkAvatar config={{ base: "droplet_01", color: "#8B5CF6", eyes: "eyes_05", accessory: "wizard_01", aura: "none" }} size={52} />
@@ -401,24 +403,30 @@ export default function LockerPage() {
               className={`relative overflow-hidden flex flex-col items-center justify-center w-full border ${cardShadow}`}
               style={{
                 borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem",
-                borderColor: light ? "rgba(217,119,6,0.25)" : "rgba(146,64,14,0.45)",
+                borderColor: light ? "rgba(59,130,246,0.22)" : "rgba(29,78,216,0.5)",
                 background: light
-                  ? "linear-gradient(160deg, #FFFBF0 0%, #FEF3C7 50%, #FFFBF0 100%)"
-                  : "linear-gradient(160deg, #1C1008 0%, #0E0803 50%, #1C1008 100%)",
+                  ? "linear-gradient(160deg, #F8FAFC 0%, #EFF6FF 50%, #F8FAFC 100%)"
+                  : "linear-gradient(160deg, #0C1222 0%, #030712 50%, #0C1222 100%)",
                 padding: "2rem 1.5rem 1.25rem",
               }}
             >
-              {/* Fire glow blobs */}
-              <div className="absolute -bottom-14 -left-14 w-44 h-44 rounded-full blur-3xl animate-flicker" style={{ background: "rgba(249,115,22,0.35)" }} />
-              <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full blur-2xl animate-warm-drift-delay" style={{ background: light ? "rgba(251,191,36,0.2)" : "rgba(234,179,8,0.15)" }} />
+              {/* Candlelight glow blobs — soft gold, not orange */}
+              <div
+                className="absolute -bottom-14 -left-14 w-44 h-44 rounded-full blur-3xl animate-candle"
+                style={{ background: light ? "rgba(59,130,246,0.2)" : "rgba(59,130,246,0.18)" }}
+              />
+              <div
+                className="absolute -top-10 -right-10 w-36 h-36 rounded-full blur-2xl animate-warm-drift-delay"
+                style={{ background: light ? "rgba(134,195,84,0.14)" : "rgba(100,170,60,0.12)" }}
+              />
 
-              {/* Avatar on the warm stage */}
+              {/* Avatar on the mossy stage */}
               <div className="relative mb-3">
-                {/* Glow halo */}
+                {/* Soft candle halo — golden, very gentle */}
                 <div
-                  className="absolute inset-0 rounded-full animate-flicker"
+                  className="absolute inset-0 rounded-full animate-candle"
                   style={{
-                    background: "radial-gradient(circle, rgba(249,115,22,0.35) 0%, transparent 70%)",
+                    background: "radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%)",
                     transform: "scale(1.5)",
                   }}
                 />
@@ -426,25 +434,22 @@ export default function LockerPage() {
                   className={`relative w-[200px] h-[200px] rounded-full border flex items-center justify-center ${previewSurface}`}
                   style={{
                     boxShadow: light
-                      ? "0 4px 32px rgba(217,119,6,0.22), 0 0 0 3px rgba(217,119,6,0.12), inset 0 0 24px rgba(251,191,36,0.1)"
-                      : "0 4px 40px rgba(180,83,9,0.45), 0 0 0 3px rgba(146,64,14,0.3), inset 0 0 32px rgba(249,115,22,0.07)",
+                      ? "0 4px 32px rgba(59,130,246,0.18), 0 0 0 3px rgba(59,130,246,0.1), inset 0 0 24px rgba(59,130,246,0.06)"
+                      : "0 4px 40px rgba(29,78,216,0.4), 0 0 0 3px rgba(29,78,216,0.28), inset 0 0 32px rgba(59,130,246,0.04)",
                   }}
                 >
                   <InkAvatar config={config} size="xl" />
                 </div>
               </div>
 
-              {/* Floor inklings — sitting below the avatar inside the card */}
+              {/* Floor crew — sitting below the avatar */}
               <div className="relative flex items-end justify-center gap-5 mb-2">
-                {/* Napper — heavily tilted, sleepy */}
                 <div style={{ transform: "rotate(-18deg)", marginBottom: "-4px" }} className="opacity-70">
                   <InkAvatar config={{ base: "droplet_04", color: "#06B6D4", eyes: "eyes_08", accessory: "none", aura: "none" }} size={34} />
                 </div>
-                {/* Tiny green friend — waving */}
                 <div style={{ transform: "rotate(6deg)" }} className="opacity-75">
                   <InkAvatar config={{ base: "droplet_01", color: "#22C55E", eyes: "eyes_03", accessory: "none", aura: "none" }} size={30} />
                 </div>
-                {/* Little pink peeking from behind */}
                 <div style={{ transform: "rotate(-5deg)", marginBottom: "-2px" }} className="opacity-60">
                   <InkAvatar config={{ base: "droplet_02", color: "#EC4899", eyes: "eyes_06", accessory: "none", aura: "none" }} size={28} />
                 </div>
@@ -462,13 +467,13 @@ export default function LockerPage() {
             style={
               hasChanges
                 ? {
-                    background: "linear-gradient(135deg, #B45309 0%, #D97706 100%)",
-                    color: "#FEF3E2",
-                    boxShadow: "0 4px 20px rgba(180,83,9,0.45)",
+                    background: "linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)",
+                    color: "#EFF6FF",
+                    boxShadow: "0 4px 20px rgba(29,78,216,0.45)",
                   }
                 : light
-                ? { background: "#E7D8C0", color: "#A07040" }
-                : { background: "#2A1808", color: "#5C3010" }
+                ? { background: "#DBEAFE", color: "#1D4ED8" }
+                : { background: "#0C1222", color: "#60A5FA" }
             }
           >
             {saving ? "Saving…" : hasChanges ? "✦ Save Avatar" : "No Changes"}
@@ -482,46 +487,42 @@ export default function LockerPage() {
         {/* ── Right: The Wardrobe ── */}
         <div className="flex-1 min-w-0 space-y-4">
 
-          {/* Wardrobe header with shelf scene */}
+          {/* Shelf scene + wardrobe header */}
           <div>
-            {/* Shelf — inklings sitting on top */}
+            {/* Inklings on the shelf */}
             <div className="relative mb-0.5">
-              {/* Shelf board */}
               <div
                 className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full"
-                style={{
-                  background: light
-                    ? "linear-gradient(90deg, transparent, rgba(146,64,14,0.3) 20%, rgba(146,64,14,0.3) 80%, transparent)"
-                    : "linear-gradient(90deg, transparent, rgba(100,40,8,0.6) 20%, rgba(100,40,8,0.6) 80%, transparent)",
-                  boxShadow: light ? "0 1px 4px rgba(146,64,14,0.08)" : "0 2px 8px rgba(0,0,0,0.4)",
-                }}
+            style={{
+              background: light
+                ? "linear-gradient(90deg, transparent, rgba(29,78,216,0.28) 20%, rgba(29,78,216,0.28) 80%, transparent)"
+                : "linear-gradient(90deg, transparent, rgba(30,58,138,0.65) 20%, rgba(30,58,138,0.65) 80%, transparent)",
+              boxShadow: light ? "0 1px 4px rgba(29,78,216,0.08)" : "0 2px 8px rgba(0,0,0,0.5)",
+            }}
               />
-              {/* Shelf depth line */}
               <div
                 className="absolute bottom-[-3px] left-0 right-0 h-[2px] rounded-full opacity-40"
-                style={{ background: light ? "rgba(146,64,14,0.15)" : "rgba(0,0,0,0.5)" }}
+                style={{ background: light ? "rgba(29,78,216,0.12)" : "rgba(0,0,0,0.5)" }}
               />
-
-              {/* Inklings on the shelf */}
               <div className="flex items-end justify-end gap-1.5 pb-0.5 pr-6">
-                {/* Sunny — yellow winking, bobbing */}
+                {/* Sunny — yellow winking */}
                 <div style={{ transform: "rotate(-6deg)" }}>
                   <div className="animate-bounce-soft" style={{ animationDelay: "0.4s" }}>
                     <InkAvatar config={{ base: "droplet_03", color: "#EAB308", eyes: "eyes_06", accessory: "bow_01", aura: "none" }} size={36} />
                   </div>
                 </div>
-                {/* Sage — green glasses, slow float */}
+                {/* Sage — green glasses */}
                 <div style={{ transform: "rotate(4deg)" }}>
                   <div className="animate-warm-drift" style={{ animationDelay: "1.2s" }}>
                     <InkAvatar config={{ base: "droplet_01", color: "#22C55E", eyes: "eyes_03", accessory: "glasses_01", aura: "none" }} size={40} />
                   </div>
                 </div>
-                {/* Snooze — heavily tilted, napping */}
+                {/* Snooze — napping */}
                 <div style={{ transform: "rotate(-30deg)", marginBottom: "2px" }} className="opacity-75">
                   <InkAvatar config={{ base: "droplet_04", color: "#F97316", eyes: "eyes_08", accessory: "none", aura: "none" }} size={32} />
                 </div>
-                {/* Tiny fancy blue — peeking from edge */}
-                <div style={{ transform: "rotate(10deg)", marginBottom: "0px" }} className="opacity-80">
+                {/* Blue monocle — peeking */}
+                <div style={{ transform: "rotate(10deg)" }} className="opacity-80">
                   <InkAvatar config={{ base: "droplet_02", color: "#3B82F6", eyes: "eyes_04", accessory: "monocle_01", aura: "none" }} size={34} />
                 </div>
               </div>
@@ -532,9 +533,9 @@ export default function LockerPage() {
               <div className="flex items-center gap-2">
                 <div
                   className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: light ? "rgba(180,83,9,0.12)" : "rgba(180,83,9,0.28)" }}
+                  style={{ background: light ? "rgba(29,78,216,0.1)" : "rgba(29,78,216,0.25)" }}
                 >
-                  <KeyIcon className="w-4 h-4" color="#B45309" />
+                  <KeyIcon className="w-4 h-4" color="#3B82F6" />
                 </div>
                 <h2 className={`font-bold text-xl ${text}`} style={{ fontFamily: "'Playfair Display', serif" }}>
                   The Wardrobe
@@ -542,9 +543,9 @@ export default function LockerPage() {
               </div>
               <Link
                 href="/shop"
-                className={`text-xs font-bold transition-colors flex items-center gap-1 ${textMuted} hover:text-[#D97706]`}
+                className={`text-xs font-bold transition-colors flex items-center gap-1 ${textMuted} hover:text-[#3B82F6]`}
               >
-                <InkDropIcon className="w-3.5 h-3.5" color="#D97706" />
+                <InkDropIcon className="w-3.5 h-3.5" color="#3B82F6" />
                 Ink Shop →
               </Link>
             </div>
@@ -570,10 +571,10 @@ export default function LockerPage() {
           <div
             className={`rounded-2xl p-5 border ${cardShadow}`}
             style={{
-              borderColor: light ? "rgba(217,119,6,0.2)" : "rgba(146,64,14,0.35)",
+              borderColor: light ? "rgba(59,130,246,0.18)" : "rgba(29,78,216,0.38)",
               background: light
-                ? "linear-gradient(160deg, #FFFBF0 0%, #FEF9EE 100%)"
-                : "linear-gradient(160deg, #1A0E06 0%, #160B04 100%)",
+                ? "linear-gradient(160deg, #FAFDF7 0%, #F5FAF2 100%)"
+                : "linear-gradient(160deg, #111808 0%, #0E1606 100%)",
             }}
           >
             {tab === "base" && (
@@ -655,10 +656,10 @@ export default function LockerPage() {
                           onClick={() => setActiveSlot(s)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                             activeSlot === s
-                              ? "bg-[#B45309] text-[#FEF3E2]"
+                              ? "bg-[#1D4ED8] text-[#EFF6FF]"
                               : light
-                              ? "bg-[#FEF3C7] text-[#92400E] hover:bg-[#FDE68A]/60"
-                              : "bg-[#1A0E06] text-[#A87450] hover:bg-[#2A1608]"
+                              ? "bg-[#EFF6FF] text-[#1D4ED8] hover:bg-[#DBEAFE]/80"
+                              : "bg-[#030712] text-[#60A5FA] hover:bg-[#0C1222]"
                           }`}
                         >
                           Slot {s}
@@ -688,7 +689,7 @@ export default function LockerPage() {
                               <Link
                                 href="/shop"
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-[#1C0F00]/90 text-[#FEF3E2] hover:bg-[#1C0F00] transition-colors"
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-[#0C1222]/90 text-[#EFF6FF] hover:bg-[#0C1222] transition-colors"
                               >
                                 <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
                                   <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
@@ -702,7 +703,7 @@ export default function LockerPage() {
                           </div>
                           <span className={`text-xs font-bold ${text}`}>{a.label}</span>
                           {unlocked && a.id !== "none" && (inSlot1 || inSlot2) && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#D97706]/18 text-[#D97706]">
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#3B82F6]/15 text-[#3B82F6]">
                               {inSlot1 && inSlot2 ? "Slot 1 & 2" : inSlot1 ? "Slot 1" : "Slot 2"}
                             </span>
                           )}
@@ -762,11 +763,11 @@ export default function LockerPage() {
                   {ownedVariants.length === 0 && (
                     <div className="text-center py-6">
                       <div className="animate-warm-drift inline-block mb-3">
-                        <InkAvatar config={{ base: "droplet_03", color: "#EAB308", eyes: "eyes_05", accessory: "none", aura: "none" }} size={48} />
+                        <InkAvatar config={{ base: "droplet_03", color: "#22C55E", eyes: "eyes_05", accessory: "none", aura: "none" }} size={48} />
                       </div>
                       <p className={`text-xs font-semibold ${textMuted}`}>
                         No auras yet! Open packs in the{" "}
-                        <Link href="/shop" className="underline" style={{ color: "#D97706" }}>
+                        <Link href="/shop" className="underline" style={{ color: "#3B82F6" }}>
                           Ink Shop
                         </Link>{" "}
                         to collect them.
@@ -777,17 +778,17 @@ export default function LockerPage() {
               );
             })()}
 
-            {/* Footer — shop link */}
+            {/* Footer */}
             <div
-              className={`mt-5 pt-4 border-t`}
-              style={{ borderColor: light ? "rgba(217,119,6,0.15)" : "rgba(146,64,14,0.25)" }}
+              className="mt-5 pt-4 border-t"
+              style={{ borderColor: light ? "rgba(59,130,246,0.15)" : "rgba(29,78,216,0.28)" }}
             >
               <Link
                 href="/shop"
                 className="inline-flex items-center gap-2 text-sm font-bold transition-colors hover:opacity-80"
-                style={{ color: "#D97706" }}
+                style={{ color: "#3B82F6" }}
               >
-                <InkDropIcon className="w-4 h-4" color="#D97706" />
+                <InkDropIcon className="w-4 h-4" color="#3B82F6" />
                 Visit the Ink Shop to unlock more
                 <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                   <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />

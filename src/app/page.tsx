@@ -255,13 +255,12 @@ export default function MarketingPage() {
           .footer-grid  { grid-template-columns: 1fr 1fr !important; }
           .footer-brand { grid-column: 1 / -1; }
           .proof-grid   { grid-template-columns: repeat(2, 1fr) !important; }
-          .proof-divider-2 { border-right: none !important; }
-          .proof-divider-3 { border-right: none !important; }
+          .proof-divider-1, .proof-divider-2, .proof-divider-3, .proof-divider-4 { border-right: none !important; }
           .slabel-left  { justify-content: center !important; }
         }
         @media (max-width: 600px) {
           .proof-grid { grid-template-columns: 1fr !important; }
-          .proof-divider-0, .proof-divider-1, .proof-divider-2 { border-right: none !important; }
+          .proof-divider-0, .proof-divider-1, .proof-divider-2, .proof-divider-3, .proof-divider-4 { border-right: none !important; }
           .footer-grid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 860px) {
@@ -298,6 +297,7 @@ export default function MarketingPage() {
             {[
               { label: "How It Works", href: "#how-it-works" },
               { label: "Game Modes",   href: "#game-modes" },
+              { label: "For Teachers", href: "/teacher" },
               { label: "Study",        href: "#vocabulary" },
             ].map((l) => (
               <a
@@ -364,12 +364,12 @@ export default function MarketingPage() {
             {[
               { label: "How It Works", href: "#how-it-works" },
               { label: "Game Modes",   href: "#game-modes" },
-              { label: "Study",        href: "#vocabulary" },
               { label: "For Teachers", href: "/teacher" },
+              { label: "Study",        href: "#vocabulary" },
             ].map((l) => (
-              <a key={l.label} href={l.href} onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", color: MUTED, fontSize: "0.95rem", fontWeight: 500, textDecoration: "none" }}>
+              <Link key={l.label} href={l.href} onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", color: MUTED, fontSize: "0.95rem", fontWeight: 500, textDecoration: "none" }}>
                 {l.label}
-              </a>
+              </Link>
             ))}
             <Link href="/auth/login" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: "white", fontSize: "0.95rem", fontWeight: 700, textDecoration: "none", marginTop: "4px" }}>
               Log In
@@ -440,7 +440,7 @@ export default function MarketingPage() {
             </h1>
 
             <p className="ha3" style={{ fontSize: "1.05rem", color: MUTED, lineHeight: 1.78, marginBottom: "44px", maxWidth: "480px", fontWeight: 400 }}>
-              Master vocabulary and punctuation in 60-second rounds. Climb the ranked ladder from Bronze to Emerald, earn trophies, and unlock cosmetics for your Inkling avatar. Free to play — no subscription required.
+              Master vocabulary and punctuation in 60-second rounds. Climb the ranked ladder from Bronze to Emerald, earn trophies, and unlock cosmetics for your Inkling avatar. <strong style={{ color: "rgba(255,255,255,0.7)" }}>Teachers:</strong> use the Teacher Portal to run live classroom sessions and track progress. Free to play — no subscription required.
             </p>
 
             <div className="hero-ctas ha4" style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
@@ -485,18 +485,19 @@ export default function MarketingPage() {
       <div id="social-proof" style={{ background: CARD, borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div
           className="proof-grid"
-          style={{ maxWidth: "960px", margin: "0 auto", padding: "0 24px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}
+          style={{ maxWidth: "960px", margin: "0 auto", padding: "0 24px", display: "grid", gridTemplateColumns: "repeat(5, 1fr)" }}
         >
           {[
             { value: "200+", label: "Students Playing" },
             { value: "15K+", label: "Questions Answered" },
             { value: "10",   label: "Vocabulary Tiers" },
             { value: "5★",   label: "Average Rating" },
+            { value: "Free", label: "Teacher Portal" },
           ].map((stat, i) => (
             <div
               key={stat.label}
               className={`proof-divider-${i}`}
-              style={{ textAlign: "center", padding: "36px 16px", borderRight: i < 3 ? "1px solid rgba(255,255,255,0.06)" : "none" }}
+              style={{ textAlign: "center", padding: "36px 16px", borderRight: i < 4 ? "1px solid rgba(255,255,255,0.06)" : "none" }}
             >
               <p style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.4rem)", fontWeight: 700, color: MINT, marginBottom: "6px", fontFamily: DISPLAY, fontStyle: "italic" }}>{stat.value}</p>
               <p style={{ fontSize: "0.78rem", color: MUTED, fontWeight: 500, letterSpacing: "0.03em" }}>{stat.label}</p>
@@ -588,8 +589,8 @@ export default function MarketingPage() {
                 glow:   "rgba(59,130,246,0.22)",
                 avatar: { base: "droplet_01", color: BLUE,      eyes: "eyes_03", accessory: "glasses_01", aura: "none"         },
                 sub:    "Practice Without Pressure",
-                tags:   ["1v1 or 3v3 · 60-second rounds", "Vocabulary or Punctuation", "Grade 3 → AP Lit", "Party up with friends"],
-                desc:   "Warm up with friends or solo. No rank impact — just pure practice.",
+                tags:   ["1v1 or 3v3 · 60-second rounds", "Vocabulary or Punctuation", "Grade 3 → AP Lit", "Parties: invite friends, join by code", "Queue together for matches"],
+                desc:   "Create a party, invite friends or share a join code, then queue together for 1v1 or 3v3. No rank impact — just pure practice.",
                 cta:    "Play Casual",
                 href:   playHref,
               },
@@ -667,6 +668,54 @@ export default function MarketingPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          5b. FOR TEACHERS
+      ════════════════════════════════════════════════════════════════════════ */}
+      <section id="for-teachers" style={{ maxWidth: "1100px", margin: "0 auto", padding: "80px 24px" }}>
+        <div style={{ background: CARD, border: "1px solid rgba(255,255,255,0.07)", borderLeft: "4px solid #0EA5E9", borderRadius: "16px", padding: "40px 44px", overflow: "hidden" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "40px", alignItems: "flex-start" }}>
+            <div style={{ flex: "1 1 320px" }}>
+              <SLabel align="left">TEACHER PORTAL</SLabel>
+              <h2 style={{ fontSize: "clamp(1.4rem, 3vw, 1.9rem)", fontWeight: 800, color: "white", marginBottom: "16px", fontFamily: DISPLAY }}>
+                Everything You Need to Run Vocabulary in Class
+              </h2>
+              <p style={{ fontSize: "0.95rem", color: MUTED, lineHeight: 1.75, marginBottom: "24px" }}>
+                Sign up free and get access to the full Teacher Portal. Create classes, share join codes so students can request to join, and host live vocabulary battles for 20+ players. After each session, view detailed reports and export to CSV for gradebooks.
+              </p>
+              <p style={{ fontSize: "0.88rem", color: FAINT, lineHeight: 1.65, marginBottom: "28px" }}>
+                Homeschool and public school teachers welcome. Quick setup — choose your grade level and subject, then start hosting. No subscription, no credit card.
+              </p>
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "24px" }}>
+                {["Classes & rosters", "Join codes", "Live sessions (20+)", "Session reports", "CSV export", "Free"].map((tag) => (
+                  <span key={tag} style={{ padding: "6px 14px", borderRadius: "100px", border: "1px solid rgba(14,165,233,0.35)", fontSize: "0.78rem", fontWeight: 600, color: "#0EA5E9", background: "rgba(14,165,233,0.08)" }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                <Link
+                  href="/auth/teacher-signup"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 24px", borderRadius: "10px", background: "#0EA5E9", color: "white", fontSize: "0.9rem", fontWeight: 700, textDecoration: "none", transition: "opacity 0.2s, box-shadow 0.2s" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.92"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(14,165,233,0.4)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.boxShadow = "none"; }}
+                >
+                  Sign Up for Teachers
+                  <ArrowRight size={14} />
+                </Link>
+                <Link
+                  href="/auth/teacher-login"
+                  style={{ display: "inline-flex", alignItems: "center", padding: "12px 24px", borderRadius: "10px", border: "1.5px solid rgba(14,165,233,0.5)", color: "#0EA5E9", fontSize: "0.9rem", fontWeight: 600, textDecoration: "none", transition: "background 0.2s, color 0.2s" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(14,165,233,0.12)"; e.currentTarget.style.color = "white"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#0EA5E9"; }}
+                >
+                  Sign In
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -31,15 +31,20 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Redirect unauthenticated users away from protected routes
+  const path = request.nextUrl.pathname;
+  const isTeacherLanding = path === "/teacher";
   const isProtected =
     request.nextUrl.pathname.startsWith("/profile") ||
     request.nextUrl.pathname.startsWith("/play/ranked") ||
     request.nextUrl.pathname === "/ranked" ||
-    request.nextUrl.pathname.startsWith("/teacher");
+    (path.startsWith("/teacher") && !isTeacherLanding) ||
+    request.nextUrl.pathname === "/dashboard";
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
+    const isTeacherRoute = path.startsWith("/teacher");
+    url.pathname = isTeacherRoute ? "/auth/teacher-login" : "/auth/login";
+    url.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 
