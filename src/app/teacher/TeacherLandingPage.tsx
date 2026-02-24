@@ -24,6 +24,63 @@ const FLOAT_WORDS = [
   "grades", "sessions", "export", "join codes", "ELA",
 ];
 
+const AP_CURRICULUM_STRANDS = [
+  {
+    title: "Word Meaning in Context",
+    summary: "Students determine precise meaning from syntax, tone, and rhetorical context.",
+    skills: ["Context clues and diction shifts", "Denotation vs connotation", "Academic and discipline-specific terms"],
+  },
+  {
+    title: "Rhetorical Analysis",
+    summary: "Students analyze how language choices shape purpose, audience, and argument.",
+    skills: ["Tone, style, and rhetorical situation", "Appeals and line of reasoning", "Syntax and sentence-level effects"],
+  },
+  {
+    title: "Evidence and Argument",
+    summary: "Students use vocabulary in claims, counterclaims, and evidence-based writing.",
+    skills: ["Claim precision and qualifiers", "Evidence integration and commentary", "Transitions and logical cohesion"],
+  },
+  {
+    title: "Revision and Style",
+    summary: "Students revise for clarity, concision, and impact in AP-style writing tasks.",
+    skills: ["Word economy and precision", "Sentence variety and control", "Figurative language and voice"],
+  },
+];
+
+const AP_CURRICULUM_PROGRESSION = [
+  {
+    phase: "Phase 1",
+    window: "Launch",
+    title: "Vocabulary Foundations",
+    detail: "Build core Tier 2 vocabulary, morphology routines, and context-clue habits for daily retrieval.",
+  },
+  {
+    phase: "Phase 2",
+    window: "Develop",
+    title: "Analysis and Interpretation",
+    detail: "Move from recall to interpretation by analyzing tone, nuance, and rhetorical impact in short passages.",
+  },
+  {
+    phase: "Phase 3",
+    window: "Apply",
+    title: "Argument and Reasoning",
+    detail: "Apply academic vocabulary to claim-driven responses, evidence commentary, and argument structure.",
+  },
+  {
+    phase: "Phase 4",
+    window: "Refine",
+    title: "AP-Style Revision",
+    detail: "Practice revision decisions that improve precision, coherence, and style under timed conditions.",
+  },
+];
+
+const AP_CURRICULUM_CYCLE = [
+  { step: "Diagnose", detail: "Use warm-up rounds to surface gaps in vocabulary knowledge and transfer skills." },
+  { step: "Teach", detail: "Target the highest-leverage strand with mini-lessons and modeled examples." },
+  { step: "Practice", detail: "Run short, mixed-skill rounds for repetition, feedback, and engagement." },
+  { step: "Measure", detail: "Review session reports and export data to plan reteach groups or writing support." },
+];
+
 function ArrowRight({ size = 15 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -152,9 +209,7 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
         @media (max-width: 640px) {
           .teacher-proof-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .teacher-proof-divider { border-right: none !important; }
-          .teacher-curriculum-grid { grid-template-columns: 1fr !important; text-align: center !important; }
-          .teacher-curriculum-left { text-align: center !important; }
-          .teacher-curriculum-right { align-items: center !important; }
+          .teacher-curriculum-grid { grid-template-columns: 1fr !important; text-align: left !important; }
         }
       `}</style>
 
@@ -459,52 +514,89 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
         <div style={{ textAlign: "center", marginBottom: "64px" }}>
           <SLabel>CURRICULUM</SLabel>
           <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 800, color: textColor, marginBottom: "16px", fontFamily: DISPLAY }}>
-            Comprehensive Vocabulary Curriculum
+            AP-Aligned Vocabulary Framework
           </h2>
           <p style={{ fontSize: "1rem", color: mutedColor, lineHeight: 1.75, maxWidth: "640px", margin: "0 auto" }}>
-            Aligned with ELA standards from elementary through AP. Question difficulty adapts to your chosen grade level.
+            Structured around AP English Language and AP English Literature skill expectations, with a clear progression from vocabulary foundations to analytical writing and revision.
           </p>
         </div>
 
-        <div className="teacher-curriculum-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "80px", alignItems: "start" }}>
-          <div className="teacher-curriculum-left">
-            <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "16px" }}>
-              Grade levels
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "32px" }}>
-              {["Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12", "Pre-AP 1", "Pre-AP 2", "AP Lang", "AP Lit"].map((t) => (
-                <span key={t} style={{ padding: "5px 14px", borderRadius: "100px", border: `1.5px solid ${AMBER}45`, fontSize: "0.78rem", fontWeight: 600, color: AMBER, background: `${AMBER}0D` }}>
-                  {t}
-                </span>
-              ))}
+        <div className="teacher-curriculum-grid" style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr", gap: "28px", alignItems: "start" }}>
+          <div className="teacher-curriculum-left" style={{ display: "grid", gap: "20px" }}>
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "16px", padding: "24px" }}>
+              <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "14px" }}>
+                AP-aligned competency strands
+              </p>
+              <div style={{ display: "grid", gap: "14px" }}>
+                {AP_CURRICULUM_STRANDS.map((strand) => (
+                  <article key={strand.title} style={{ border: `1px solid ${AMBER}24`, borderRadius: "12px", padding: "14px 14px 12px", background: `${AMBER}08` }}>
+                    <h3 style={{ fontSize: "0.94rem", fontWeight: 700, color: textColor, marginBottom: "6px" }}>{strand.title}</h3>
+                    <p style={{ fontSize: "0.82rem", color: mutedColor, lineHeight: 1.6, marginBottom: "8px" }}>{strand.summary}</p>
+                    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: "4px" }}>
+                      {strand.skills.map((skill) => (
+                        <li key={skill} style={{ fontSize: "0.76rem", color: mutedColor, lineHeight: 1.45, paddingLeft: "14px", position: "relative" }}>
+                          <span style={{ position: "absolute", left: 0, top: "0.5em", width: "6px", height: "1px", background: `${AMBER}80` }} />
+                          {skill}
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
             </div>
-            <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "16px" }}>
-              Standards alignment
-            </p>
-            <p style={{ fontSize: "0.9rem", color: mutedColor, lineHeight: 1.7, marginBottom: "20px" }}>
-              Vocabulary and language arts standards across Common Core, state frameworks, and College Board Pre-AP/AP English. Questions target tier 2 academic vocabulary, domain-specific terms, and skills that appear on standardized assessments.
-            </p>
-            <p style={{ fontSize: "0.9rem", color: mutedColor, lineHeight: 1.7 }}>
-              During teacher setup, you select your grade band and subject. The system then serves questions calibrated to that level — no manual filtering required. 60-second rounds keep pacing tight and engagement high.
-            </p>
+
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "16px", padding: "24px" }}>
+              <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "14px" }}>
+                Yearlong progression map
+              </p>
+              <div style={{ display: "grid", gap: "10px" }}>
+                {AP_CURRICULUM_PROGRESSION.map((phase) => (
+                  <div key={phase.phase} style={{ display: "grid", gridTemplateColumns: "88px 1fr", gap: "12px", alignItems: "start" }}>
+                    <div style={{ borderRadius: "10px", border: `1px solid ${AMBER}35`, background: `${AMBER}10`, padding: "8px 10px" }}>
+                      <p style={{ fontSize: "0.68rem", fontWeight: 700, color: AMBER, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 2px" }}>{phase.phase}</p>
+                      <p style={{ fontSize: "0.74rem", color: mutedColor, margin: 0 }}>{phase.window}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: "0.84rem", fontWeight: 600, color: textColor, margin: "0 0 4px" }}>{phase.title}</p>
+                      <p style={{ fontSize: "0.8rem", color: mutedColor, lineHeight: 1.55, margin: 0 }}>{phase.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="teacher-curriculum-right" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-            <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "20px" }}>
-              Skill types covered
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "28px" }}>
-              {["Definitions", "Synonyms", "Antonyms", "Context Clues", "Word Parts", "Rhetoric", "Inference", "Author's Purpose", "Figurative Language", "Argument"].map((skill) => (
-                <span key={skill} style={{ padding: "6px 16px", borderRadius: "100px", border: `1px solid ${AMBER}45`, fontSize: "0.83rem", fontWeight: 500, color: AMBER, background: `${AMBER}10` }}>
-                  {skill}
-                </span>
-              ))}
+
+          <div className="teacher-curriculum-right" style={{ display: "grid", gap: "20px", alignContent: "start" }}>
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: "16px", padding: "24px" }}>
+              <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "12px" }}>
+                Instructional cycle
+              </p>
+              <p style={{ fontSize: "0.87rem", color: mutedColor, lineHeight: 1.65, marginBottom: "16px" }}>
+                Run AP-aligned vocabulary instruction as a repeatable cycle that connects gameplay, direct teaching, and measurable growth.
+              </p>
+              <div style={{ display: "grid", gap: "10px" }}>
+                {AP_CURRICULUM_CYCLE.map((item, index) => (
+                  <div key={item.step} style={{ display: "grid", gridTemplateColumns: "28px 1fr", gap: "10px" }}>
+                    <div style={{ width: "28px", height: "28px", borderRadius: "50%", border: `1px solid ${AMBER}50`, background: `${AMBER}12`, color: AMBER, fontSize: "0.74rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: "0.83rem", fontWeight: 700, color: textColor, margin: "2px 0 4px" }}>{item.step}</p>
+                      <p style={{ fontSize: "0.79rem", color: mutedColor, lineHeight: 1.55, margin: 0 }}>{item.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "12px" }}>
-              Question formats
-            </p>
-            <p style={{ fontSize: "0.88rem", color: mutedColor, lineHeight: 1.65 }}>
-              Multiple choice, fill-in, and matching. Each round mixes skill types so students practice varied retrieval. Session reports show which skills each student encountered and how they performed.
-            </p>
+
+            <div style={{ background: `linear-gradient(160deg, ${AMBER}12 0%, transparent 75%)`, border: `1px solid ${AMBER}35`, borderRadius: "16px", padding: "20px 22px" }}>
+              <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "10px" }}>
+                Built for mixed readiness
+              </p>
+              <p style={{ fontSize: "0.84rem", color: mutedColor, lineHeight: 1.6, margin: 0 }}>
+                Teachers choose grade band and subject once during setup. Lexicon League then calibrates question complexity so support-level and advanced learners can practice the same core skills at an appropriate level.
+              </p>
+            </div>
           </div>
         </div>
       </section>
