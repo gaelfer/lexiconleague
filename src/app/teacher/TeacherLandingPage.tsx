@@ -168,8 +168,8 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
       }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 28px", height: "72px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "24px" }}>
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", flexShrink: 0 }}>
-            <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: DARK, border: `1.5px solid ${AMBER}55`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "4px" }}>
-              <LogoIcon className="w-full h-full" style={{ minWidth: "24px", minHeight: "24px" }} />
+            <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: DARK, border: `1.5px solid ${AMBER}55`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "2px" }}>
+              <InkAvatar config={{ base: "droplet_01", color: AMBER, eyes: "eyes_03", accessory: "quill_01", aura: "none" }} size={32} />
             </div>
             <span style={{ fontSize: "1rem", fontWeight: 800, color: textColor, whiteSpace: "nowrap", fontFamily: BODY }}>
               Lexicon<span style={{ color: AMBER }}>League</span>
@@ -208,6 +208,14 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
               For Students
             </Link>
             <Link
+              href="/auth/teacher-login?next=/teacher"
+              style={{ padding: "9px 18px", borderRadius: "8px", border: `1px solid ${AMBER}55`, color: AMBER, fontSize: "0.84rem", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = `${AMBER}18`; e.currentTarget.style.color = textColor; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = AMBER; }}
+            >
+              Sign In
+            </Link>
+            <Link
               href="/auth/teacher-signup"
               style={{ padding: "9px 22px", borderRadius: "8px", background: `linear-gradient(135deg, ${GOLD} 0%, ${AMBER} 50%, ${AMBER_DARK} 100%)`, color: "#0F172A", fontSize: "0.84rem", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(245,158,11,0.4)", transition: "opacity 0.2s, box-shadow 0.2s" }}
               onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(245,158,11,0.55)"; e.currentTarget.style.opacity = "0.92"; }}
@@ -241,6 +249,9 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
                 {l.label}
               </a>
             ))}
+            <Link href="/auth/teacher-login?next=/teacher" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: mutedColor, fontSize: "0.95rem", fontWeight: 500, textDecoration: "none" }}>
+              Sign In
+            </Link>
             <Link href="/auth/teacher-signup" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: AMBER, fontSize: "0.95rem", fontWeight: 700, textDecoration: "none", marginTop: "4px" }}>
               Sign Up Free
             </Link>
@@ -445,34 +456,55 @@ export default function TeacherLandingPage({ light }: { light: boolean }) {
 
       {/* CURRICULUM */}
       <section id="curriculum" style={{ maxWidth: "1100px", margin: "0 auto", padding: "110px 24px" }}>
-        <div className="teacher-curriculum-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "80px", alignItems: "center" }}>
+        <div style={{ textAlign: "center", marginBottom: "64px" }}>
+          <SLabel>CURRICULUM</SLabel>
+          <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 800, color: textColor, marginBottom: "16px", fontFamily: DISPLAY }}>
+            Comprehensive Vocabulary Curriculum
+          </h2>
+          <p style={{ fontSize: "1rem", color: mutedColor, lineHeight: 1.75, maxWidth: "640px", margin: "0 auto" }}>
+            Aligned with ELA standards from elementary through AP. Question difficulty adapts to your chosen grade level.
+          </p>
+        </div>
+
+        <div className="teacher-curriculum-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "80px", alignItems: "start" }}>
           <div className="teacher-curriculum-left">
-            <SLabel align="left">CURRICULUM</SLabel>
-            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 800, color: textColor, marginBottom: "16px", fontFamily: DISPLAY }}>
-              Built for Every Grade
-            </h2>
-            <p style={{ fontSize: "1rem", color: mutedColor, lineHeight: 1.75, marginBottom: "32px" }}>
-              Grades 3–12. ELA, vocabulary, language arts. Definitions, synonyms, antonyms, context clues, word parts. 60-second rounds — perfect for classroom engagement. Aligned with vocabulary and language arts standards. Choose your grade level during setup to match question difficulty.
+            <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "16px" }}>
+              Grade levels
             </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {["Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map((t) => (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "32px" }}>
+              {["Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12", "Pre-AP 1", "Pre-AP 2", "AP Lang", "AP Lit"].map((t) => (
                 <span key={t} style={{ padding: "5px 14px", borderRadius: "100px", border: `1.5px solid ${AMBER}45`, fontSize: "0.78rem", fontWeight: 600, color: AMBER, background: `${AMBER}0D` }}>
                   {t}
                 </span>
               ))}
             </div>
+            <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "16px" }}>
+              Standards alignment
+            </p>
+            <p style={{ fontSize: "0.9rem", color: mutedColor, lineHeight: 1.7, marginBottom: "20px" }}>
+              Vocabulary and language arts standards across Common Core, state frameworks, and College Board Pre-AP/AP English. Questions target tier 2 academic vocabulary, domain-specific terms, and skills that appear on standardized assessments.
+            </p>
+            <p style={{ fontSize: "0.9rem", color: mutedColor, lineHeight: 1.7 }}>
+              During teacher setup, you select your grade band and subject. The system then serves questions calibrated to that level — no manual filtering required. 60-second rounds keep pacing tight and engagement high.
+            </p>
           </div>
           <div className="teacher-curriculum-right" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
             <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "20px" }}>
               Skill types covered
             </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-              {["Definitions", "Synonyms", "Antonyms", "Context Clues", "Word Parts", "Rhetoric", "Inference"].map((skill) => (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "28px" }}>
+              {["Definitions", "Synonyms", "Antonyms", "Context Clues", "Word Parts", "Rhetoric", "Inference", "Author's Purpose", "Figurative Language", "Argument"].map((skill) => (
                 <span key={skill} style={{ padding: "6px 16px", borderRadius: "100px", border: `1px solid ${AMBER}45`, fontSize: "0.83rem", fontWeight: 500, color: AMBER, background: `${AMBER}10` }}>
                   {skill}
                 </span>
               ))}
             </div>
+            <p style={{ fontSize: "0.62rem", fontWeight: 700, color: FAINT, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "12px" }}>
+              Question formats
+            </p>
+            <p style={{ fontSize: "0.88rem", color: mutedColor, lineHeight: 1.65 }}>
+              Multiple choice, fill-in, and matching. Each round mixes skill types so students practice varied retrieval. Session reports show which skills each student encountered and how they performed.
+            </p>
           </div>
         </div>
       </section>

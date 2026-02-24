@@ -317,9 +317,9 @@ export default function MarketingPage() {
           <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
             <Link
               href="/teacher"
-              style={{ padding: "9px 18px", borderRadius: "8px", border: `1.5px solid ${MINT}`, color: MINT, fontSize: "0.84rem", fontWeight: 600, textDecoration: "none", transition: "all 0.2s", whiteSpace: "nowrap", background: `${MINT}0D` }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = `${MINT}22`; e.currentTarget.style.color = "white"; e.currentTarget.style.borderColor = MINT; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = `${MINT}0D`; e.currentTarget.style.color = MINT; e.currentTarget.style.borderColor = MINT; }}
+              style={{ padding: "9px 18px", borderRadius: "8px", border: "1.5px solid #F59E0B", color: "#F59E0B", fontSize: "0.84rem", fontWeight: 600, textDecoration: "none", transition: "all 0.2s", whiteSpace: "nowrap", background: "rgba(245,158,11,0.1)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.2)"; e.currentTarget.style.color = "#FBBF24"; e.currentTarget.style.borderColor = "#FBBF24"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.1)"; e.currentTarget.style.color = "#F59E0B"; e.currentTarget.style.borderColor = "#F59E0B"; }}
             >
               For Teachers
             </Link>
@@ -676,7 +676,7 @@ export default function MarketingPage() {
           5b. FOR TEACHERS
       ════════════════════════════════════════════════════════════════════════ */}
       <section id="for-teachers" style={{ maxWidth: "1100px", margin: "0 auto", padding: "80px 24px" }}>
-        <div style={{ background: CARD, border: "1px solid rgba(255,255,255,0.07)", borderLeft: "4px solid #0EA5E9", borderRadius: "16px", padding: "40px 44px", overflow: "hidden" }}>
+        <div style={{ background: "linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(15,23,42,0.6) 100%)", border: "1px solid rgba(245,158,11,0.2)", borderLeft: "4px solid #F59E0B", borderRadius: "16px", padding: "40px 44px", overflow: "hidden" }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "40px", alignItems: "flex-start" }}>
             <div style={{ flex: "1 1 320px" }}>
               <SLabel align="left">TEACHER PORTAL</SLabel>
@@ -691,28 +691,28 @@ export default function MarketingPage() {
               </p>
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "24px" }}>
                 {["Classes & rosters", "Join codes", "Live sessions (20+)", "Session reports", "CSV export", "Free"].map((tag) => (
-                  <span key={tag} style={{ padding: "6px 14px", borderRadius: "100px", border: "1px solid rgba(14,165,233,0.35)", fontSize: "0.78rem", fontWeight: 600, color: "#0EA5E9", background: "rgba(14,165,233,0.08)" }}>
+                  <span key={tag} style={{ padding: "6px 14px", borderRadius: "100px", border: "1px solid rgba(245,158,11,0.35)", fontSize: "0.78rem", fontWeight: 600, color: "#F59E0B", background: "rgba(245,158,11,0.08)" }}>
                     {tag}
                   </span>
                 ))}
               </div>
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                 <Link
-                  href="/auth/teacher-signup"
-                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 24px", borderRadius: "10px", background: "#0EA5E9", color: "white", fontSize: "0.9rem", fontWeight: 700, textDecoration: "none", transition: "opacity 0.2s, box-shadow 0.2s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.92"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(14,165,233,0.4)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.boxShadow = "none"; }}
+                  href="/teacher"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 24px", borderRadius: "10px", background: "linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #D97706 100%)", color: "#0F172A", fontSize: "0.9rem", fontWeight: 700, textDecoration: "none", transition: "opacity 0.2s, box-shadow 0.2s", boxShadow: "0 4px 12px rgba(245,158,11,0.4)" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.92"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(245,158,11,0.5)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(245,158,11,0.4)"; }}
                 >
-                  Sign Up for Teachers
+                  Learn More
                   <ArrowRight size={14} />
                 </Link>
                 <Link
-                  href="/auth/teacher-login"
-                  style={{ display: "inline-flex", alignItems: "center", padding: "12px 24px", borderRadius: "10px", border: "1.5px solid rgba(14,165,233,0.5)", color: "#0EA5E9", fontSize: "0.9rem", fontWeight: 600, textDecoration: "none", transition: "background 0.2s, color 0.2s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(14,165,233,0.12)"; e.currentTarget.style.color = "white"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#0EA5E9"; }}
+                  href="/auth/teacher-signup"
+                  style={{ display: "inline-flex", alignItems: "center", padding: "12px 24px", borderRadius: "10px", border: "1.5px solid rgba(245,158,11,0.5)", color: "#F59E0B", fontSize: "0.9rem", fontWeight: 600, textDecoration: "none", transition: "background 0.2s, color 0.2s" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.12)"; e.currentTarget.style.color = "white"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#F59E0B"; }}
                 >
-                  Sign In
+                  Sign Up
                 </Link>
               </div>
             </div>
