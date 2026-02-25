@@ -266,9 +266,14 @@ function LoginPageInner() {
 
           <p className={`mt-6 text-center text-xs font-medium ${textMutedCls}`}>
             By continuing, you agree to our{" "}
-            <span className="underline cursor-pointer hover:opacity-80">Terms</span>
+            <Link href="/legal/terms" className="underline hover:opacity-80">
+              Terms
+            </Link>
             {" "}and{" "}
-            <span className="underline cursor-pointer hover:opacity-80">Privacy Policy</span>.
+            <Link href="/legal/privacy" className="underline hover:opacity-80">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </div>
       </div>

@@ -369,9 +369,14 @@ function SignupPageInner() {
 
           <p className={`mt-6 text-center text-xs font-medium ${light ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
             By continuing, you agree to our{" "}
-            <span className="underline cursor-pointer hover:opacity-80">Terms</span>
+            <Link href="/legal/terms" className="underline hover:opacity-80">
+              Terms
+            </Link>
             {" "}and{" "}
-            <span className="underline cursor-pointer hover:opacity-80">Privacy Policy</span>.
+            <Link href="/legal/privacy" className="underline hover:opacity-80">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </div>
       </div>

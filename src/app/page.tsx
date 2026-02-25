@@ -1153,8 +1153,10 @@ export default function MarketingPage() {
                 links: [
                   { label: "Help Center",    href: "#" },
                   { label: "Contact",        href: "#" },
-                  { label: "Privacy Policy", href: "#" },
-                  { label: "Terms of Use",   href: "#" },
+                  { label: "Privacy Policy", href: "/legal/privacy" },
+                  { label: "Terms of Use",   href: "/legal/terms" },
+                  { label: "Cookie Policy",  href: "/legal/cookies" },
+                  { label: "Children's Privacy", href: "/legal/children-privacy" },
                 ],
               },
             ] as { title: string; links: { label: string; href: string }[] }[]

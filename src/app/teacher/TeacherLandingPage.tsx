@@ -785,6 +785,8 @@ export default function TeacherLandingPage({ light, teacherMode = false }: { lig
             <Link href="/" style={{ fontSize: "0.84rem", color: mutedColor, textDecoration: "none" }}>For Students</Link>
             <Link href="/auth/teacher-signup" style={{ fontSize: "0.84rem", color: AMBER, fontWeight: 600, textDecoration: "none" }}>Teacher Sign Up</Link>
             <Link href="/auth/teacher-login" style={{ fontSize: "0.84rem", color: mutedColor, textDecoration: "none" }}>Teacher Sign In</Link>
+            <Link href="/legal/privacy" style={{ fontSize: "0.84rem", color: mutedColor, textDecoration: "none" }}>Privacy</Link>
+            <Link href="/legal/terms" style={{ fontSize: "0.84rem", color: mutedColor, textDecoration: "none" }}>Terms</Link>
           </div>
         </div>
       </footer>
