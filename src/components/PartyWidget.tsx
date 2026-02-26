@@ -150,9 +150,11 @@ export default function PartyWidget({ inline = false, embedded = false }: PartyW
 
     if (!inline && !embedded && collapsed && !hasPending) return null;
 
+    const labelClass = embedded ? "text-sm font-bold mb-3" : "text-[10px] font-bold mb-1.5";
+
     return (
-      <div className={wrapperClass}>
-        <p className={`text-[10px] font-bold ${textMuted} uppercase tracking-wide mb-1.5`}>Party</p>
+      <div className={`${wrapperClass} ${embedded ? "flex flex-col flex-1 min-h-0" : ""}`}>
+        <p className={`${labelClass} ${textMuted} uppercase tracking-wide`}>Party</p>
         {/* Invitations panel */}
         {hasPending && (
           <div className="space-y-2 mb-3">
@@ -194,7 +196,7 @@ export default function PartyWidget({ inline = false, embedded = false }: PartyW
 
         {/* Create / join entry */}
         {view === "join-code" ? (
-          <div className="space-y-2">
+          <div className={`space-y-2 flex-1 flex flex-col ${embedded ? "gap-3" : ""}`}>
             <input
               type="text"
               value={codeInput}
@@ -202,43 +204,43 @@ export default function PartyWidget({ inline = false, embedded = false }: PartyW
               onKeyDown={(e) => e.key === "Enter" && handleJoinByCode()}
               placeholder="6-char party code"
               maxLength={6}
-              className={`w-full px-3 py-2 rounded-lg border text-sm font-mono tracking-widest ${inputCls}`}
+              className={`w-full px-3 py-2 rounded-lg border text-sm font-mono tracking-widest ${inputCls} ${embedded ? "py-2.5" : ""}`}
             />
-            {codeError && <p className="text-xs text-red-500 px-1">{codeError}</p>}
+            {codeError && <p className="text-sm text-red-500 px-1">{codeError}</p>}
             <div className="flex gap-2">
               <button
                 onClick={handleJoinByCode}
                 disabled={joining || codeInput.trim().length < 4}
-                className="flex-1 py-2 rounded-lg text-sm font-bold text-white bg-[#3B82F6] hover:opacity-90 disabled:opacity-50"
+                className={`flex-1 py-2 rounded-lg text-sm font-bold text-white bg-[#3B82F6] hover:opacity-90 disabled:opacity-50 ${embedded ? "py-2.5" : ""}`}
               >
                 {joining ? "Joining..." : "Join"}
               </button>
               <button
                 onClick={() => { setView("party"); setCodError(""); setCodeInput(""); }}
-                className={`px-4 py-2 rounded-lg text-sm font-bold ${light ? "text-[#64748B] hover:bg-[#F1F5F9]" : "text-white/60 hover:bg-white/10"}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold ${embedded ? "py-2.5" : ""} ${light ? "text-[#64748B] hover:bg-[#F1F5F9]" : "text-white/60 hover:bg-white/10"}`}
               >
                 Back
               </button>
             </div>
           </div>
         ) : (
-          <div className="space-y-1.5">
-            <div className="flex gap-1.5">
+          <div className={`space-y-2 flex-1 flex flex-col ${embedded ? "gap-3" : "gap-1.5"}`}>
+            <div className={`flex gap-2 ${embedded ? "gap-2" : "gap-1.5"}`}>
               <button
                 onClick={handleCreate}
                 disabled={creating}
-                className="flex-1 py-1.5 rounded-lg text-xs font-bold text-white bg-[#34D399] hover:opacity-90 disabled:opacity-50"
+                className={`flex-1 rounded-lg text-white bg-[#34D399] hover:opacity-90 disabled:opacity-50 font-bold ${embedded ? "py-2.5 text-sm" : "py-1.5 text-xs"}`}
               >
                 {creating ? "..." : "Create party"}
               </button>
               <button
                 onClick={() => { setView("join-code"); setCodError(""); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold border ${light ? "border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC]" : "border-white/20 text-white hover:bg-white/5"}`}
+                className={`flex-1 rounded-lg font-bold border ${embedded ? "py-2.5 text-sm" : "py-1.5 text-xs"} ${light ? "border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC]" : "border-white/20 text-white hover:bg-white/5"}`}
               >
                 Join by code
               </button>
             </div>
-            {codeError && <p className="text-xs font-semibold text-red-500 px-0.5 mt-1">{codeError}</p>}
+            {codeError && <p className={`font-semibold text-red-500 px-0.5 mt-1 ${embedded ? "text-sm" : "text-xs"}`}>{codeError}</p>}
           </div>
         )}
       </div>
@@ -276,38 +278,38 @@ export default function PartyWidget({ inline = false, embedded = false }: PartyW
   // ── Embedded in-party layout (compact, for dashboard card) ──
   if (embedded && view === "party") {
     return (
-      <div className={wrapperClass}>
-        <p className={`text-[10px] font-bold ${textMuted} uppercase tracking-wide mb-1.5`}>Party</p>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <div className="flex -space-x-1">
+      <div className={`${wrapperClass} flex flex-col flex-1 min-h-0`}>
+        <p className={`text-sm font-bold ${textMuted} uppercase tracking-wide mb-3`}>Party</p>
+        <div className="flex flex-col gap-3 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex -space-x-1.5">
               {members.slice(0, 5).map((m) => (
                 <div key={m.id} className="ring-2 ring-white dark:ring-[#1E293B] rounded-full">
                   <InkAvatar config={{ ...DEFAULT_AVATAR_CONFIG, ...m.avatar_config }} size="xs" />
                 </div>
               ))}
-              {members.length > 5 && <span className={`text-[10px] font-bold ${textMuted}`}>+{members.length - 5}</span>}
+              {members.length > 5 && <span className={`text-xs font-bold ${textMuted}`}>+{members.length - 5}</span>}
             </div>
-            <span className={`text-[10px] font-bold ${text}`}>{members.length}/6</span>
+            <span className={`text-sm font-bold ${text}`}>{members.length}/6</span>
             {party.code && (
-              <button onClick={copyCode} className={`text-[10px] font-mono font-bold ${textMuted} hover:opacity-80 px-1 rounded`}>
+              <button onClick={copyCode} className={`text-xs font-mono font-bold ${textMuted} hover:opacity-80 px-1.5 py-0.5 rounded`}>
                 {party.code} {copied ? "✓" : "⎘"}
               </button>
             )}
           </div>
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
             {isLeader && (
-              <a href="/play/casual" className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold text-white hover:opacity-90" style={{ backgroundColor: "#34D399" }}>
+              <a href="/play/casual" className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-bold text-white hover:opacity-90" style={{ backgroundColor: "#34D399" }}>
                 Queue up
               </a>
             )}
             {isLeader && (
-              <button onClick={() => setView("invite-friend")} className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${light ? "border-[#E2E8F0] text-[#3B82F6] hover:bg-[#EFF6FF]" : "border-white/20 text-[#60A5FA] hover:bg-white/5"}`}>
+              <button onClick={() => setView("invite-friend")} className={`px-3 py-2 rounded-lg text-sm font-bold border ${light ? "border-[#E2E8F0] text-[#3B82F6] hover:bg-[#EFF6FF]" : "border-white/20 text-[#60A5FA] hover:bg-white/5"}`}>
                 + Invite
               </button>
             )}
-            {!isLeader && <p className={`text-[10px] ${textMuted}`}>Leader will queue</p>}
-            <button onClick={clearParty} className={`px-2 py-1 rounded-lg text-[10px] font-bold ${light ? "text-red-500 hover:bg-red-50" : "text-red-400 hover:bg-red-500/10"}`}>
+            {!isLeader && <p className={`text-sm ${textMuted}`}>Leader will queue</p>}
+            <button onClick={clearParty} className={`px-3 py-2 rounded-lg text-sm font-bold ${light ? "text-red-500 hover:bg-red-50" : "text-red-400 hover:bg-red-500/10"}`}>
               Leave
             </button>
           </div>

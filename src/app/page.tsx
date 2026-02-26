@@ -324,7 +324,7 @@ export default function MarketingPage() {
               For Teachers
             </Link>
             <Link
-              href="/auth/login"
+              href={user ? "/dashboard" : "/auth/login"}
               style={{ padding: "9px 18px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.13)", color: "rgba(255,255,255,0.78)", fontSize: "0.84rem", fontWeight: 600, textDecoration: "none", transition: "border-color 0.2s, color 0.2s", whiteSpace: "nowrap" }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.color = "white"; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.13)"; e.currentTarget.style.color = "rgba(255,255,255,0.78)"; }}
@@ -371,7 +371,7 @@ export default function MarketingPage() {
                 {l.label}
               </Link>
             ))}
-            <Link href="/auth/login" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: "white", fontSize: "0.95rem", fontWeight: 700, textDecoration: "none", marginTop: "4px" }}>
+            <Link href={user ? "/dashboard" : "/auth/login"} onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "13px 0", color: "white", fontSize: "0.95rem", fontWeight: 700, textDecoration: "none", marginTop: "4px" }}>
               Log In
             </Link>
           </div>

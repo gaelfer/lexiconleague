@@ -580,42 +580,44 @@ function Home() {
           </Link>
 
           {/* ── Class code | Party | Daily Challenge (one row on desktop, stacked on tablet portrait) ── */}
-          <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-3 min-w-0">
+          <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-4 min-w-0">
             {/* Class code */}
             {user && (
               <div
-                className={`rounded-xl p-4 ${cardBg} border ${cardBorder} ${cardShadow} min-w-0 overflow-hidden`}
+                className={`rounded-xl p-5 min-h-[140px] flex flex-col ${cardBg} border ${cardBorder} ${cardShadow} min-w-0 overflow-hidden`}
                 style={{ borderRadius: "0.6rem 1rem 0.6rem 1rem" }}
               >
-                <p className={`text-xs font-bold ${textMuted} uppercase tracking-wide mb-2`}>Class code</p>
-                <form onSubmit={handleClassCodeSubmit} className="flex gap-2">
-                  <input
-                    value={classCodeInput}
-                    onChange={(e) => { setClassCodeInput(e.target.value.toUpperCase()); setClassCodeMessage(null); }}
-                    placeholder="ABC123"
-                    maxLength={8}
-                    className={`flex-1 min-w-0 rounded-lg border px-3 py-2 text-sm font-mono ${light ? "border-[#E2E8F0] bg-white text-[#0F172A]" : "border-white/10 bg-white/5 text-white"}`}
-                  />
-                  <button
-                    type="submit"
-                    disabled={classCodeRequesting || classCodeInput.trim().length < 4}
-                    className="rounded-lg px-3 py-2 text-sm font-bold text-white bg-[#0EA5E9] disabled:opacity-50 shrink-0"
-                  >
-                    {classCodeRequesting ? "…" : "Join"}
-                  </button>
+                <p className={`text-sm font-bold ${textMuted} uppercase tracking-wide mb-3`}>Class code</p>
+                <form onSubmit={handleClassCodeSubmit} className="flex flex-col gap-3 flex-1">
+                  <div className="flex gap-2">
+                    <input
+                      value={classCodeInput}
+                      onChange={(e) => { setClassCodeInput(e.target.value.toUpperCase()); setClassCodeMessage(null); }}
+                      placeholder="ABC123"
+                      maxLength={8}
+                      className={`flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm font-mono ${light ? "border-[#E2E8F0] bg-white text-[#0F172A]" : "border-white/10 bg-white/5 text-white"}`}
+                    />
+                    <button
+                      type="submit"
+                      disabled={classCodeRequesting || classCodeInput.trim().length < 4}
+                      className="rounded-lg px-4 py-2.5 text-sm font-bold text-white bg-[#0EA5E9] disabled:opacity-50 shrink-0"
+                    >
+                      {classCodeRequesting ? "…" : "Join"}
+                    </button>
+                  </div>
+                  {classCodeMessage && (
+                    <p className={`text-sm font-semibold ${classCodeMessage.type === "success" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"}`}>
+                      {classCodeMessage.text}
+                    </p>
+                  )}
                 </form>
-                {classCodeMessage && (
-                  <p className={`text-xs mt-1.5 font-semibold ${classCodeMessage.type === "success" ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"}`}>
-                    {classCodeMessage.text}
-                  </p>
-                )}
               </div>
             )}
 
             {/* Party */}
             {user && (
               <div
-                className={`rounded-xl p-4 ${cardBg} border ${cardBorder} ${cardShadow} min-w-0 overflow-hidden`}
+                className={`rounded-xl p-5 min-h-[140px] flex flex-col ${cardBg} border ${cardBorder} ${cardShadow} min-w-0 overflow-hidden`}
                 style={{ borderRadius: "0.6rem 1rem 0.6rem 1rem" }}
               >
                 <PartyWidget embedded />
@@ -628,7 +630,7 @@ function Home() {
                 return (
                   <Link href="/play/daily" className={`block relative group min-w-0 ${user ? "" : "md:col-span-3"}`}>
                     <div
-                      className={`h-full min-h-[100px] rounded-xl border transition-all duration-300 relative ${cardShadow}`}
+                      className={`h-full min-h-[140px] rounded-xl border transition-all duration-300 relative ${cardShadow}`}
                       style={{
                         borderRadius: "0.6rem 1rem 0.6rem 1rem",
                         borderColor: light ? "rgba(205,127,50,0.25)" : "rgba(205,127,50,0.3)",
@@ -637,12 +639,15 @@ function Home() {
                           : "linear-gradient(135deg, rgba(205,127,50,0.18) 0%, rgba(205,127,50,0.08) 55%, rgba(15,23,42,0.9) 100%)",
                       }}
                     >
-                      <div className="p-4 flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg shrink-0 bg-amber-200/50" />
-                        <div className="flex-1 min-w-0">
-                          <div className="h-4 w-24 rounded bg-amber-200/30 animate-pulse" />
-                          <div className="h-3 w-32 rounded bg-amber-200/20 animate-pulse mt-1" />
+                      <div className="p-5 flex flex-col gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl shrink-0 bg-amber-200/50" />
+                          <div className="flex-1 min-w-0">
+                            <div className="h-5 w-28 rounded bg-amber-200/30 animate-pulse" />
+                            <div className="h-3.5 w-36 rounded bg-amber-200/20 animate-pulse mt-2" />
+                          </div>
                         </div>
+                        <div className="h-8 w-24 rounded-lg bg-amber-200/20 animate-pulse" />
                       </div>
                     </div>
                   </Link>
@@ -658,7 +663,7 @@ function Home() {
               return (
                 <Link href="/play/daily" className={`block relative group min-w-0 ${user ? "" : "md:col-span-3"}`}>
                   <div
-                    className={`h-full min-h-[100px] rounded-xl border transition-all duration-300 relative overflow-visible group-hover:scale-[1.005] group-hover:border-[#CD7F32]/50 ${cardShadow}`}
+                    className={`h-full min-h-[140px] rounded-xl border transition-all duration-300 relative overflow-visible group-hover:scale-[1.005] group-hover:border-[#CD7F32]/50 ${cardShadow}`}
                     style={{
                       borderRadius: "0.6rem 1rem 0.6rem 1rem",
                       borderColor: light ? "rgba(205,127,50,0.25)" : "rgba(205,127,50,0.3)",
@@ -669,46 +674,51 @@ function Home() {
                     }}
                   >
                     <div className="absolute -top-2 -right-1 pointer-events-none z-10 opacity-80" style={{ transform: "rotate(10deg)" }}>
-                      <InkAvatar config={{ base: "droplet_03", color: "#F59E0B", eyes: "eyes_06", accessory: "crown_01", aura: "aura_glow_01" }} size={40} />
+                      <InkAvatar config={{ base: "droplet_03", color: "#F59E0B", eyes: "eyes_06", accessory: "crown_01", aura: "aura_glow_01" }} size={44} />
                     </div>
 
-                    <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0 overflow-hidden">
-                      <div className="flex items-center gap-2 shrink-0 min-w-0 overflow-hidden">
+                    <div className="p-5 flex flex-col gap-4 min-w-0 overflow-hidden">
+                      <div className="flex items-start gap-3 min-w-0">
                         <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                          style={{ background: light ? "rgba(205,127,50,0.2)" : "rgba(205,127,50,0.25)" }}
+                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ background: light ? "rgba(205,127,50,0.22)" : "rgba(205,127,50,0.28)" }}
                         >
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#CD7F32" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#CD7F32" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
                           </svg>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <h3 className={`${text} font-bold text-sm truncate`}>Daily Challenge</h3>
-                            {!hasPlayed && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />}
+                          <div className="flex items-center gap-2">
+                            <h3 className={`${text} font-bold text-base truncate`}>Daily Challenge</h3>
+                            {!hasPlayed && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" aria-hidden />}
                           </div>
-                          <p className={`text-xs ${textMuted} truncate`} title={`${dateLabel} · ${grade} · ${topic}`}>
+                          <p className={`text-sm ${textMuted} mt-0.5`} title={`${dateLabel} · ${grade} · ${topic}`}>
                             {dateLabel} · {grade}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 sm:flex-1 flex-wrap min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          {Array.from({ length: DAILY_CHALLENGE_MAX_ATTEMPTS }).map((_, i) => (
-                            <div key={i} className="w-2 h-2 rounded-full" style={{ background: i < attemptsUsed ? "#CD7F32" : light ? "#E2E8F0" : "#334155" }} />
-                          ))}
-                          <span className={`text-xs font-semibold ${textMuted}`}>{allDone ? "Done!" : `${attemptsLeft} left`}</span>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: DAILY_CHALLENGE_MAX_ATTEMPTS }).map((_, i) => (
+                              <div key={i} className="w-2.5 h-2.5 rounded-full" style={{ background: i < attemptsUsed ? "#CD7F32" : light ? "#E2E8F0" : "#334155" }} />
+                            ))}
+                          </div>
+                          <span className={`text-sm font-semibold ${textMuted}`}>{allDone ? "Done!" : `${attemptsLeft} left`}</span>
+                          {hasPlayed && (
+                            <span className={`text-sm font-bold`} style={{ color: "#CD7F32" }}>
+                              Best: {dailyState.bestScore}
+                            </span>
+                          )}
                         </div>
-                        {hasPlayed && <span className={`text-xs font-bold`} style={{ color: "#CD7F32" }}>Best: {dailyState.bestScore}</span>}
+                        <span
+                          className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold text-white shrink-0 transition-opacity group-hover:opacity-90"
+                          style={{ background: "#CD7F32" }}
+                        >
+                          {allDone ? "Leaderboard →" : hasPlayed ? "Play again →" : "Play now →"}
+                        </span>
                       </div>
-
-                      <span
-                        className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold text-white shrink-0 transition-opacity group-hover:opacity-90"
-                        style={{ background: "#CD7F32" }}
-                      >
-                        {allDone ? "Leaderboard →" : hasPlayed ? "Play again →" : "Play now →"}
-                      </span>
                     </div>
                   </div>
                 </Link>
