@@ -27,6 +27,17 @@ export default class ArchiveScene extends Phaser.Scene {
     this.avatar = avatar;
   }
 
+  /**
+   * The scene instance is reused for every visit, so per-visit state has to be
+   * cleared explicitly. `inspectedPedestal` is deliberately *not* reset: it is
+   * chapter progress, and DungeonScene now preserves its matching
+   * investigationStage across a respawn.
+   */
+  init() {
+    this.dialogue = null;
+    this.nextDialogueAt = 0;
+  }
+
   create() {
     this.physics.world.setBounds(0, 0, 800, 600);
     this.drawArchive();
@@ -238,7 +249,10 @@ export default class ArchiveScene extends Phaser.Scene {
     light.fillTriangle(298, 24, 390, 24, 330, 450);
     light.fillTriangle(502, 24, 574, 24, 470, 420);
 
-    this.pedestalGlow = this.add.circle(400, 174, 68, 0x73e0c0, 0.07).setDepth(-6);
+    // Revisiting a solved shrine keeps its gold light rather than reverting to
+    // the unsolved teal.
+    const glowColor = this.inspectedPedestal ? 0xf4c96b : 0x73e0c0;
+    this.pedestalGlow = this.add.circle(400, 174, 68, glowColor, 0.07).setDepth(-6);
     this.tweens.add({
       targets: this.pedestalGlow,
       alpha: { from: 0.035, to: 0.15 },
