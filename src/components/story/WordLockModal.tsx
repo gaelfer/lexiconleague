@@ -7,10 +7,18 @@ import type { Question } from '@/types';
 interface WordLockModalProps {
   doorId: string;
   question: Question;
+  gateNumber: number;
+  totalGates: number;
   onClose: () => void;
 }
 
-export default function WordLockModal({ doorId, question, onClose }: WordLockModalProps) {
+export default function WordLockModal({
+  doorId,
+  question,
+  gateNumber,
+  totalGates,
+  onClose,
+}: WordLockModalProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const [result, setResult] = useState<'correct' | 'wrong' | null>(null);
 
@@ -64,7 +72,7 @@ export default function WordLockModal({ doorId, question, onClose }: WordLockMod
       style={{
         position: 'absolute',
         inset: 0,
-        background: 'rgba(0,0,0,0.7)',
+        background: 'radial-gradient(circle at center, rgba(14, 54, 58, 0.72), rgba(2, 8, 15, 0.9))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -75,13 +83,13 @@ export default function WordLockModal({ doorId, question, onClose }: WordLockMod
       {/* Modal card */}
       <div
         style={{
-          background: '#0d1b2a',
-          border: '1.5px solid #1e3a5f',
-          borderRadius: '12px',
-          padding: '28px 32px',
+          background: 'linear-gradient(145deg, #142d35 0%, #0b1c2b 65%, #10263a 100%)',
+          border: '1.5px solid rgba(244, 201, 107, 0.6)',
+          borderRadius: '18px',
+          padding: '30px 32px 26px',
           maxWidth: '520px',
           width: '90%',
-          boxShadow: '0 0 40px rgba(52,211,153,0.1)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.48), 0 0 50px rgba(88,224,176,0.12), inset 0 1px 0 rgba(255,255,255,0.08)',
         }}
       >
         {/* Header */}
@@ -94,18 +102,24 @@ export default function WordLockModal({ doorId, question, onClose }: WordLockMod
           }}
         >
           <LockIcon />
-          <span
-            style={{
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '12px',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: '#34d399',
-            }}
-          >
-            Word Lock
-          </span>
+          <div>
+            <span
+              style={{
+                display: 'block',
+                fontFamily: 'Outfit, sans-serif',
+                fontSize: '12px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: '#f4c96b',
+              }}
+            >
+              Restore Word Seal {gateNumber}/{totalGates}
+            </span>
+            <span style={{ display: 'block', marginTop: 3, fontFamily: 'Outfit, sans-serif', fontSize: 11, color: '#75bda7' }}>
+              Choose the correct answer to open the path
+            </span>
+          </div>
         </div>
 
         {/* Question */}
@@ -122,6 +136,25 @@ export default function WordLockModal({ doorId, question, onClose }: WordLockMod
           {question.prompt}
         </p>
 
+        <div
+          style={{
+            display: 'inline-flex',
+            marginBottom: 16,
+            padding: '4px 9px',
+            borderRadius: 999,
+            background: 'rgba(88,224,176,0.1)',
+            border: '1px solid rgba(88,224,176,0.2)',
+            color: '#8fcfb7',
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+          }}
+        >
+          Skill · {question.skill_tag.replaceAll('-', ' ')}
+        </div>
+
         {/* Choices */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {question.choices.map((choice, i) => (
@@ -132,8 +165,8 @@ export default function WordLockModal({ doorId, question, onClose }: WordLockMod
               style={{
                 background: choiceColor(i),
                 border: choiceBorder(i),
-                borderRadius: '8px',
-                padding: '11px 16px',
+                borderRadius: '10px',
+                padding: '13px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
@@ -184,7 +217,9 @@ export default function WordLockModal({ doorId, question, onClose }: WordLockMod
               fontWeight: 600,
             }}
           >
-            {result === 'correct' ? '✓ Door unlocked! +10 Lexicoins' : '✗ Try again in a moment…'}
+            {result === 'correct'
+              ? '✓ Seal restored! The path is open. +10 Lexicoins'
+              : 'Study the highlighted answer, then try this seal again.'}
           </p>
         )}
 

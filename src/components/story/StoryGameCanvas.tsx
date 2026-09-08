@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import Link from 'next/link';
 import type Phaser from 'phaser';
 import { EventBus } from '@/game/EventBus';
 import { createGame } from '@/game/PhaserGame';
@@ -8,6 +9,7 @@ import { getChapterQuestions } from '@/lib/story/chapters';
 import HUDOverlay from './HUDOverlay';
 import WordLockModal from './WordLockModal';
 import type { Question } from '@/types';
+import { createGuestProfile, getProfile } from '@/lib/user/storage';
 
 interface StoryGameCanvasProps {
   chapterId: number;
@@ -16,7 +18,10 @@ interface StoryGameCanvasProps {
 interface WordLockState {
   doorId: string;
   question: Question;
+  gateNumber: number;
 }
+
+const TOTAL_CHAPTER_GATES = 3;
 
 /**
  * StoryGameCanvas — React wrapper for the Phaser game.
@@ -27,11 +32,13 @@ interface WordLockState {
 export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
+  const questionsByDoorRef = useRef(new Map<string, Question>());
 
   // HUD state (mirrors Phaser-side values)
   const [hearts, setHearts] = useState(3);
   const [maxHearts] = useState(3);
   const [lexicoins, setLexicoins] = useState(0);
+  const [openedGates, setOpenedGates] = useState(0);
 
   // Word lock overlay state
   const [wordLock, setWordLock] = useState<WordLockState | null>(null);
@@ -44,7 +51,10 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
   useEffect(() => {
     if (!containerRef.current || gameRef.current) return;
 
-    gameRef.current = createGame(containerRef.current, chapterId);
+    const profile = getProfile() ?? createGuestProfile();
+    questionsByDoorRef.current.clear();
+    setOpenedGates(0);
+    gameRef.current = createGame(containerRef.current, chapterId, profile.avatar_config);
 
     return () => {
       gameRef.current?.destroy(true);
@@ -57,13 +67,17 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
   useEffect(() => {
     const onHealthChanged = ({ hearts: h }: { hearts: number }) => setHearts(h);
     const onLexicoinsChanged = ({ amount }: { amount: number }) => setLexicoins(amount);
+    const onWordGatesChanged = ({ opened }: { opened: number; total: number }) => setOpenedGates(opened);
 
     const onNearDoor = ({ doorId, questionType }: { doorId: string; questionType: string }) => {
       const questions = getChapterQuestions(chapterId);
       if (!questions.length) return;
-      // Pick a random question each time a door is opened
-      const q = questions[Math.floor(Math.random() * questions.length)];
-      setWordLock({ doorId, question: q });
+      const gateNumber = Number.parseInt(doorId.replace('word-seal-', ''), 10) || 1;
+      // Keep the same question on a failed attempt so feedback can become mastery.
+      const existingQuestion = questionsByDoorRef.current.get(doorId);
+      const question = existingQuestion ?? questions[(gateNumber - 1) % questions.length];
+      questionsByDoorRef.current.set(doorId, question);
+      setWordLock({ doorId, question, gateNumber });
       void questionType; // used in Phase 2 for targeted question types
     };
 
@@ -71,12 +85,14 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
 
     EventBus.on('health-changed', onHealthChanged);
     EventBus.on('lexicoins-changed', onLexicoinsChanged);
+    EventBus.on('word-gates-changed', onWordGatesChanged);
     EventBus.on('player-near-door', onNearDoor);
     EventBus.on('chapter-complete', onChapterComplete);
 
     return () => {
       EventBus.off('health-changed', onHealthChanged);
       EventBus.off('lexicoins-changed', onLexicoinsChanged);
+      EventBus.off('word-gates-changed', onWordGatesChanged);
       EventBus.off('player-near-door', onNearDoor);
       EventBus.off('chapter-complete', onChapterComplete);
     };
@@ -102,13 +118,67 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
       {/* HUD */}
-      <HUDOverlay hearts={hearts} maxHearts={maxHearts} lexicoins={lexicoins} />
+      <HUDOverlay
+        hearts={hearts}
+        maxHearts={maxHearts}
+        lexicoins={lexicoins}
+        openedGates={openedGates}
+        totalGates={TOTAL_CHAPTER_GATES}
+      />
+
+      <Link
+        href="/story"
+        aria-label="Return to the Story Mode world map"
+        style={{
+          position: 'absolute',
+          top: 14,
+          right: 16,
+          zIndex: 30,
+          color: '#cbd5e1',
+          background: 'rgba(8, 15, 26, 0.82)',
+          border: '1px solid #334155',
+          borderRadius: 8,
+          padding: '7px 11px',
+          textDecoration: 'none',
+          fontFamily: 'Outfit, sans-serif',
+          fontSize: 12,
+          fontWeight: 700,
+        }}
+      >
+        ← World Map
+      </Link>
+
+      <div
+        aria-label="Game controls"
+        style={{
+          position: 'absolute',
+          left: '50%',
+          bottom: 14,
+          transform: 'translateX(-50%)',
+          zIndex: 30,
+          color: '#94a3b8',
+          background: 'rgba(8, 15, 26, 0.82)',
+          border: '1px solid #1e3a5f',
+          borderRadius: 999,
+          padding: '7px 13px',
+          fontFamily: 'Outfit, sans-serif',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        WASD · MOVE&nbsp;&nbsp; Q · SWORD&nbsp;&nbsp; HOLD Q · SPIN&nbsp;&nbsp; E · TALK / INTERACT
+      </div>
 
       {/* Word lock modal */}
       {wordLock && (
         <WordLockModal
           doorId={wordLock.doorId}
           question={wordLock.question}
+          gateNumber={wordLock.gateNumber}
+          totalGates={TOTAL_CHAPTER_GATES}
           onClose={closeWordLock}
         />
       )}
@@ -156,7 +226,7 @@ function ChapterCompleteBanner({ chapterId }: { chapterId: number }) {
       >
         The corruption retreats. For now.
       </p>
-      <a
+      <Link
         href="/story"
         style={{
           marginTop: '12px',
@@ -172,7 +242,7 @@ function ChapterCompleteBanner({ chapterId }: { chapterId: number }) {
         }}
       >
         Return to World Map
-      </a>
+      </Link>
     </div>
   );
 }

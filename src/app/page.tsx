@@ -979,7 +979,7 @@ export default function MarketingPage() {
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════════
-          10. COMING SOON — STORY MODE
+          10. SUPER ALPHA — STORY MODE
       ════════════════════════════════════════════════════════════════════════ */}
       <section id="story-mode" style={{ padding: "80px 24px" }}>
         <div
@@ -1000,7 +1000,7 @@ export default function MarketingPage() {
           <div className="story-inner" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "48px", alignItems: "center", padding: "72px 60px", position: "relative", zIndex: 1 }}>
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-                <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: "100px", fontSize: "0.62rem", fontWeight: 800, color: "white", letterSpacing: "0.12em", textTransform: "uppercase", background: "#9F1239", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>Coming Soon</span>
+                <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: "100px", fontSize: "0.62rem", fontWeight: 800, color: "white", letterSpacing: "0.12em", textTransform: "uppercase", background: "#9F1239", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>Super Alpha</span>
               </div>
               <h2 style={{ fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)", fontWeight: 800, color: "white", marginBottom: "16px", lineHeight: 1.08, fontFamily: DISPLAY }}>
                 Story Mode
@@ -1008,6 +1008,24 @@ export default function MarketingPage() {
               <p style={{ fontSize: "1rem", color: MUTED, lineHeight: 1.75 }}>
                 <strong style={{ color: "#BE123C" }}>Story Mode:</strong> Chapters, boss battles, and exclusive loot. A narrative adventure through the world of words. Defeat vocab villains and unlock story rewards.
               </p>
+              <Link
+                href="/story/1"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  marginTop: "24px",
+                  padding: "11px 20px",
+                  borderRadius: "999px",
+                  background: "#BE123C",
+                  color: "white",
+                  fontSize: "0.82rem",
+                  fontWeight: 800,
+                  textDecoration: "none",
+                  boxShadow: "0 8px 24px rgba(190,18,60,0.28)",
+                }}
+              >
+                Play the story alpha →
+              </Link>
             </div>
 
             <div className="story-avatars" style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "24px", flexShrink: 0 }}>

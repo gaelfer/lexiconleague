@@ -803,9 +803,10 @@ function Home() {
             </div>
           </Link>
 
-          {/* ── Story Mode (Coming Soon) ── */}
-          <div
-            className="lg:col-span-3 relative overflow-hidden border-[3px] cursor-default select-none min-w-0 transition-transform hover:scale-[1.01]"
+          {/* ── Story Mode Alpha ── */}
+          <Link
+            href="/story/1"
+            className="lg:col-span-3 relative overflow-hidden border-[3px] cursor-pointer select-none min-w-0 transition-transform hover:scale-[1.01] group"
             style={{
               borderRadius: "0.5rem 1.25rem 0.5rem 1.25rem",
               borderColor: "rgba(190, 18, 60, 0.5)",
@@ -829,11 +830,14 @@ function Home() {
                   <InkAvatar config={{ base: "droplet_04", color: "#BE123C", eyes: "eyes_02", accessory: "crown_01", aura: "none" }} size={48} className="drop-shadow-lg" />
                 </div>
                 <h3 className="font-extrabold text-base" style={{ color: "#BE123C" }}>Story Mode</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white mt-1" style={{ backgroundColor: "#9F1239" }}>Coming Soon</span>
-                <p className={`text-xs font-medium mt-2 ${textMuted}`}>Chapters · Boss battles · Exclusive loot</p>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white mt-1" style={{ backgroundColor: "#9F1239" }}>Super Alpha</span>
+                <p className={`text-xs font-medium mt-2 ${textMuted}`}>Explore Inkwell Village with your Inkling · WASD</p>
+                <span className="mt-3 inline-flex items-center rounded-full bg-[#BE123C] px-4 py-1.5 text-xs font-extrabold text-white transition-colors group-hover:bg-[#E11D48]">
+                  Enter story →
+                </span>
               </div>
             </div>
-          </div>
+          </Link>
 
           {/* ── My Classes ── */}
           {user && studentClasses.length > 0 && (

@@ -1,5 +1,7 @@
 import * as Phaser from 'phaser';
 import { EventBus } from '../EventBus';
+import type { StoryAvatarConfig } from '../avatar';
+import { VILLAGE_NPCS } from '../npcs';
 
 /**
  * BootScene — generates all placeholder textures then hands off to DungeonScene.
@@ -7,14 +9,53 @@ import { EventBus } from '../EventBus';
  */
 export default class BootScene extends Phaser.Scene {
   private chapterId: number;
+  private avatar: StoryAvatarConfig;
 
-  constructor(chapterId: number) {
+  constructor(chapterId: number, avatar: StoryAvatarConfig) {
     super({ key: 'BootScene' });
     this.chapterId = chapterId;
+    this.avatar = avatar;
+  }
+
+  preload() {
+    // Every Inkling cosmetic shares a 100x100 viewBox, so the existing locker
+    // assets can be layered directly inside Phaser without pre-baking every
+    // possible avatar combination.
+    this.load.svg('player-base', `/ink/base/${this.avatar.base}.svg`, { width: 64, height: 64 });
+    this.load.svg('player-eyes', `/ink/eyes/${this.avatar.eyes}.svg`, { width: 64, height: 64 });
+
+    if (this.avatar.accessory !== 'none') {
+      this.load.svg('player-accessory-1', `/ink/accessories/${this.avatar.accessory}.svg`, {
+        width: 64,
+        height: 64,
+      });
+    }
+    if (this.avatar.accessory2 !== 'none') {
+      this.load.svg('player-accessory-2', `/ink/accessories/${this.avatar.accessory2}.svg`, {
+        width: 64,
+        height: 64,
+      });
+    }
+    if (this.avatar.aura !== 'none') {
+      this.load.svg('player-aura', `/ink/auras/${this.avatar.aura}.svg`, { width: 76, height: 76 });
+    }
+
+    VILLAGE_NPCS.forEach((npc, index) => {
+      this.load.svg(`npc-${index}-base`, `/ink/base/${npc.base}.svg`, { width: 64, height: 64 });
+      this.load.svg(`npc-${index}-eyes`, `/ink/eyes/${npc.eyes}.svg`, { width: 64, height: 64 });
+      this.load.svg(`npc-${index}-accessory`, `/ink/accessories/${npc.accessory}.svg`, { width: 64, height: 64 });
+    });
+
+    // The thief reuses the established Inkling silhouette so the cutscene
+    // belongs to the same visual world as the player and villagers.
+    this.load.svg('thief-base', '/ink/base/droplet_04.svg', { width: 64, height: 64 });
+    this.load.svg('thief-eyes', '/ink/eyes/eyes_07.svg', { width: 64, height: 64 });
+    this.load.svg('thief-scarf', '/ink/accessories/scarf_01.svg', { width: 64, height: 64 });
   }
 
   create() {
-    this.makePlayerTexture();
+    this.makePlayerHitboxTexture();
+    this.makeStorySwordTexture();
     this.makeDoorTextures();
     this.makeEnemyTexture();
     this.makeCheckpointTexture();
@@ -26,56 +67,108 @@ export default class BootScene extends Phaser.Scene {
 
   // ── Texture generators ──────────────────────────────────────────────────────
 
-  private makePlayerTexture() {
-    // Mint circle with a darker nub indicating facing direction (down by default)
+  private makePlayerHitboxTexture() {
+    // Physics stays on a tiny invisible texture while the layered avatar art
+    // can bob and lean independently without moving the collision body.
     const g = this.make.graphics({ x: 0, y: 0, add: false } as never);
-    g.fillStyle(0x34d399);
-    g.fillCircle(20, 20, 18);
-    // Direction nub (top = facing up indicator at bottom of circle for "down")
-    g.fillStyle(0x065f46);
-    g.fillCircle(20, 32, 6);
-    g.generateTexture('player', 40, 40);
+    g.fillStyle(0xffffff);
+    g.fillRect(0, 0, 34, 28);
+    g.generateTexture('player-hitbox', 34, 28);
+    g.destroy();
+  }
+
+  private makeStorySwordTexture() {
+    // Draw the weapon around its hilt so Player can rotate it from the hand,
+    // instead of rotating an entire 100x100 cosmetic canvas.
+    const g = this.make.graphics({ x: 0, y: 0, add: false } as never);
+    g.fillStyle(0xe2e8f0);
+    g.fillTriangle(10, 0, 4, 12, 16, 12);
+    g.fillStyle(0xcbd5e1);
+    g.fillRoundedRect(4, 9, 12, 36, 3);
+    g.fillStyle(0xf8fafc, 0.82);
+    g.fillRect(7, 10, 3, 31);
+    g.lineStyle(2, 0x64748b, 0.9);
+    g.lineBetween(15, 12, 15, 43);
+    g.fillStyle(0x475569);
+    g.fillRoundedRect(3, 43, 14, 4, 2);
+    g.fillStyle(0x3f2d27);
+    g.fillRoundedRect(7, 47, 6, 13, 2);
+    g.lineStyle(1, 0x94a3b8, 0.7);
+    g.lineBetween(7, 51, 13, 51);
+    g.lineBetween(7, 55, 13, 55);
+    g.fillStyle(0x64748b);
+    g.fillCircle(10, 62, 3);
+    g.generateTexture('story-sword', 20, 66);
     g.destroy();
   }
 
   private makeDoorTextures() {
-    // Closed door — red with a lock icon
+    // Closed Word Seal — an ornate, luminous book-gate.
     const closed = this.make.graphics({ x: 0, y: 0, add: false } as never);
-    closed.fillStyle(0x7f1d1d);
-    closed.fillRect(0, 0, 40, 120);
-    closed.fillStyle(0xdc2626);
-    closed.fillRect(2, 2, 36, 116);
-    // Lock body
-    closed.fillStyle(0xfbbf24);
-    closed.fillRect(13, 55, 14, 16);
-    // Lock shackle
-    closed.lineStyle(3, 0xfbbf24);
-    closed.strokeCircle(20, 52, 8);
-    closed.generateTexture('door-closed', 40, 120);
+    closed.fillStyle(0x071820, 0.65);
+    closed.fillRoundedRect(3, 4, 50, 126, 18);
+    closed.fillStyle(0x173c49);
+    closed.fillRoundedRect(6, 2, 44, 124, 17);
+    closed.lineStyle(3, 0xf4c96b, 0.9);
+    closed.strokeRoundedRect(7, 3, 42, 122, 16);
+    closed.lineStyle(2, 0x58e0b0, 0.75);
+    closed.strokeRoundedRect(12, 9, 32, 110, 12);
+
+    // Open book glyph.
+    closed.fillStyle(0xf8e7b3);
+    closed.fillRoundedRect(13, 49, 14, 28, 4);
+    closed.fillRoundedRect(29, 49, 14, 28, 4);
+    closed.fillStyle(0xd6bd7d);
+    closed.fillTriangle(13, 49, 27, 53, 27, 78);
+    closed.fillTriangle(43, 49, 29, 53, 29, 78);
+    closed.lineStyle(2, 0x173c49, 0.75);
+    closed.lineBetween(28, 53, 28, 78);
+
+    // Floating seal rune.
+    closed.lineStyle(2, 0xf4c96b, 0.95);
+    closed.strokeCircle(28, 34, 8);
+    closed.lineBetween(23, 34, 33, 34);
+    closed.lineBetween(28, 29, 28, 39);
+    closed.fillStyle(0xfff1ad);
+    closed.fillCircle(28, 34, 2);
+    closed.generateTexture('door-closed', 56, 132);
     closed.destroy();
 
-    // Open door — subtle green ghost
+    // Open state is retained as a subtle portal texture for later transitions.
     const open = this.make.graphics({ x: 0, y: 0, add: false } as never);
-    open.fillStyle(0x34d399, 0.15);
-    open.fillRect(0, 0, 40, 120);
-    open.lineStyle(1, 0x34d399, 0.4);
-    open.strokeRect(0, 0, 40, 120);
-    open.generateTexture('door-open', 40, 120);
+    open.fillStyle(0x58e0b0, 0.12);
+    open.fillRoundedRect(6, 2, 44, 124, 17);
+    open.lineStyle(2, 0x58e0b0, 0.45);
+    open.strokeRoundedRect(7, 3, 42, 122, 16);
+    open.generateTexture('door-open', 56, 132);
     open.destroy();
   }
 
   private makeEnemyTexture() {
-    // Corrupted red inkling
+    // Blotling: a small, animated-looking spill of hostile purple ink.
     const g = this.make.graphics({ x: 0, y: 0, add: false } as never);
-    g.fillStyle(0xef4444);
-    g.fillCircle(16, 16, 14);
-    g.fillStyle(0x7f1d1d);
-    g.fillCircle(16, 6, 5);
-    // Red eyes
-    g.fillStyle(0xfca5a5);
-    g.fillCircle(11, 14, 3);
-    g.fillCircle(21, 14, 3);
-    g.generateTexture('enemy', 32, 32);
+    g.fillStyle(0x120b20, 0.35);
+    g.fillEllipse(24, 37, 42, 12);
+    g.fillStyle(0x4c1d6f);
+    g.fillTriangle(5, 28, 11, 10, 18, 25);
+    g.fillTriangle(30, 24, 39, 7, 43, 30);
+    g.fillCircle(24, 24, 19);
+    g.fillStyle(0x7e22ce);
+    g.fillCircle(19, 18, 13);
+    g.fillCircle(31, 24, 10);
+    g.fillStyle(0xc4b5fd);
+    g.fillCircle(17, 23, 4);
+    g.fillCircle(30, 23, 4);
+    g.fillStyle(0x160c24);
+    g.fillCircle(18, 24, 2);
+    g.fillCircle(29, 24, 2);
+    g.lineStyle(2, 0xf0abfc, 0.9);
+    g.lineBetween(13, 17, 20, 19);
+    g.lineBetween(27, 19, 34, 16);
+    g.fillStyle(0x7e22ce);
+    g.fillCircle(9, 35, 5);
+    g.fillCircle(39, 35, 4);
+    g.generateTexture('blotling', 48, 44);
     g.destroy();
   }
 
