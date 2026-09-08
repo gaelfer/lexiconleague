@@ -281,11 +281,20 @@ export default class DungeonScene extends Phaser.Scene {
     if (this.locked || !this.sys.isActive()) return;
 
     this.player.update(delta);
+    let hasDefeated = false;
     for (const enemy of this.enemies) {
+      if (enemy.defeated) {
+        hasDefeated = true;
+        continue;
+      }
       if (enemy.update(delta, this.player) && this.player.takeDamage(1)) {
         this.cameras.main.shake(130, 0.008);
       }
     }
+    // Defeated Blotlings destroy their sprites but used to stay in the array
+    // forever, so every frame and every sword swing walked over dead entries.
+    // `openingEnemies` keeps its own references, so the cutscene gate is safe.
+    if (hasDefeated) this.enemies = this.enemies.filter((enemy) => !enemy.defeated);
     this.checkInteractionProximity();
   }
 
