@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import reactHooks from "eslint-plugin-react-hooks";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -13,8 +14,12 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
-  // Relax strict React Compiler rules that require significant refactoring
+  // Relax strict React Compiler rules that require significant refactoring.
+  // Flat config scopes plugins per config object, so this block has to declare
+  // react-hooks itself — without it every `npm run lint` aborted with
+  // "could not find plugin react-hooks" before linting a single file.
   {
+    plugins: { "react-hooks": reactHooks },
     rules: {
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/preserve-manual-memoization": "off",

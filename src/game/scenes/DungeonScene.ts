@@ -70,6 +70,10 @@ export default class DungeonScene extends Phaser.Scene {
   private activeDialogue: DialogueData | null = null;
   private dialogueNextAllowedAt = 0;
   private investigationStage: 'defend' | 'inspect' | 'archive' | 'seals' = 'defend';
+  /** Gate numbers already answered correctly; survives a death respawn. */
+  private solvedGates = new Set<number>();
+  /** True when this create() is a death respawn rather than a fresh chapter. */
+  private isRespawn = false;
   private evidenceGlow!: Phaser.GameObjects.Arc;
   private evidenceTrail!: Phaser.GameObjects.Graphics;
 
@@ -79,19 +83,29 @@ export default class DungeonScene extends Phaser.Scene {
     this.avatar = avatar;
   }
 
-  init(data: { chapterId?: number }) {
+  init(data: { chapterId?: number; respawn?: boolean }) {
     if (data?.chapterId !== undefined) this.chapterId = data.chapterId;
     this.doors = [];
     this.doorColliders = [];
     this.chapterCompleteTriggered = false;
     this.locked = false;
-    this.openedGates = 0;
     this.enemies = [];
     this.openingEnemies = [];
     this.introObjects = [];
     this.npcs = [];
     this.activeDialogue = null;
-    this.investigationStage = 'defend';
+
+    // Story progress must outlive a death respawn. ArchiveScene keeps its own
+    // "already inspected" flag for the lifetime of the game instance, so wiping
+    // investigationStage here used to strand the player: the Archive would
+    // refuse to re-emit its completion event and the Word Seals stayed locked
+    // forever. Death now only costs position and hearts.
+    this.isRespawn = data?.respawn === true;
+    if (!this.isRespawn) {
+      this.investigationStage = 'defend';
+      this.solvedGates = new Set();
+    }
+    this.openedGates = this.solvedGates.size;
   }
 
   create() {
@@ -147,9 +161,25 @@ export default class DungeonScene extends Phaser.Scene {
     EventBus.emit('current-scene-ready', this);
     EventBus.emit('health-changed', { hearts: this.player.hearts });
     EventBus.emit('lexicoins-changed', { amount: this.player.lexicoins });
-    EventBus.emit('word-gates-changed', { opened: 0, total: TOTAL_WORD_GATES });
+    EventBus.emit('word-gates-changed', { opened: this.openedGates, total: TOTAL_WORD_GATES });
 
-    this.startOpeningCutscene();
+    if (this.isRespawn) this.resumeAfterDeath();
+    else this.startOpeningCutscene();
+  }
+
+  /** Objective text for the current investigation stage, reused after a respawn. */
+  private currentObjective(): string {
+    switch (this.investigationStage) {
+      case 'defend': return 'Drive the Blotlings from Archive Road';
+      case 'inspect': return 'Inspect the ink trail near the Archive';
+      case 'archive': return 'Search the Inkwell Archive';
+      default: return 'Restore the Word Seals to the east';
+    }
+  }
+
+  /** A respawn skips the opening cutscene and simply restates the objective. */
+  private resumeAfterDeath() {
+    this.showWorldMessage(this.currentObjective(), '#f4c96b');
   }
 
   // ── Village builder ──────────────────────────────────────────────────────────
@@ -196,14 +226,22 @@ export default class DungeonScene extends Phaser.Scene {
 
     const doorCollider = this.physics.add.collider(this.player.sprite, doorImg);
 
+    const alreadySolved = this.solvedGates.has(gateNumber);
     const door: DoorData = {
       id: `word-seal-${gateNumber}`,
       image: doorImg,
-      isOpen: false,
+      isOpen: alreadySolved,
       x,
       y: cy,
       gateNumber,
     };
+
+    // Seals answered before a death stay open, so a respawn never re-asks them.
+    if (alreadySolved) {
+      doorCollider.destroy();
+      doorImg.disableBody();
+      doorImg.setVisible(false);
+    }
 
     this.doors.push(door);
     this.doorColliders.push(doorCollider);
@@ -243,11 +281,20 @@ export default class DungeonScene extends Phaser.Scene {
     if (this.locked || !this.sys.isActive()) return;
 
     this.player.update(delta);
+    let hasDefeated = false;
     for (const enemy of this.enemies) {
+      if (enemy.defeated) {
+        hasDefeated = true;
+        continue;
+      }
       if (enemy.update(delta, this.player) && this.player.takeDamage(1)) {
         this.cameras.main.shake(130, 0.008);
       }
     }
+    // Defeated Blotlings destroy their sprites but used to stay in the array
+    // forever, so every frame and every sword swing walked over dead entries.
+    // `openingEnemies` keeps its own references, so the cutscene gate is safe.
+    if (hasDefeated) this.enemies = this.enemies.filter((enemy) => !enemy.defeated);
     this.checkInteractionProximity();
   }
 
@@ -259,7 +306,11 @@ export default class DungeonScene extends Phaser.Scene {
       [1025, 225], [1320, 365], [1480, 285],
       [1770, 340], [1940, 225], [2115, 390], [2280, 275],
     ];
+    // The three road attackers belong to the opening beat; once the road has
+    // been cleared they must not return, or a respawn would look like a reset.
+    const roadCleared = this.investigationStage !== 'defend';
     spawns.forEach(([x, y], index) => {
+      if (index < 3 && roadCleared) return;
       const enemy = new Blotling(this, x, y);
       this.enemies.push(enemy);
       if (index < 3) this.openingEnemies.push(enemy);
@@ -448,7 +499,8 @@ export default class DungeonScene extends Phaser.Scene {
     this.locked = true;
     this.player.stopMovement();
     this.cameras.main.fadeOut(700, 20, 5, 30);
-    this.time.delayedCall(850, () => this.scene.restart({ chapterId: this.chapterId }));
+    this.time.delayedCall(850, () =>
+      this.scene.restart({ chapterId: this.chapterId, respawn: true }));
   };
 
   private buildVillageNpcs() {
@@ -483,7 +535,10 @@ export default class DungeonScene extends Phaser.Scene {
   private buildArchiveEvidence() {
     const x = 450;
     const y = 308;
-    this.evidenceTrail = this.add.graphics().setDepth(6).setAlpha(0.22);
+    // Once the road is cleared the trail stays plainly visible, including after
+    // a respawn that lands mid-investigation.
+    const trailFound = this.investigationStage !== 'defend';
+    this.evidenceTrail = this.add.graphics().setDepth(6).setAlpha(trailFound ? 0.9 : 0.22);
     this.evidenceTrail.fillStyle(0x6b21a8, 0.55);
     this.evidenceTrail.fillEllipse(x + 8, y + 7, 43, 12);
     this.evidenceTrail.fillCircle(x + 36, y, 5);
@@ -686,7 +741,12 @@ export default class DungeonScene extends Phaser.Scene {
       && this.player.y <= y + 118;
   }
 
+  // Both doorway transitions lock input for the same reason every other
+  // transition does: during the fade the scene still updates, so an unlocked
+  // player could die or re-trigger the doorway and stack a second
+  // pause()/launch() on top of the first.
   private enterArchive() {
+    this.locked = true;
     this.player.stopMovement();
     this.interactPrompt.setVisible(false);
     this.cameras.main.fadeOut(220, 7, 18, 26);
@@ -697,6 +757,7 @@ export default class DungeonScene extends Phaser.Scene {
   }
 
   private enterVillageBuilding(buildingId: VillageBuildingId) {
+    this.locked = true;
     this.player.stopMovement();
     this.interactPrompt.setVisible(false);
     this.cameras.main.fadeOut(220, 7, 18, 26);
@@ -751,6 +812,7 @@ export default class DungeonScene extends Phaser.Scene {
 
   private openDoor(door: DoorData) {
     door.isOpen = true;
+    this.solvedGates.add(door.gateNumber);
 
     // Remove physics collider for this door
     const idx = this.doors.indexOf(door);
@@ -828,6 +890,8 @@ export default class DungeonScene extends Phaser.Scene {
   };
 
   private onSceneResumed = () => {
+    // Returning from an interior releases the lock taken by the doorway fade.
+    this.locked = false;
     this.cameras.main.fadeIn(240, 7, 18, 26);
   };
 
