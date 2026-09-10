@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { getStoryProgress } from '@/lib/story/progress';
 import { EventBus } from '../EventBus';
 import { hexToNumber, type StoryAvatarConfig } from '../avatar';
 import { convertAvatarTexture, convertAvatarGroup } from '../world/pixelAvatarTextures';
@@ -49,6 +50,11 @@ export default class BootScene extends Phaser.Scene {
       this.load.svg(`npc-${index}-accessory`, `/ink/accessories/${npc.accessory}.svg`, { width: 64, height: 64 });
     });
 
+    this.load.svg('scholar-base', '/ink/base/droplet_01.svg', { width:64, height:64 });
+    this.load.svg('scholar-eyes', '/ink/eyes/eyes_01.svg', { width:64, height:64 });
+    this.load.svg('scholar-glasses', '/ink/accessories/glasses_01.svg', { width:64, height:64 });
+    this.load.svg('scholar-quill', '/ink/accessories/quill_01.svg', { width:64, height:64 });
+
     // The thief reuses the established Inkling silhouette so the cutscene
     // belongs to the same visual world as the player and villagers.
     this.load.svg('thief-base', '/ink/base/droplet_04.svg', { width: 64, height: 64 });
@@ -59,6 +65,9 @@ export default class BootScene extends Phaser.Scene {
   create() {
     // Bake each cosmetic separately so facing, gear and avatar customization remain intact.
     convertAvatarTexture(this,'npc-0-base',0xf0a6aa,'luma-base');
+    convertAvatarGroup(this,[{key:'scholar-base',color:0xcd7f32},
+      {key:'scholar-eyes'},{key:'scholar-glasses',color:0x483a32},{key:'scholar-quill'}]);
+    convertAvatarTexture(this,'npc-2-base',0xcd7f32,'road-knight-base');
     convertAvatarGroup(this,[{key:'player-base',color:hexToNumber(this.avatar.color)},
       ...['player-eyes','player-accessory-1','player-accessory-2'].map(key=>({key}))]);
     VILLAGE_NPCS.forEach((npc,index)=>{
@@ -89,6 +98,11 @@ export default class BootScene extends Phaser.Scene {
       ? new URLSearchParams(window.location.search).get('interiorReview') : null;
     if (review && Object.hasOwn(INTERIOR_PLANS,review)) {
       this.scene.start(review === 'archive' ? 'ArchiveScene' : 'VillageInteriorScene', { buildingId:review });
+      return;
+    }
+    const progress = getStoryProgress();
+    if (this.chapterId === 1 && !progress.opening && !progress.completedChapters.includes(1) && !progress.chapterCheckpoints[1]) {
+      this.scene.start('WakeScene');
       return;
     }
     this.scene.start(this.chapterId === 2 ? 'WordwoodScene' : 'DungeonScene', { chapterId: this.chapterId });

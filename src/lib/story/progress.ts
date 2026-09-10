@@ -12,6 +12,10 @@ export interface StoryProgress {
   chapterCheckpoints: Record<number, string>;
   unlockedLore: string[];
   claimedRewards: string[];
+  /** Absent on legacy saves, which retain their existing access. */
+  opening?: 'woke' | 'chase' | 'scholar' | 'wordwood';
+  defeatedRoadEnemies?: number[];
+  visitedInkwell?: boolean;
 }
 
 export interface StoryInventory {
@@ -88,7 +92,7 @@ export function saveStoryInventory(inventory: Partial<StoryInventory>): void {
 export function markChapterComplete(chapterId: number): void {
   const p = getStoryProgress();
   if (!p.completedChapters.includes(chapterId)) {
-    p.completedChapters.push(chapterId);
+    p.completedChapters = [...p.completedChapters, chapterId];
   }
   p.currentChapter = Math.max(p.currentChapter, chapterId + 1);
   saveStoryProgress(p);
@@ -97,6 +101,7 @@ export function markChapterComplete(chapterId: number): void {
 export function isChapterUnlocked(chapterId: number): boolean {
   if (chapterId === 1) return true;
   const p = getStoryProgress();
+  if (chapterId === 2 && p.opening && p.opening !== 'wordwood' && !p.completedChapters.includes(2)) return false;
   return p.completedChapters.includes(chapterId - 1);
 }
 

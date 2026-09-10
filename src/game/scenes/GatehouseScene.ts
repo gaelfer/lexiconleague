@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import Player from '../entities/Player';
 import type { StoryAvatarConfig } from '../avatar';
 import { AREAS,canTravel,type AreaId } from '../story/areaTravel';
-import { getStoryProgress } from '@/lib/story/progress';
+import { getStoryProgress, isChapterUnlocked } from '@/lib/story/progress';
 import { frameWorld } from '../world/framing';
 
 /** A walk-through three-way lodge. Returning through the entry resumes its paused scene. */
@@ -45,6 +45,9 @@ export default class GatehouseScene extends Phaser.Scene{
     for(const [id,area] of Object.entries(AREAS)){
       if(Phaser.Math.Distance.Between(this.player.x,this.player.y,area.door.x,area.door.y)>8)continue;
       const target=id as AreaId;
+      if(target === 'wordwood' && !isChapterUnlocked(2)) {
+        this.hint.setText('Sir Serif asked you to speak to Scholar Vellum first. Find him in Inkwell’s Archive, on the east side of town.');return;
+      }
       if(!canTravel(target,getStoryProgress().completedChapters)){
         this.hint.setText('Clear the three Word Seals on Inkwell Road first.');return;
       }

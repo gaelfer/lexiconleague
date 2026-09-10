@@ -5,6 +5,8 @@ import ArchiveScene from './scenes/ArchiveScene';
 import VillageInteriorScene from './scenes/VillageInteriorScene';
 import WordwoodScene from './scenes/WordwoodScene';
 import GatehouseScene from './scenes/GatehouseScene';
+import WakeScene from './scenes/WakeScene';
+import { speechState } from './entities/inklingSpeech';
 import { normalizeStoryAvatar } from './avatar';
 import type { InkAvatarConfig } from '@/types';
 import { DISPLAY_SCALE } from './pixelScale';
@@ -58,10 +60,28 @@ export function createGame(
       new VillageInteriorScene(avatar),
       new WordwoodScene(avatar),
       new GatehouseScene(avatar),
+      new WakeScene(avatar),
     ],
   });
   // Resize the native viewport, never stretch its pixels by a fractional FIT scale.
   game.canvas.style.imageRendering = 'pixelated';
+  if (process.env.NODE_ENV === 'development' && new URLSearchParams(location.search).has('storyTest')) {
+    const state = () => game.scene.getScenes(true).map(scene => {
+      const observed = scene as Phaser.Scene & { player?: {x:number;y:number;hearts:number}; luma?:{x:number;y:number}; npcs?:{spec:{name:string}}[]; activeDialogue?: {text:Phaser.GameObjects.Text}; dialogue?: {text:Phaser.GameObjects.Text} };
+      return {scene:scene.scene.key,x:observed.player?.x,y:observed.player?.y,hearts:observed.player?.hearts,
+        dialogue:observed.activeDialogue?.text.text??observed.dialogue?.text.text,
+        luma:observed.luma?{x:observed.luma.x,y:observed.luma.y+16}:null,
+        residents:observed.npcs?.map(npc=>npc.spec.name),speech:speechState(scene)};
+    });
+    const api={state,takeTestHit:()=>{
+      const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {player?:{takeDamage(amount:number):boolean}};
+      return scene?.player?.takeDamage(1);
+    }};
+    Object.assign(window,{__storyTest:api});
+    game.events.once(Phaser.Core.Events.DESTROY,()=>{
+      if(Reflect.get(window,'__storyTest')===api)Reflect.deleteProperty(window,'__storyTest');
+    });
+  }
   const resize = new ResizeObserver(() => {
     game.scale.resize(Math.max(1, Math.floor(parent.clientWidth / DISPLAY_SCALE)),
       Math.max(1, Math.floor(parent.clientHeight / DISPLAY_SCALE)));

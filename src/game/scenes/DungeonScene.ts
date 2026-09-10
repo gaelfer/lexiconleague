@@ -7,6 +7,8 @@ import { buildInkwellApproach } from '../world/inkwellApproach';
 import { drawGatehouse,enterGatehouse } from '../world/gatehouse';
 import { getStoryProgress,saveStoryProgress,markChapterComplete } from '@/lib/story/progress';
 import Player from '../entities/Player';
+import { registerSpeaker, speak } from '../entities/inklingSpeech';
+import { TrailFollower } from '../entities/trailFollower';
 import { createInkHand, createInkFoot } from '../entities/inkHand';
 import Blotling from '../entities/Blotling';
 import { EventBus } from '../EventBus';
@@ -14,7 +16,8 @@ import { AVATAR_BODY_OFFSETS, hexToNumber, type StoryAvatarConfig } from '../ava
 import { facingVector, isInSwordArc } from '../combat';
 import type { Facing } from '../movement';
 import { VILLAGE_NPCS, type VillageNpcSpec } from '../npcs';
-import { CHAPTER_ONE_STORY,ROAD_CHATTER } from '../story/chapterOne';
+import { CHAPTER_ONE_STORY } from '../story/chapterOne';
+import { OPENING_STORY, RESCUED_CHATTER } from '../story/openingStory';
 import { VILLAGE_BUILDINGS, type VillageBuildingId } from '../story/buildings';
 import {
   buildInkwellVillage,
@@ -75,6 +78,10 @@ export default class DungeonScene extends Phaser.Scene {
   private openedGates = 0;
   private enemies: Blotling[] = [];
   private openingEnemies: Blotling[] = [];
+  private roadEnemyIds = new Map<Blotling, number>();
+  private rescueComplete = false;
+  private luma?: Phaser.GameObjects.Container;
+  private follower?: TrailFollower;
   private introObjects: Phaser.GameObjects.GameObject[] = [];
   private npcs: NpcData[] = [];
   private activeDialogue: DialogueData | null = null;
@@ -102,6 +109,9 @@ export default class DungeonScene extends Phaser.Scene {
     this.locked = false;
     this.enemies = [];
     this.openingEnemies = [];
+    this.roadEnemyIds = new Map();
+    this.rescueComplete = getStoryProgress().completedChapters.includes(1);
+    this.luma=undefined;this.follower=undefined;
     this.introObjects = [];
     this.npcs = [];
     this.activeDialogue = null;
@@ -130,6 +140,7 @@ export default class DungeonScene extends Phaser.Scene {
   }
 
   create() {
+    if(this.chapterId===0)saveStoryProgress({visitedInkwell:true});
     const worldW = this.chapterId === 0 ? TOWN.width : VILLAGE_ROOM_WIDTH * VILLAGE_ROOM_COUNT;
     const top = this.chapterId === 0 ? TOWN.top : 0;
     const worldH = this.chapterId === 0 ? TOWN.height - TOWN.top : VILLAGE_HEIGHT;
@@ -142,6 +153,7 @@ export default class DungeonScene extends Phaser.Scene {
       && new URLSearchParams(window.location.search).get('exteriorReview') === 'archive';
     this.player = new Player(this, reviewArchive ? 1040 : this.chapterId === 0 ? TOWN.spawn.x : 115,
       reviewArchive ? 400 : this.chapterId === 0 ? TOWN.spawn.y : VILLAGE_HEIGHT / 2, this.avatar);
+    if(this.chapterId===1 && getStoryProgress().opening==='woke')this.player.sprite.body!.reset(208,240);
     if(new URLSearchParams(window.location.search).get('arrival')==='gatehouse'){
       const point=this.chapterId===0?TOWN.gatehouse.spawn:{x:3056,y:336};
       this.player.sprite.body!.reset(point.x,point.y);
@@ -158,7 +170,14 @@ export default class DungeonScene extends Phaser.Scene {
     // Wall collision (single collider covers all static wall bodies)
     this.physics.add.collider(this.player.sprite, this.walls);
     if (this.chapterId !== 0 && !(this.chapterId===1&&getStoryProgress().completedChapters.includes(1))) this.spawnOpeningAttackers();
-    this.buildVillageNpcs();
+    if (this.chapterId === 0 || this.rescueComplete) this.buildVillageNpcs();
+    if(this.chapterId===1 && !getStoryProgress().visitedInkwell){
+      if(this.rescueComplete)this.createLuma(2608,240);
+      else if(getStoryProgress().opening==='chase'){
+        this.createLuma(this.player.x,this.player.y);
+        this.follower=new TrailFollower({x:this.player.x,y:this.player.y},{x:this.player.x,y:this.player.y});
+      }
+    }
     if (this.chapterId !== 0) this.buildArchiveEvidence();
 
     // Camera
@@ -199,17 +218,18 @@ export default class DungeonScene extends Phaser.Scene {
     EventBus.emit('lexicoins-changed', { amount: this.player.lexicoins });
     EventBus.emit('word-gates-changed', { opened: this.openedGates, total: TOTAL_WORD_GATES });
 
-    if (this.chapterId === 0) this.showWorldMessage('Inkwell — a little time between adventures', '#8fcfb7');
+    if (this.chapterId === 0) this.showWorldMessage(getStoryProgress().opening==='scholar'?'Find Scholar Vellum — the Archive is on the east side of town':'Inkwell — a little time between adventures', '#8fcfb7');
     else if(this.chapterId===1&&getStoryProgress().completedChapters.includes(1))this.showWorldMessage('The road is clear — Inkwell’s gatehouse is to the east.','#b4c99b');
-    else if (this.isRespawn) this.resumeAfterDeath();
+    else if (this.isRespawn || getStoryProgress().opening === 'chase') this.resumeAfterDeath();
     else this.startOpeningCutscene();
   }
 
   /** Objective text for the current investigation stage, reused after a respawn. */
   private currentObjective(): string {
+    if (this.solvedGates.size === 3) return 'Clear the remaining Blotlings and find the travellers by the gatehouse';
     switch (this.investigationStage) {
       case 'defend': return 'Clear the crossing on Inkwell Road';
-      case 'inspect': return 'Inspect the torn page on the road';
+      case 'inspect': return 'Follow the masked stranger toward Inkwell';
       case 'archive': return 'Search the Inkwell Archive';
       default: return 'Restore the Word Seals and reach Inkwell’s gatehouse';
     }
@@ -336,6 +356,14 @@ export default class DungeonScene extends Phaser.Scene {
     if (this.locked || !this.sys.isActive()) return;
 
     this.player.update(delta);
+    if(this.luma && this.follower){
+      const previousY=this.luma.y;
+      const point=this.follower.update({x:this.player.x,y:this.player.y},delta);
+      this.luma.setPosition(Math.round(point.x),Math.round(point.y)-16);
+      // Preserve Luma’s real expression, hiding it when she walks away.
+      const eyes=this.luma.list.find(object=>object instanceof Phaser.GameObjects.Image&&object.texture.key==='npc-0-eyes') as Phaser.GameObjects.Image|undefined;
+      if(this.luma.y!==previousY)eyes?.setVisible(this.luma.y>previousY);
+    }
     let hasDefeated = false;
     for (const enemy of this.enemies) {
       if (enemy.defeated) {
@@ -349,7 +377,32 @@ export default class DungeonScene extends Phaser.Scene {
     // Defeated Blotlings destroy their sprites but used to stay in the array
     // forever, so every frame and every sword swing walked over dead entries.
     // `openingEnemies` keeps its own references, so the cutscene gate is safe.
-    if (hasDefeated) this.enemies = this.enemies.filter((enemy) => !enemy.defeated);
+    if (hasDefeated) {
+      const defeated = new Set(getStoryProgress().defeatedRoadEnemies ?? []);
+      for (const enemy of this.enemies) if (enemy.defeated) {
+        const id = this.roadEnemyIds.get(enemy);
+        if (id !== undefined) defeated.add(id);
+      }
+      saveStoryProgress({ defeatedRoadEnemies: [...defeated] });
+      this.enemies = this.enemies.filter((enemy) => !enemy.defeated);
+    }
+    if (this.chapterId === 1 && !this.rescueComplete && this.enemies.length === 0 && this.solvedGates.size === 3 && this.player.x > 2520) {
+      this.rescueComplete = true;
+      this.buildVillageNpcs();
+      this.follower=undefined;this.locked=true;this.player.stopMovement();
+      if(!this.luma)this.createLuma(this.player.x,this.player.y);
+      this.luma!.list.forEach(object=>{if(object instanceof Phaser.GameObjects.Image)object.setVisible(true);});
+      this.tweens.add({targets:this.luma,x:2608,duration:500,onComplete:()=>{
+        this.tweens.add({targets:this.luma,y:224,duration:400,onComplete:()=>{
+          this.openStoryDialogue('AT THE VILLAGE GATES', OPENING_STORY.rescue, () => {
+        saveStoryProgress({opening:'scholar'});
+        markChapterComplete(1);
+        this.showWorldMessage('Find Scholar Vellum in Inkwell’s Archive', '#b4c99b');
+          });
+        }});
+      }});
+      return;
+    }
     this.checkInteractionProximity();
   }
 
@@ -365,9 +418,10 @@ export default class DungeonScene extends Phaser.Scene {
     // been cleared they must not return, or a respawn would look like a reset.
     const roadCleared = this.investigationStage !== 'defend';
     spawns.forEach(([x, y], index) => {
-      if (index < 3 && roadCleared) return;
+      if ((index < 3 && roadCleared) || getStoryProgress().defeatedRoadEnemies?.includes(index)) return;
       const enemy = new Blotling(this, x, y);
       this.enemies.push(enemy);
+      this.roadEnemyIds.set(enemy,index);
       if (index < 3) this.openingEnemies.push(enemy);
       this.physics.add.collider(enemy.sprite, this.walls);
       this.physics.add.collider(enemy.sprite, this.player.sprite);
@@ -377,78 +431,37 @@ export default class DungeonScene extends Phaser.Scene {
   private startOpeningCutscene() {
     this.locked = true;
     this.player.stopMovement();
-
-    const topBar = this.add.rectangle(400, 22, 800, 44, 0x050b12, 0.96)
-      .setScrollFactor(0).setDepth(90);
-    const bottomBar = this.add.rectangle(400, 535, 800, 130, 0x050b12, 0.95)
-      .setScrollFactor(0).setDepth(90);
-    const speaker = this.add.text(56, 493, 'INKWELL VILLAGE', {
-      fontFamily: 'Georgia, serif',
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: '#f4c96b',
-      letterSpacing: 2,
-    }).setScrollFactor(0).setDepth(91);
-    const dialogue = this.add.text(56, 519, CHAPTER_ONE_STORY.opening[0], {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '17px',
-      color: '#f8fafc',
-      wordWrap: { width: 680 },
-    }).setScrollFactor(0).setDepth(91);
-    const hint = this.add.text(744, 566, 'Q  STRIKE', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#58e0b0',
-      letterSpacing: 1,
-    }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(91).setAlpha(0);
-
-    this.introObjects = [topBar, bottomBar, speaker, dialogue, hint];
-    this.cameras.main.shake(380, 0.012);
-
-    // A proper Inkling silhouette keeps the thief cohesive with the cast.
-    const thiefShadow = this.add.ellipse(0, 23, 38, 12, 0x020617, 0.42);
-    const thiefLeftFoot = createInkFoot(this,-10,21,0x111827);
-    const thiefRightFoot = createInkFoot(this,10,21,0x111827);
-    const thiefLeftHand = createInkHand(this, -15, 7, 0x111827);
-    const thiefRightHand = createInkHand(this, 15, 7, 0x111827);
-    const thiefBase = this.add.image(0, 0, 'thief-base').setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
-    const thiefEyes = this.add.image(0, -5, 'thief-eyes').setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT).setTint(0xc4b5fd);
-    const thiefScarf = this.add.image(0, -7, 'thief-scarf').setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT).setTint(0x64748b);
-    const stolenPage = this.add.rectangle(-28, 7, 14, 22, 0xf8e7b3).setStrokeStyle(1, 0xd6bd7d);
-    const thief = this.add.container(690, 302, [
-      thiefShadow, thiefLeftFoot, thiefRightFoot, thiefBase,
-      thiefLeftHand, thiefEyes, thiefScarf, thiefRightHand, stolenPage,
-    ]).setDepth(25).setScale(0.78);
-    this.introObjects.push(thief);
-    this.tweens.add({ targets: thief, x: 785, alpha: 0.15, duration: 1150, delay: 620, ease: 'Sine.in' });
-
-    this.enemies.slice(0, 3).forEach((enemy, index) => {
-      enemy.sprite.setScale(0.2).setAlpha(0);
-      this.tweens.add({
-        targets: enemy.sprite,
-        alpha: 1,
-        scale: 1,
-        duration: 260,
-        delay: 250 + index * 180,
-        ease: 'Back.out',
+    const thief = this.add.container(240, 280).setDepth(25).setScale(0.78);
+    thief.add([
+      this.add.ellipse(0,23,30,10,0x020617,0.4),
+      createInkFoot(this,-10,21,0x111827), createInkFoot(this,10,21,0x111827),
+      this.add.image(0,0,'thief-base').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
+      this.add.image(0,-5,'thief-eyes').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
+      this.add.image(0,-7,'thief-scarf').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
+      createInkHand(this,-15,7,0x111827), createInkHand(this,15,7,0x111827),
+    ]);
+    this.createLuma(208,272);
+    this.introObjects = [thief];
+    this.tweens.add({targets:thief,x:720,duration:1900,ease:'Linear',onComplete:()=>thief.destroy()});
+    this.time.delayedCall(2000,()=>{
+      this.openStoryDialogue('Luma',OPENING_STORY.luma,()=>{
+        saveStoryProgress({opening:'chase'});
+        this.follower=new TrailFollower({x:this.luma!.x,y:this.luma!.y+16},{x:this.player.x,y:this.player.y});
+        this.showWorldMessage('Keep Luma safe — clear the Blotlings and follow the masked stranger', '#e3d1a2');
       });
     });
+  }
 
-    this.time.delayedCall(1900, () => {
-      dialogue.setText(CHAPTER_ONE_STORY.opening[1]);
-      hint.setAlpha(1);
-    });
-    this.time.delayedCall(3550, () => {
-      this.tweens.add({
-        targets: this.introObjects,
-        alpha: 0,
-        duration: 320,
-        onComplete: () => this.introObjects.forEach((object) => object.destroy()),
-      });
-      this.locked = false;
-      this.showWorldMessage('Clear the crossing on Inkwell Road', '#f0abfc');
-    });
+  private createLuma(x:number,y:number) {
+    this.luma = this.add.container(x,y-16).setScale(0.62).setDepth(24);
+    this.luma.add([
+      this.add.ellipse(0,23,30,10,0x020617,0.3),
+      createInkFoot(this,-10,21,0xf0a6aa),createInkFoot(this,10,21,0xf0a6aa),
+      this.add.image(0,0,'luma-base').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
+      this.add.image(0,-5,'npc-0-eyes').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
+      createInkHand(this,-15,7,0xf0a6aa),createInkHand(this,15,7,0xf0a6aa),
+    ]);
+    registerSpeaker(this,'Luma',this.luma);
   }
 
   private onPlayerAttack = ({
@@ -482,10 +495,11 @@ export default class DungeonScene extends Phaser.Scene {
       this.investigationStage === 'defend' &&
       this.openingEnemies.every((enemy) => enemy.defeated)
     ) {
-      this.investigationStage = 'inspect';
+      this.investigationStage = 'seals';
       this.evidenceTrail.setAlpha(0.9);
       this.tweens.add({ targets: this.evidenceGlow, alpha: 0.7, scale: 1.35, duration: 350, yoyo: true });
-      this.showWorldMessage('The creatures dropped something — inspect the ink trail', '#f4c96b');
+      this.saveRoad();
+      this.showWorldMessage('Follow the stranger — answer the damaged Word Seals to pass', '#f4c96b');
     }
   };
 
@@ -513,9 +527,10 @@ export default class DungeonScene extends Phaser.Scene {
         if (enemy.takeHit(arrow.x, arrow.y, 1)) this.spawnInkBurst(enemy.sprite.x, enemy.sprite.y);
         remove();
         if (this.investigationStage === 'defend' && this.openingEnemies.every((e) => e.defeated)) {
-          this.investigationStage = 'inspect';
+          this.investigationStage = 'seals';
           this.evidenceTrail.setAlpha(0.9);
-          this.showWorldMessage('Inspect the torn page beside the crossing', '#cbd5e1');
+          this.saveRoad();
+          this.showWorldMessage('Follow the stranger — answer the damaged Word Seals to pass', '#cbd5e1');
         }
       }));
     }
@@ -571,7 +586,15 @@ export default class DungeonScene extends Phaser.Scene {
   private buildVillageNpcs() {
     VILLAGE_NPCS.forEach((original, index) => {
       const position = this.chapterId === 0 ? TOWN.people[original.name] : undefined;
-      const spec = position ? { ...original, x: position[0], y: position[1] } : original;
+      let spec = position ? { ...original, x: position[0], y: position[1] } : original;
+      const watch = this.chapterId===1 && getStoryProgress().visitedInkwell;
+      if(watch){
+        if(original.name!=='Sir Serif')return;
+        spec={...original,name:'Dame Copper',color:'#CD7F32',x:2928,y:272,dialogue:[
+          'Dame Copper, road watch. Serif brought everyone home. I’m keeping this crossing safe now.',
+          'Go on ahead. If any more purple ink crawls out of the trees, it will have to get past me.',
+        ]};
+      }
       if (spec.house || (spec.hubOnly && this.chapterId !== 0)) return;
       const offsets = AVATAR_BODY_OFFSETS[spec.base] ?? AVATAR_BODY_OFFSETS.droplet_01;
       const container = this.add.container(spec.x, spec.y - 16).setDepth(10).setScale(0.78);
@@ -581,13 +604,13 @@ export default class DungeonScene extends Phaser.Scene {
       const rightFoot = createInkFoot(this,10,21,bodyColor);
       const leftHand = createInkHand(this, -15, 7, bodyColor);
       const rightHand = createInkHand(this, 15, 7, bodyColor);
-      const base = this.add.image(0, 0, `npc-${index}-base`)
+      const base = this.add.image(0, 0, watch?'road-knight-base':`npc-${index}-base`)
         .setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
       const eyes = this.add.image(0, offsets.eyesY, `npc-${index}-eyes`).setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
       const accessory = this.add.image(0, offsets.accessoryY, `npc-${index}-accessory`)
         .setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
       container.add([shadow, leftFoot, rightFoot, base, eyes, accessory, leftHand, rightHand]);
-      if (spec.name === 'Sir Serif') {
+      if (spec.name === 'Sir Serif' || watch) {
         const sword = this.add.image(15, 7, 'story-sword')
           .setOrigin(0.5, 54 / 66).setDisplaySize(14, 50).setAngle(12);
         container.add(sword);
@@ -598,10 +621,11 @@ export default class DungeonScene extends Phaser.Scene {
       // A planted pose avoids fractional layer wobble; the sword and its hand
       // keep one shared, stationary grip instead of separate idle tweens.
 
-      const body = this.physics.add.staticImage(spec.x, spec.y + 8, '__DEFAULT');
+      const body = this.physics.add.staticImage(spec.x, spec.y + (watch ? 0 : 8), '__DEFAULT');
       body.setDisplaySize(28, 28).setAlpha(0).refreshBody();
       this.physics.add.collider(this.player.sprite, body);
       this.npcs.push({ spec, body });
+      registerSpeaker(this,spec.name,container);
     });
   }
 
@@ -636,7 +660,7 @@ export default class DungeonScene extends Phaser.Scene {
 
   private openDialogue(npc: NpcData) {
     this.openStoryDialogue(npc.spec.name, this.chapterId===1
-      ? ROAD_CHATTER[npc.spec.name]??['Inkwell is just beyond the eastern gatehouse. We will follow once the road is clear.']
+      ? RESCUED_CHATTER[npc.spec.name]??npc.spec.dialogue
       : this.chapterId === 0 ? npc.spec.hubDialogue ?? npc.spec.dialogue : npc.spec.dialogue);
   }
 
@@ -677,6 +701,7 @@ export default class DungeonScene extends Phaser.Scene {
       onComplete,
     };
     this.dialogueNextAllowedAt = this.time.now + 260;
+    speak(this,speakerLabel,lines[0]);
   }
 
   private advanceDialogue() {
@@ -685,6 +710,7 @@ export default class DungeonScene extends Phaser.Scene {
     if (nextIndex < this.activeDialogue.lines.length) {
       this.activeDialogue.lineIndex = nextIndex;
       this.activeDialogue.text.setText(this.activeDialogue.lines[nextIndex]);
+      speak(this,this.activeDialogue.speaker,this.activeDialogue.lines[nextIndex]);
       this.dialogueNextAllowedAt = this.time.now + 220;
       return;
     }
@@ -692,16 +718,24 @@ export default class DungeonScene extends Phaser.Scene {
     const { onComplete } = this.activeDialogue;
     this.activeDialogue.objects.forEach((object) => object.destroy());
     this.activeDialogue = null;
+    speak(this,'');
     this.locked = false;
     onComplete?.();
   }
 
   private checkInteractionProximity() {
+    if(this.chapterId===1 && Math.abs(this.player.x-208)<20 && Math.abs(this.player.y-240)<20){
+      this.interactPrompt.setText('[ E ]  ENTER YOUR HOME').setPosition(this.player.x,this.player.y-62).setVisible(true);
+      if(this.player.isInteractJustDown())this.enterVillageBuilding('home');
+      return;
+    }
     const travel=this.chapterId===0?TOWN.gatehouse:this.chapterId===1?{x:3056,y:304}:null;
     if(travel&&Phaser.Math.Distance.Between(this.player.x,this.player.y,travel.x,travel.y)<64){
       this.interactPrompt.setText('[ E ]  ENTER THE WAYFARER GATEHOUSE').setPosition(this.player.x,this.player.y-62).setVisible(true);
       if(this.player.isInteractJustDown()){
-        if(this.chapterId===1){if(this.solvedGates.size<3){this.showWorldMessage('Restore the three road seals first.','#e3d1a2');return;}markChapterComplete(1);}
+        if(this.chapterId===1&&!getStoryProgress().completedChapters.includes(1)){
+          this.showWorldMessage(this.enemies.length ? `There are still ${this.enemies.length} Blotlings on the road. The travellers need a safe way back.` : 'Restore all three seals and meet the travellers in the clearing.','#e3d1a2');return;
+        }
         this.player.stopMovement();enterGatehouse(this,this.chapterId===0?'village':'approach');
       }
       return;
@@ -852,7 +886,8 @@ export default class DungeonScene extends Phaser.Scene {
     this.cameras.main.fadeOut(220, 7, 18, 26);
     this.time.delayedCall(240, () => {
       this.scene.pause();
-      this.scene.launch('VillageInteriorScene', { buildingId });
+      if(buildingId==='home')this.scene.launch('WakeScene',{visit:true,hearts:this.player.hearts});
+      else this.scene.launch('VillageInteriorScene', { buildingId });
     });
   }
 
@@ -944,7 +979,7 @@ export default class DungeonScene extends Phaser.Scene {
 
   private onChapterComplete = () => {
     if(this.chapterId===1){
-      if(this.solvedGates.size<3||this.chapterCompleteTriggered)return;
+      if(!getStoryProgress().completedChapters.includes(1)||this.solvedGates.size<3||this.chapterCompleteTriggered)return;
       this.chapterCompleteTriggered=true;markChapterComplete(1);this.player.stopMovement();
       enterGatehouse(this,'approach');return;
     }
@@ -989,7 +1024,8 @@ export default class DungeonScene extends Phaser.Scene {
     this.scene.resume();
   };
 
-  private onSceneResumed = () => {
+  private onSceneResumed = (_systems:Phaser.Scenes.Systems,data?:{rested?:boolean}) => {
+    if(data?.rested)this.player.healFully();
     // Returning from an interior releases the lock taken by the doorway fade.
     this.locked = false;
     this.chapterCompleteTriggered=false;

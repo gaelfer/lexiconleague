@@ -3,11 +3,23 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { CHAPTERS, REGIONS } from '@/lib/story/chapters';
-import { getStoryProgress, isChapterUnlocked } from '@/lib/story/progress';
+import { getStoryProgress, isChapterUnlocked, resetStoryProgress } from '@/lib/story/progress';
 import type { StoryProgress } from '@/lib/story/progress';
 
 export default function StoryWorldMap() {
   const [progress, setProgress] = useState<StoryProgress | null>(null);
+  const [resetMessage, setResetMessage] = useState('');
+
+  function handleReset() {
+    if (!window.confirm('Reset all story progress and story inventory in this browser? This clears chapters, checkpoints, and story items. Your profile and cosmetics are unchanged. This cannot be undone.')) return;
+    try {
+      resetStoryProgress();
+      setProgress(getStoryProgress());
+      setResetMessage('Story progress reset. Play Chapter 1 to start from the wake-up scene.');
+    } catch {
+      setResetMessage('Could not reset story progress. Check that browser storage is available and try again.');
+    }
+  }
 
   useEffect(() => {
     setProgress(getStoryProgress());
@@ -56,6 +68,16 @@ export default function StoryWorldMap() {
           A Zelda-style dungeon crawler. Answer vocabulary questions to unlock doors, defeat bosses,
           and save the world of language.
         </p>
+        <button
+          type="button"
+          onClick={handleReset}
+          disabled={!progress}
+          style={{ marginTop: 20, padding: '10px 16px', border: '1px solid #925b56', borderRadius: 6,
+            background: '#291c25', color: '#fecaca', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+        >
+          Reset story progress
+        </button>
+        <p role="status" style={{ marginTop: 10, color: '#cbd5e1', fontSize: 13 }}>{resetMessage}</p>
       </div>
 
       {/* Regions + chapters */}

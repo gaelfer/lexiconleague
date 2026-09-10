@@ -4,6 +4,7 @@ import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT } from '../pixelAvatar';
 import { buildTileInterior } from '../world/tileInterior';
 import { ROOM_GRID } from '../story/interiorPlans';
 import Player from '../entities/Player';
+import { registerSpeaker, speak } from '../entities/inklingSpeech';
 import { createInkHand, createInkFoot } from '../entities/inkHand';
 import { VILLAGE_NPCS } from '../npcs';
 import { AVATAR_BODY_OFFSETS, hexToNumber } from '../avatar';
@@ -74,10 +75,11 @@ export default class VillageInteriorScene extends Phaser.Scene {
         ...[-7,7].map((x) => createInkFoot(this,x,17,0xf0a6aa).setScale(0.75)),
         ...[-12,12].map((x) => createInkHand(this,x,6,0xf0a6aa).setScale(0.8))]);
       this.addWall(496,368,32,32);
+      registerSpeaker(this,'LUMA',luma);
       this.interactions.push({ x:496, y:368, label:'TALK TO LUMA', heading:'LUMA', lines:[
-        'Mum measures every road. I just draw the places I like bigger.',
-        'That person with the silver sleeve? They turned the forest signs around. I thought they were fixing them.',
-        'You will fix them properly, right? My map is no good for that. The bakery takes up most of it.',
+        'You found Mum! I knew you would. Well… I hoped very loudly.',
+        'She says I’m not allowed to run off again. Not even to get help. We’re still discussing that part.',
+        'I drew you on my map. You’re bigger than the bakery. Don’t tell Pip.',
       ] });
     }
 
@@ -93,6 +95,7 @@ export default class VillageInteriorScene extends Phaser.Scene {
       const accessory = this.add.image(0, offsets.accessoryY, `npc-${index}-accessory`).setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
       const hands = [-15, 15].map((x) => createInkHand(this, x, 7, color));
       person.add([shadow, ...feet, base, eyes, accessory, ...hands]);
+      registerSpeaker(this,resident.name,person);
       // Keep all resident layers planted on the same pixel grid.
       this.addWall(496, 368, 32, 32);
       this.interactions.push({ x: 496, y: 368, label: `TALK TO ${resident.name.toUpperCase()}`, heading: resident.name.toUpperCase(), lines: resident.dialogue });
@@ -174,6 +177,7 @@ export default class VillageInteriorScene extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#f0b77d',
     }).setOrigin(1, 0.5).setDepth(101);
     this.dialogue = { interaction, index: 0, text, objects: [panel, heading, text, hint] };
+    speak(this,interaction.heading,interaction.lines[0]);
     this.nextDialogueAt = this.time.now + 240;
   }
 
@@ -183,11 +187,13 @@ export default class VillageInteriorScene extends Phaser.Scene {
     if (next < this.dialogue.interaction.lines.length) {
       this.dialogue.index = next;
       this.dialogue.text.setText(this.dialogue.interaction.lines[next]);
+      speak(this,this.dialogue.interaction.heading,this.dialogue.interaction.lines[next]);
       this.nextDialogueAt = this.time.now + 220;
       return;
     }
     this.dialogue.objects.forEach((object) => object.destroy());
     this.dialogue = null;
+    speak(this,'');
   }
 
   private exitBuilding() {

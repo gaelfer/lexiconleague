@@ -192,6 +192,19 @@ export default class Player {
   get x() { return this.sprite.x; }
   get y() { return this.sprite.y; }
 
+  healFully() {
+    this.hearts=3;
+    EventBus.emit('health-changed',{hearts:this.hearts});
+  }
+
+  /** Cutscene-only resting pose; normal update restores the equipped weapon. */
+  rest() {
+    this.stopMovement();
+    this.sword.setVisible(false);
+    this.bow.setVisible(false);
+    this.artwork.setY(this.artwork.y + 14);
+  }
+
   isInteractJustDown(): boolean {
     const e=Phaser.Input.Keyboard.JustDown(this.keyE);
     const space=Phaser.Input.Keyboard.JustDown(this.keySpace);
