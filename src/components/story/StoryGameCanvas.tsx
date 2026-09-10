@@ -10,6 +10,7 @@ import HUDOverlay from './HUDOverlay';
 import WordLockModal from './WordLockModal';
 import type { Question } from '@/types';
 import { createGuestProfile, getProfile } from '@/lib/user/storage';
+import { markChapterComplete } from '@/lib/story/progress';
 
 interface StoryGameCanvasProps {
   chapterId: number;
@@ -81,7 +82,12 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
       void questionType; // used in Phase 2 for targeted question types
     };
 
-    const onChapterComplete = () => setChapterDone(true);
+    // Recording the completion is what actually unlocks the next chapter on the
+    // world map; without it the banner was a dead end.
+    const onChapterComplete = () => {
+      markChapterComplete(chapterId);
+      setChapterDone(true);
+    };
 
     EventBus.on('health-changed', onHealthChanged);
     EventBus.on('lexicoins-changed', onLexicoinsChanged);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { EventBus } from '@/game/EventBus';
 import type { Question } from '@/types';
 
@@ -21,6 +21,14 @@ export default function WordLockModal({
 }: WordLockModalProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const [result, setResult] = useState<'correct' | 'wrong' | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // If the modal is ever torn down by anything other than its own timer, the
+  // pending emit would fire into a scene that is no longer expecting it and
+  // leave the door's input lock stuck.
+  useEffect(() => () => {
+    if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+  }, []);
 
   const handleAnswer = useCallback(
     (index: number) => {
@@ -32,7 +40,8 @@ export default function WordLockModal({
 
       // Give the player time to see the result before closing
       const delay = correct ? 700 : 1200;
-      setTimeout(() => {
+      closeTimer.current = setTimeout(() => {
+        closeTimer.current = null;
         EventBus.emit('question-result', { correct, doorId });
         onClose();
       }, delay);
