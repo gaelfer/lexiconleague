@@ -7,11 +7,11 @@ describe('pixel avatar conversion',()=>{
     const result=pixelizeAvatar(data,2,1,undefined,40);
     expect(result[3]).toBe(255);expect(result[7]).toBe(0);
   });
-  it('preserves teardrop proportions inside a padded 24×48 frame',()=>{
+  it('preserves teardrop proportions inside a padded 28×56 frame',()=>{
     const p=avatarRasterPlacement(64,64);
-    expect(AVATAR_FRAME).toEqual({width:24,height:48});
+    expect(AVATAR_FRAME).toEqual({width:28,height:56});
     expect(p.dw/p.sw).toBeCloseTo(p.dh/p.sh,10);
-    expect(p.dy+p.dh).toBeLessThanOrEqual(48);
+    expect(p.dy+p.dh).toBeLessThanOrEqual(56);
   });
   const source=()=>{
     const data=new Uint8ClampedArray(12*12*4);

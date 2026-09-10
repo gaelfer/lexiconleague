@@ -64,7 +64,7 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   the authored paths; do not turn it back into a single straight road.
 - Wordwood’s signs visibly restore landmarks. Its final stones tell the sequence
   seed, sprout, bloom. Preserve both vocabulary and sanctuary progress on travel.
-- Character cosmetic layers use native 24×48 frames displayed at 32×64, anchored
+- Character cosmetic layers use native 28×56 frames displayed at 32×64, anchored
   over the occupied foot tile. Preserve one-tile movement collision and weapon grips.
   The frame is NOT the silhouette: preserve the SVG's aspect ratio and pad the
   frame. Fit all cosmetic layers together, including wide star bodies; never
@@ -75,7 +75,7 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
 - Text is a readability exception: readableText.ts composites Phaser text canvases
   at full display resolution. Never downsample glyphs with the world framebuffer.
   Characters also use the full-resolution compositor with nearest-neighbor sampling
-  so their 24×48 expressions are not reduced back to 16×32. Preserve each selected
+  so their 28×56 expressions are not reduced back to 16×32. Preserve each selected
   SVG's real mouth; never stamp a generic smile on eye layers. Hide faces for rear views.
 - NPCs use a planted stance: no independent fractional bobbing of their body,
   face, hands or sword. Snap character compositor translations to display pixels.

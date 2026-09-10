@@ -8,6 +8,6 @@ export const MAP_UNITS_PER_PIXEL = 2;
 export const MAP_TILE = ART_TILE * MAP_UNITS_PER_PIXEL;
 export const WORLD_CAMERA_ZOOM = 1 / MAP_UNITS_PER_PIXEL;
 export const sceneZoom = (town: boolean) => WORLD_CAMERA_ZOOM * (town ? 1.25 : 1.5);
-export const CHARACTER_FRAME = { width: 24, height: 48 } as const;
+export const CHARACTER_FRAME = { width: 28, height: 56 } as const;
 export const artToMap = (pixels: number) => pixels * MAP_UNITS_PER_PIXEL;
 export const mapToArt = (units: number) => units / MAP_UNITS_PER_PIXEL;

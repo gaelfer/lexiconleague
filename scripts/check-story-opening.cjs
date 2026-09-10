@@ -49,7 +49,7 @@ const assert=require('node:assert/strict');
   await page.waitForTimeout(900);
   await page.screenshot({path:'/tmp/story-rescue.png'});
   assert((await state()).dialogue.startsWith('Luma: Mum!'));
-  assert.deepEqual((await state()).luma,{x:2608,y:240});
+  assert.deepEqual((await state()).luma,{x:2640,y:272});
   for(let i=0;i<10;i++)await tap('e');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lexiconleague:story:progress')).opening),'scholar');
   await page.goto('http://localhost:3000/story/1?storyTest&interiorReview=archive');await ready('ArchiveScene');

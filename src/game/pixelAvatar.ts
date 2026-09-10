@@ -2,7 +2,7 @@
 import { CHARACTER_FRAME } from './pixelScale';
 export const AVATAR_FRAME = CHARACTER_FRAME;
 /** Crop empty side margins, not the body. The source and destination aspect
- * ratios match, so the 16×32 canvas never stretches a teardrop into a needle. */
+ * ratios match, so the padded canvas never stretches a teardrop into a needle. */
 export function avatarRasterPlacement(sourceWidth:number,sourceHeight:number,cropFraction=0.68){
   const cropWidth=sourceWidth*cropFraction;
   const scale=AVATAR_FRAME.width/cropWidth;

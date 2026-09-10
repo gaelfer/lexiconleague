@@ -1,3 +1,8 @@
+export const RESCUE_POSITIONS:Record<string,{x:number;y:number}>={
+  Mira:{x:2672,y:272}, 'Sir Serif':{x:2736,y:272},
+  Bramble:{x:2672,y:336}, Pip:{x:2736,y:336}, Luma:{x:2640,y:272},
+};
+
 export const OPENING_STORY = {
   luma: [
     'That masked person! They came from town. When they ran past, those purple things climbed out of the ink behind them!',

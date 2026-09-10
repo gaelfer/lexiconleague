@@ -14,7 +14,7 @@ describe('story world scale', () => {
     expect(DISPLAY_SCALE).toBe(2);
     expect(mapToArt(TILE_SIZE)).toBe(16);
     expect(TILE_SIZE * WORLD_CAMERA_ZOOM * DISPLAY_SCALE).toBe(32);
-    expect(CHARACTER_FRAME).toEqual({width:24,height:48});
+    expect(CHARACTER_FRAME).toEqual({width:28,height:56});
     expect(TILE_SIZE).toBe(32);
     expect(AVATAR_LAYER_WIDTH * INKLING_SCALE).toBe(32);
     expect(AVATAR_LAYER_HEIGHT * INKLING_SCALE).toBe(64);

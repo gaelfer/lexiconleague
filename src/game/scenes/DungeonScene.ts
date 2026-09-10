@@ -17,7 +17,7 @@ import { facingVector, isInSwordArc } from '../combat';
 import type { Facing } from '../movement';
 import { VILLAGE_NPCS, type VillageNpcSpec } from '../npcs';
 import { CHAPTER_ONE_STORY } from '../story/chapterOne';
-import { OPENING_STORY, RESCUED_CHATTER } from '../story/openingStory';
+import { OPENING_STORY, RESCUED_CHATTER, RESCUE_POSITIONS } from '../story/openingStory';
 import { VILLAGE_BUILDINGS, type VillageBuildingId } from '../story/buildings';
 import {
   buildInkwellVillage,
@@ -172,7 +172,7 @@ export default class DungeonScene extends Phaser.Scene {
     if (this.chapterId !== 0 && !(this.chapterId===1&&getStoryProgress().completedChapters.includes(1))) this.spawnOpeningAttackers();
     if (this.chapterId === 0 || this.rescueComplete) this.buildVillageNpcs();
     if(this.chapterId===1 && !getStoryProgress().visitedInkwell){
-      if(this.rescueComplete)this.createLuma(2608,240);
+      if(this.rescueComplete)this.createLuma(RESCUE_POSITIONS.Luma.x,RESCUE_POSITIONS.Luma.y);
       else if(getStoryProgress().opening==='chase'){
         this.createLuma(this.player.x,this.player.y);
         this.follower=new TrailFollower({x:this.player.x,y:this.player.y},{x:this.player.x,y:this.player.y});
@@ -392,8 +392,8 @@ export default class DungeonScene extends Phaser.Scene {
       this.follower=undefined;this.locked=true;this.player.stopMovement();
       if(!this.luma)this.createLuma(this.player.x,this.player.y);
       this.luma!.list.forEach(object=>{if(object instanceof Phaser.GameObjects.Image)object.setVisible(true);});
-      this.tweens.add({targets:this.luma,x:2608,duration:500,onComplete:()=>{
-        this.tweens.add({targets:this.luma,y:224,duration:400,onComplete:()=>{
+      this.tweens.add({targets:this.luma,x:RESCUE_POSITIONS.Luma.x,duration:500,onComplete:()=>{
+        this.tweens.add({targets:this.luma,y:RESCUE_POSITIONS.Luma.y-16,duration:400,onComplete:()=>{
           this.openStoryDialogue('AT THE VILLAGE GATES', OPENING_STORY.rescue, () => {
         saveStoryProgress({opening:'scholar'});
         markChapterComplete(1);
@@ -587,6 +587,7 @@ export default class DungeonScene extends Phaser.Scene {
     VILLAGE_NPCS.forEach((original, index) => {
       const position = this.chapterId === 0 ? TOWN.people[original.name] : undefined;
       let spec = position ? { ...original, x: position[0], y: position[1] } : original;
+      if(this.chapterId===1&&RESCUE_POSITIONS[original.name])spec={...spec,...RESCUE_POSITIONS[original.name]};
       const watch = this.chapterId===1 && getStoryProgress().visitedInkwell;
       if(watch){
         if(original.name!=='Sir Serif')return;
@@ -621,7 +622,7 @@ export default class DungeonScene extends Phaser.Scene {
       // A planted pose avoids fractional layer wobble; the sword and its hand
       // keep one shared, stationary grip instead of separate idle tweens.
 
-      const body = this.physics.add.staticImage(spec.x, spec.y + (watch ? 0 : 8), '__DEFAULT');
+      const body = this.physics.add.staticImage(spec.x, spec.y + (this.chapterId===1 ? 0 : 8), '__DEFAULT');
       body.setDisplaySize(28, 28).setAlpha(0).refreshBody();
       this.physics.add.collider(this.player.sprite, body);
       this.npcs.push({ spec, body });
