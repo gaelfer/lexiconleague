@@ -102,18 +102,31 @@ export default class VillageInteriorScene extends Phaser.Scene {
     g.fillStyle(this.building.accent, 0.22);
     g.fillRect(20, 158, 760, 3);
     for (let y = 171; y < 600; y += 32) {
-      g.fillStyle((y / 32) % 2 === 0 ? 0x2e4148 : 0x263941);
+      const row = Math.floor((y - 171) / 32);
+      g.fillStyle(row % 2 === 0 ? 0x584839 : 0x514334);
       g.fillRect(20, y, 760, 29);
+      for (let x = 20 + (row % 2) * 48; x < 770; x += 96) {
+        g.fillStyle(0x231f22, 0.45);
+        g.fillRect(x, y, 2, 28);
+        g.fillStyle(0xc8aa72, 0.12);
+        g.fillRect(x + 8, y + 5, 54, 2);
+        g.fillRect(x + 20, y + 20, 38, 1);
+      }
       g.fillStyle(0x13252e, 0.65);
       g.fillRect(20, y + 28, 760, 3);
     }
     g.fillStyle(0x071018, 0.48);
     g.fillRect(20, 171, 10, 429);
     g.fillRect(770, 171, 10, 429);
-    g.fillStyle(this.building.accent, 0.2);
-    g.fillRoundedRect(305, 168, 190, 400, 36);
-    g.lineStyle(3, this.building.accent, 0.35);
-    g.strokeRoundedRect(310, 173, 180, 390, 31);
+    g.fillStyle(0x294b45);
+    g.fillRoundedRect(305, 192, 190, 350, 5);
+    g.lineStyle(2, 0xbca77a, 0.55);
+    g.strokeRoundedRect(312, 199, 176, 336, 3);
+    for (let x = 312; x < 490; x += 8) {
+      g.fillStyle(0xbca77a, 0.55);
+      g.fillRect(x, 187, 2, 7);
+      g.fillRect(x, 541, 2, 7);
+    }
     g.fillStyle(0x08131c);
     g.fillRoundedRect(350, 557, 100, 43, 14);
 

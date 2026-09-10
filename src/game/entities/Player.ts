@@ -7,6 +7,7 @@ import {
 } from '../avatar';
 import { resolveMovement, type Facing } from '../movement';
 import { facingVector } from '../combat';
+import { createInkHand } from './inkHand';
 
 const SPEED = 180;
 const SPIN_CHARGE_MS = 700;
@@ -21,7 +22,11 @@ export default class Player {
   private fillTintLayers: Array<{ image: Phaser.GameObjects.Image; color: number }> = [];
   private aura?: Phaser.GameObjects.Image;
   private sword: Phaser.GameObjects.Image;
+  private hands: [Phaser.GameObjects.Container, Phaser.GameObjects.Container];
+  private feet: [Phaser.GameObjects.Ellipse, Phaser.GameObjects.Ellipse];
   private walkElapsed = 0;
+  private idleElapsed = 0;
+  private idleBlend = 0;
   private isMoving = false;
 
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -73,6 +78,16 @@ export default class Player {
     this.sprite.setAlpha(0).setDepth(9);
     this.sprite.setCollideWorldBounds(true);
 
+    const bodyColor = hexToNumber(avatar.color);
+    const footColor = Phaser.Display.Color.IntegerToColor(bodyColor).darken(22).color;
+    const makeLimb = (width: number, height: number, color: number, depth: number) => scene.add
+      .ellipse(x, y, width, height, color)
+      .setStrokeStyle(2, 0x10263a, 0.72)
+      .setDepth(depth);
+    this.feet = [makeLimb(13, 10, footColor, 9.6), makeLimb(13, 10, footColor, 9.6)];
+    this.hands = [createInkHand(scene, x, y, bodyColor), createInkHand(scene, x, y, bodyColor)];
+    this.hands.forEach((hand) => hand.setDepth(13.5));
+
     const base = scene.add
       .image(x, y, 'player-base')
       .setDisplaySize(58, 58)
@@ -82,7 +97,7 @@ export default class Player {
     this.visualLayers.push({ image: base, yOffset: 0 });
 
     this.sword = scene.add.image(x + 20, y + 14, 'story-sword')
-      .setOrigin(0.5, 0.92)
+      .setOrigin(0.5, 54 / 66)
       .setDisplaySize(14, 50)
       .setDepth(14);
 
@@ -173,7 +188,11 @@ export default class Player {
     if (this.isMoving) this.walkElapsed += delta;
     else this.walkElapsed = 0;
 
-    const bob = this.isMoving ? Math.sin(this.walkElapsed * 0.018) * 2 : 0;
+    const idling = !this.isMoving && this.attackPoseMs <= 0 && !this.attackHeld;
+    this.idleElapsed += delta;
+    this.idleBlend = Phaser.Math.Linear(this.idleBlend, idling ? 1 : 0, 1 - Math.exp(-delta / 160));
+    const breath = Math.sin(this.idleElapsed * Math.PI * 2 / 2400) * this.idleBlend;
+    const bob = this.isMoving ? Math.sin(this.walkElapsed * 0.018) * 2 : breath * 1.4;
     const facesLeft = this.facing === 'left' || this.facing.endsWith('-left');
     const lean = this.isMoving
       ? facesLeft
@@ -181,7 +200,7 @@ export default class Player {
         : this.facing === 'right' || this.facing.endsWith('-right')
           ? 3
           : 0
-      : 0;
+      : breath * 0.8;
 
     this.shadow.setPosition(this.sprite.x, this.sprite.y + 24);
     this.shadow.setScale(this.isMoving ? 0.92 : 1, this.isMoving ? 0.88 : 1);
@@ -204,16 +223,33 @@ export default class Player {
       : 0;
     const attacking = this.attackPoseMs > 0;
     const charging = this.attackHeld && this.attackHoldMs >= SPIN_CHARGE_MS;
-    const swordAngle = attacking ? baseSwordAngle + attackAngle : -8;
-    const swordX = attacking ? this.sprite.x : this.sprite.x + (facesLeft ? -16 : 16);
-    const swordY = attacking ? this.sprite.y + 7 : this.sprite.y + bob + 13;
+    const swordAngle = attacking ? baseSwordAngle + attackAngle : -8 + breath * 1.5;
+    const swingRadians = Phaser.Math.DegToRad(swordAngle - 90);
+    const swordX = this.sprite.x + (attacking ? Math.cos(swingRadians) * 15 : (facesLeft ? -15 : 15));
+    const swordY = this.sprite.y + bob + (attacking ? 7 + Math.sin(swingRadians) * 10 : 10);
     const chargePulse = charging ? 1.08 + Math.sin(this.attackHoldMs * 0.025) * 0.08 : 1;
     this.sword
       .setPosition(swordX, swordY)
       .setFlipX(!attacking && facesLeft)
       .setAngle(swordAngle + (attacking ? 0 : lean))
-      .setScale(chargePulse)
+      .setDisplaySize(14 * chargePulse, 50 * chargePulse)
       .setDepth(attacking && (this.facing === 'up' || this.facing.startsWith('up-')) ? 9.5 : 14);
+
+    const direction = facingVector(this.facing);
+    const step = this.isMoving ? Math.sin(this.walkElapsed * 0.018) * 3.5 : 0;
+    this.feet[0].setPosition(
+      this.sprite.x - 10 + direction.x * step,
+      this.sprite.y + 21 + (this.isMoving ? bob : 0) + direction.y * step,
+    );
+    this.feet[1].setPosition(
+      this.sprite.x + 10 - direction.x * step,
+      this.sprite.y + 21 + (this.isMoving ? bob : 0) - direction.y * step,
+    );
+
+    const armSwing = this.isMoving ? Math.sin(this.walkElapsed * 0.018) * 2 : breath * 0.65;
+    this.hands[0].setPosition(this.sprite.x + (facesLeft ? 15 : -15), this.sprite.y + 8 + bob + armSwing);
+    // The sword origin is the center of its grip: hand and hilt share one pivot.
+    this.hands[1].setPosition(swordX, swordY).setDepth(this.sword.depth + 0.1);
 
     if (this.aura) {
       const pulse = 1 + Math.sin(this.walkElapsed * 0.006) * 0.035;

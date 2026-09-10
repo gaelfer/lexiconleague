@@ -40,16 +40,17 @@ function drawTerrain(scene: Phaser.Scene) {
   terrain.fillStyle(COLORS.grass);
   terrain.fillRect(0, 0, worldWidth, VILLAGE_HEIGHT);
 
-  // Large checker tiles create a restrained, illustrated pixel-ground texture.
-  for (let y = 0; y < VILLAGE_HEIGHT; y += 32) {
-    for (let x = 0; x < worldWidth; x += 32) {
-      const shade = (x / 32 + y / 32) % 2 === 0 ? COLORS.grassLight : COLORS.grassDark;
-      terrain.fillStyle(shade, 0.18);
-      terrain.fillRect(x, y, 32, 32);
-      if ((x * 3 + y * 5) % 224 === 0) {
-        terrain.fillStyle(0x84cc8b, 0.35);
-        terrain.fillRect(x + 7, y + 8, 2, 5);
-        terrain.fillRect(x + 10, y + 5, 2, 7);
+  // Sparse clustered grass avoids a visible checkerboard beneath the scenery.
+  for (let y = 0; y < VILLAGE_HEIGHT; y += 16) {
+    for (let x = 0; x < worldWidth; x += 16) {
+      const seed = ((x / 16) * 73 + (y / 16) * 131) % 37;
+      if (seed < 5) {
+        terrain.fillStyle(COLORS.grassDark, 0.25);
+        terrain.fillEllipse(x + 6, y + 10, 18, 8);
+        terrain.fillStyle(0x759c75, 0.28);
+        terrain.fillRect(x + 4, y + 5, 2, 5);
+        terrain.fillRect(x + 8, y + 3, 2, 7);
+        terrain.fillRect(x + 12, y + 6, 2, 4);
       }
     }
   }
@@ -265,6 +266,17 @@ function addCottage(
   g.fillRoundedRect(left + 10, top + 20, width, height - 4, 16);
   g.fillStyle(0xe8d8b0);
   g.fillRoundedRect(left, top + 44, width, height - 44, 12);
+  g.fillStyle(0x6d715e, 0.28);
+  g.fillRect(x + width * 0.25, top + 48, width * 0.25, height - 55);
+  g.fillStyle(0x10263a, 0.25);
+  g.fillRect(left + 3, top + 48, width - 6, 12);
+  // Stone footing and a worn doorstep anchor the timber facade.
+  g.fillStyle(0x58696a);
+  g.fillRect(left, top + height - 7, width, 10);
+  g.fillStyle(0x95a095);
+  g.fillRect(x - 25, top + height, 50, 7);
+  g.fillStyle(0x435756);
+  g.fillRect(x - 25, top + height + 7, 50, 4);
 
   // Exposed dark timber makes the facade read as architecture at game scale.
   g.fillStyle(0x6b452f);
@@ -283,6 +295,18 @@ function addCottage(
     new Phaser.Geom.Point(left + width - 18, top + 8),
     new Phaser.Geom.Point(left + width + 14, top + 48),
   ], true);
+  // Shingle courses follow the widening roof plane, with shaded lower edges.
+  for (let row = 0; row < 3; row++) {
+    const inset = 26 - row * 12;
+    const roofY = top + 12 + row * 12;
+    g.lineStyle(2, 0x10263a, 0.4);
+    g.lineBetween(left + inset, roofY + 10, left + width - inset, roofY + 10);
+    for (let sx = left + inset + (row % 2) * 8; sx < left + width - inset; sx += 16) {
+      g.lineBetween(sx, roofY + 2, sx, roofY + 10);
+      g.fillStyle(0xd8e3ca, 0.12);
+      g.fillRect(sx + 3, roofY + 2, 8, 2);
+    }
+  }
   g.lineStyle(6, 0x17283b, 0.82);
   g.lineBetween(left - 10, top + 47, x, top - 14);
   g.lineBetween(x, top - 14, left + width + 10, top + 47);
@@ -306,7 +330,7 @@ function addCottage(
   for (const wx of [left + 28, left + width - 52]) {
     g.fillStyle(0x1e3a5f);
     g.fillRoundedRect(wx, top + 88, 24, 25, 7);
-    g.fillStyle(0x91e5d0, 0.75);
+    g.fillStyle(0xf1d8a0, 0.85);
     g.fillRoundedRect(wx + 4, top + 92, 16, 16, 4);
     g.lineStyle(2, 0xf8e7b3, 0.7);
     g.lineBetween(wx + 12, top + 92, wx + 12, top + 108);

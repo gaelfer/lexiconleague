@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import Player from '../entities/Player';
+import { createInkHand } from '../entities/inkHand';
 import Blotling from '../entities/Blotling';
 import { EventBus } from '../EventBus';
 import { AVATAR_BODY_OFFSETS, hexToNumber, type StoryAvatarConfig } from '../avatar';
@@ -302,11 +303,18 @@ export default class DungeonScene extends Phaser.Scene {
 
     // A proper Inkling silhouette keeps the thief cohesive with the cast.
     const thiefShadow = this.add.ellipse(0, 23, 38, 12, 0x020617, 0.42);
+    const thiefLeftFoot = this.add.ellipse(-10, 21, 13, 10, 0x080c13).setStrokeStyle(2, 0x020617, 0.8);
+    const thiefRightFoot = this.add.ellipse(10, 21, 13, 10, 0x080c13).setStrokeStyle(2, 0x020617, 0.8);
+    const thiefLeftHand = createInkHand(this, -15, 7, 0x111827);
+    const thiefRightHand = createInkHand(this, 15, 7, 0x111827);
     const thiefBase = this.add.image(0, 0, 'thief-base').setDisplaySize(58, 58).setTintFill(0x111827);
     const thiefEyes = this.add.image(0, -5, 'thief-eyes').setDisplaySize(58, 58).setTint(0xc4b5fd);
     const thiefScarf = this.add.image(0, -7, 'thief-scarf').setDisplaySize(60, 60).setTint(0x64748b);
     const stolenPage = this.add.rectangle(-28, 7, 14, 22, 0xf8e7b3).setStrokeStyle(1, 0xd6bd7d);
-    const thief = this.add.container(690, 302, [thiefShadow, thiefBase, thiefEyes, thiefScarf, stolenPage]).setDepth(25);
+    const thief = this.add.container(690, 302, [
+      thiefShadow, thiefLeftFoot, thiefRightFoot, thiefBase,
+      thiefLeftHand, thiefEyes, thiefScarf, thiefRightHand, stolenPage,
+    ]).setDepth(25);
     this.introObjects.push(thief);
     this.tweens.add({ targets: thief, x: 785, alpha: 0.15, duration: 1150, delay: 620, ease: 'Sine.in' });
 
@@ -456,16 +464,22 @@ export default class DungeonScene extends Phaser.Scene {
       const offsets = AVATAR_BODY_OFFSETS[spec.base] ?? AVATAR_BODY_OFFSETS.droplet_01;
       const container = this.add.container(spec.x, spec.y).setDepth(10);
       const shadow = this.add.ellipse(0, 23, 38, 13, 0x020617, 0.4);
+      const bodyColor = hexToNumber(spec.color);
+      const footColor = Phaser.Display.Color.IntegerToColor(bodyColor).darken(22).color;
+      const leftFoot = this.add.ellipse(-10, 21, 13, 10, footColor).setStrokeStyle(2, 0x10263a, 0.72);
+      const rightFoot = this.add.ellipse(10, 21, 13, 10, footColor).setStrokeStyle(2, 0x10263a, 0.72);
+      const leftHand = createInkHand(this, -15, 7, bodyColor);
+      const rightHand = createInkHand(this, 15, 7, bodyColor);
       const base = this.add.image(0, 0, `npc-${index}-base`)
         .setDisplaySize(58, 58)
-        .setTintFill(hexToNumber(spec.color));
+        .setTintFill(bodyColor);
       const eyes = this.add.image(0, offsets.eyesY, `npc-${index}-eyes`).setDisplaySize(58, 58);
       const accessory = this.add.image(0, offsets.accessoryY, `npc-${index}-accessory`)
         .setDisplaySize(58 * offsets.accessoryScale, 58 * offsets.accessoryScale);
-      container.add([shadow, base, eyes, accessory]);
+      container.add([shadow, leftFoot, rightFoot, base, eyes, accessory, leftHand, rightHand]);
 
       this.tweens.add({
-        targets: [base, eyes, accessory],
+        targets: [base, eyes, accessory, leftHand, rightHand],
         y: '+=2',
         duration: 900 + index * 130,
         yoyo: true,

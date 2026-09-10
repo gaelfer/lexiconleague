@@ -104,11 +104,14 @@ export default class ArchiveScene extends Phaser.Scene {
       const y = 184 + row * 48;
       const offset = row % 2 ? -42 : 0;
       for (let x = 20 + offset; x < 790; x += 84) {
-        const lightness = ((x / 84 + row) % 3) * 0x030303;
+        const lightness = ((Math.floor((x + 42) / 84) + row) % 3) * 0x030303;
         g.fillStyle(0x203841 + lightness);
         g.fillRoundedRect(x, y + 2, 80, 44, 4);
         g.fillStyle(0x0b1a22, 0.48);
         g.fillRect(x + 4, y + 43, 73, 3);
+        g.fillStyle(0xa6b6a3, 0.14);
+        g.fillRect(x + 5, y + 5, 66, 2);
+        g.fillRect(x + 4, y + 7, 2, 24);
       }
     }
 
