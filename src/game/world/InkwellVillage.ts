@@ -1,10 +1,141 @@
 import * as Phaser from 'phaser';
+import { grassTiles, villagePaths } from './pixelTerrain';
+import { TOWN } from '../story/townPlan';
+import { buildArchiveExterior } from './archiveExterior';
+import { buildCottageExterior } from './cottageExterior';
+
+export function buildTown(scene: Phaser.Scene, addObstacle: AddObstacle) {
+  const floor = scene.add.graphics().setDepth(-20);
+  grassTiles(floor, 0, TOWN.top, TOWN.width, TOWN.height-TOWN.top);
+  const paths = scene.add.graphics().setDepth(-4);
+  villagePaths(paths, TOWN.streets);
+  villagePaths(paths, [[320, 320, 224, 160], [896, 384, 288, 96]]);
+  for (let y = 320; y < 480; y += 32) for (let x = 320; x < 544; x += 32) {
+    paths.fillStyle((x + y) % 96 ? 0x929982 : 0x9ea58d).fillRect(x + 1, y + 1, 30, 30);
+    paths.fillStyle(0xc0c2a5).fillRect(x + 2, y + 1, 28, 1);
+  }
+  for (const house of TOWN.buildings) {
+    if (house.id === 'archive') {
+      buildArchiveExterior(scene,house.x,house.y,addObstacle);
+      continue;
+    }
+    buildCottageExterior(scene,house.x,house.y,house.roof,addObstacle);
+    villagePaths(paths, [[house.x - 16, house.y + 64, 32, 40]]);
+    if (house.id === 'gardener' || house.id === 'guest') addGarden(scene, house.x - 124, house.y + 24, 48, 64);
+    addLantern(scene, house.x + 116, house.y + 96);
+    addFlowerPatch(scene, house.x + 120, house.y + 28, house.roof === 0x987151 ? 0xd2ba87 : 0xc49391);
+  }
+  addFountain(scene, 432, 400, addObstacle);
+  // The reference's southern waterfront becomes a dry garden and promenade.
+  paths.fillStyle(0x849778).fillRect(160, 752, 384, 224);
+  paths.fillStyle(0xb3b394).fillRect(176, 768, 352, 192);
+  addGarden(scene, 240, 816, 80, 64); addGarden(scene, 448, 816, 80, 64);
+  addGarden(scene, 240, 912, 80, 64); addGarden(scene, 448, 912, 80, 64);
+  const pavilion = scene.add.graphics().setDepth(2);
+  pavilion.fillStyle(0x183b34, 0.35).fillEllipse(360, 904, 132, 38);
+  pavilion.fillStyle(0x8a937e).fillRect(288, 884, 128, 20);
+  pavilion.fillStyle(0xc4c5a2).fillRect(288, 884, 128, 5);
+  for (const x of [300, 396]) {
+    pavilion.fillStyle(0x967b51).fillRect(x, 818, 9, 67);
+    pavilion.fillStyle(0xe0cb94).fillRect(x, 818, 3, 66);
+  }
+  pavilion.fillStyle(0x3e6767).fillTriangle(352, 770, 276, 824, 428, 824);
+  pavilion.lineStyle(3, 0xb7b08a).lineBetween(352, 775, 300, 823).lineBetween(352, 775, 402, 823);
+  pavilion.fillStyle(0x294b4b).fillRect(280, 824, 144, 7);
+  addObstacle(352, 869, 100, 40);
+  addBench(scene, 432, 992);
+  addFence(scene, 160, 744, 384);
+  for (const [x, y] of [[96,144],[544,144],[896,112],[1184,144],[112,432],
+    [112,736],[1184,544],[544,816],[1184,1008],[128,1008]]) {
+    addTree(scene, x, y, 1.1, addObstacle);
+  }
+  for (let x = 32; x < TOWN.width; x += 48) {
+    addBush(scene, x, TOWN.top + 24, 1); addBush(scene, x, TOWN.height - 24, 1);
+  }
+  for (let y = TOWN.top + 64; y < TOWN.height - 32; y += 48) {
+    addBush(scene, 24, y, 1); addBush(scene, TOWN.width - 24, y, 1);
+  }
+}
 
 export const VILLAGE_ROOM_WIDTH = 800;
 export const VILLAGE_HEIGHT = 600;
 export const VILLAGE_ROOM_COUNT = 4;
 
 type AddObstacle = (x: number, y: number, width: number, height: number) => void;
+
+/** Northern residential quarter, reached through the gathering square. */
+export function buildResidentialLanes(scene: Phaser.Scene, addObstacle: AddObstacle) {
+  const g = scene.add.graphics().setDepth(-20);
+  grassTiles(g, 1600, -1000, 1600, 1000);
+  // Narrow residential lanes meet at a paved common, not a giant road loop.
+  const paths = scene.add.graphics().setDepth(-4);
+  villagePaths(paths, [
+    [2672, -432, 48, 712], [1904, -128, 1040, 48],
+    [2352, -560, 48, 464], [1904, -560, 944, 48],
+    [2112, -736, 48, 640], [2112, -736, 608, 48],
+    [2672, -736, 48, 336], [2128, -432, 576, 48],
+    [2240, -624, 272, 192],
+  ]);
+  // Small stone pavers around the well make the gathering place distinct.
+  for (let sy = -624; sy < -432; sy += 32) {
+    for (let sx = 2240; sx < 2512; sx += 32) {
+      paths.fillStyle((sx + sy) % 48 ? 0x8e9780 : 0x98a18a);
+      paths.fillRect(sx + 1, sy + 1, Math.min(30, 2512 - sx - 1), 30);
+      paths.fillStyle(0xb8bca1).fillRect(sx + 2, sy + 1, Math.min(28, 2512 - sx - 2), 1);
+    }
+  }
+  for (const [x, y] of [[1920, -640], [2830, -640], [1920, -200], [2920, -200]]) {
+    villagePaths(paths, [[x - 16, y + 64, 32, 48]]);
+    addCottage(scene, x, y, 182, 136, addObstacle, x === 1920 && y === -200 ? 0x31526b : 0x3f6f65);
+    addGarden(scene, x - 144, y + 20, 80, 96);
+    addLantern(scene, x + 110, y + 100);
+    // Enclosed yards: gates face the lane and stay clear of every doorway.
+    addFence(scene, x - 208, y - 80, 384);
+    addFence(scene, x - 208, y + 112, 144);
+    addFence(scene, x + 64, y + 112, 112);
+    addFlowerPatch(scene, x + 128, y + 32, 0xc78f8b);
+    addBush(scene, x + 148, y - 40, 0.7);
+    addTree(scene, x - 160, y - 112, 1.25, addObstacle);
+  }
+  addFountain(scene, 2380, -550, addObstacle);
+  addBench(scene, 2280, -480); addBench(scene, 2480, -480);
+  addPond(scene, 2500, -260, 176, 96, addObstacle);
+  addBench(scene, 2500, -174);
+  // Orchard and kitchen allotments give the spaces between homes a purpose.
+  for (const x of [2240, 2448, 2608]) {
+    addTree(scene, x, -824, 1.2, addObstacle);
+    addFlowerPatch(scene, x - 24, -776, 0xd6c594);
+  }
+  for (const y of [-344, -264]) addGarden(scene, 2240, y, 112, 48);
+  addFence(scene, 2176, -384, 144);
+  addBench(scene, 2560, -656);
+  for (const [x, y] of [[2580,-370],[2464,-336],[2592,-176],[2420,-204]]) {
+    addBush(scene, x, y, 0.75);
+    addFlowerPatch(scene, x + 22, y + 18, 0xc0b284);
+  }
+  for (let x = 1640; x < 3200; x += 64) addBush(scene, x, -975, 1);
+  for (let y = -920; y < 0; y += 64) {
+    addBush(scene, 1630, y, 1); addBush(scene, 3170, y, 1);
+  }
+  for (const [x, y] of [[1760,-840],[3020,-850],[1790,-360],[3080,-380],[2230,-640],[2520,-650]]) {
+    addTree(scene, x, y, 1.1, addObstacle);
+    addFlowerPatch(scene, x + 60, y + 40, 0xc19772);
+  }
+  addSign(scene, 2640, 20, '↑ VILLAGE GREEN');
+}
+
+function addFence(scene: Phaser.Scene, x: number, y: number, width: number) {
+  const g = scene.add.graphics().setDepth(1);
+  g.fillStyle(0x102e2c, 0.35).fillRect(x + 4, y + 9, width, 6);
+  for (const offset of [0, 8]) {
+    g.fillStyle(0x755340).fillRect(x, y + offset, width, 4);
+    g.fillStyle(0xb69a71).fillRect(x, y + offset, width, 1);
+  }
+  for (let px = x; px <= x + width; px += 16) {
+    g.fillStyle(0x654a37).fillRect(px, y - 5, 5, 23);
+    g.fillStyle(0xb49a73).fillRect(px, y - 5, 2, 20);
+  }
+}
 
 const COLORS = {
   grass: 0x173f38,
@@ -23,10 +154,10 @@ const COLORS = {
 };
 
 /** Build the Chapter 1 visual mockup and its static scenery collisions. */
-export function buildInkwellVillage(scene: Phaser.Scene, addObstacle: AddObstacle) {
+export function buildInkwellVillage(scene: Phaser.Scene, addObstacle: AddObstacle, hub = false) {
   drawTerrain(scene);
   drawPaths(scene);
-  drawBoundary(scene);
+  drawBoundary(scene, hub);
   drawMossbellLane(scene, addObstacle);
   drawWordwellSquare(scene, addObstacle);
   drawEastScriptorium(scene, addObstacle);
@@ -37,23 +168,7 @@ export function buildInkwellVillage(scene: Phaser.Scene, addObstacle: AddObstacl
 function drawTerrain(scene: Phaser.Scene) {
   const worldWidth = VILLAGE_ROOM_WIDTH * VILLAGE_ROOM_COUNT;
   const terrain = scene.add.graphics().setDepth(-20);
-  terrain.fillStyle(COLORS.grass);
-  terrain.fillRect(0, 0, worldWidth, VILLAGE_HEIGHT);
-
-  // Sparse clustered grass avoids a visible checkerboard beneath the scenery.
-  for (let y = 0; y < VILLAGE_HEIGHT; y += 16) {
-    for (let x = 0; x < worldWidth; x += 16) {
-      const seed = ((x / 16) * 73 + (y / 16) * 131) % 37;
-      if (seed < 5) {
-        terrain.fillStyle(COLORS.grassDark, 0.25);
-        terrain.fillEllipse(x + 6, y + 10, 18, 8);
-        terrain.fillStyle(0x759c75, 0.28);
-        terrain.fillRect(x + 4, y + 5, 2, 5);
-        terrain.fillRect(x + 8, y + 3, 2, 7);
-        terrain.fillRect(x + 12, y + 6, 2, 4);
-      }
-    }
-  }
+  grassTiles(terrain, 0, 0, worldWidth, VILLAGE_HEIGHT);
 }
 
 function drawPaths(scene: Phaser.Scene) {
@@ -96,9 +211,9 @@ function drawPathBranch(
   g.fillRoundedRect(centerX - width / 2, top, width, height, 16);
 }
 
-function drawBoundary(scene: Phaser.Scene) {
+function drawBoundary(scene: Phaser.Scene, hub = false) {
   for (let x = 28; x < VILLAGE_ROOM_WIDTH * VILLAGE_ROOM_COUNT; x += 54) {
-    addBush(scene, x, 22, 0.95 + (x % 3) * 0.04);
+    if (!hub || Math.abs(x - 2690) > 56) addBush(scene, x, 22, 0.95 + (x % 3) * 0.04);
     addBush(scene, x + 16, VILLAGE_HEIGHT - 18, 1 + (x % 4) * 0.03);
   }
   for (let y = 70; y < VILLAGE_HEIGHT - 50; y += 58) {
@@ -316,6 +431,12 @@ function addCottage(
   // Chimney and ivy keep the repeated cottage shape organic.
   g.fillStyle(0x584238);
   g.fillRoundedRect(left + width - 48, top - 4, 22, 43, 5);
+  for (let cy = top; cy < top + 35; cy += 8) {
+    g.fillStyle(0x8a7463).fillRect(left + width - 46, cy, 18, 1);
+    g.fillStyle(0x3f3832).fillRect(left + width - 37 + ((cy - top) % 16 ? 4 : -4), cy + 1, 1, 7);
+  }
+  g.fillStyle(0xaca38a).fillRect(left + width - 51, top - 7, 28, 5);
+  g.fillStyle(0x302e2c).fillRect(left + width - 46, top - 7, 18, 2);
   g.fillStyle(0x2f6e4f);
   g.fillCircle(left + 9, top + 71, 11);
   g.fillCircle(left + 16, top + 88, 9);
@@ -324,6 +445,10 @@ function addCottage(
   g.fillRoundedRect(x - 18, top + height - 49, 36, 49, 13);
   g.fillStyle(0x3b2a22);
   g.fillRoundedRect(x - 12, top + height - 43, 24, 43, 10);
+  for (let dx = -8; dx <= 8; dx += 8) {
+    g.fillStyle(0x806044, 0.65).fillRect(x + dx, top + height - 34, 1, 31);
+  }
+  g.fillStyle(0x273c37).fillRect(x - 12, top + height - 13, 24, 3);
   g.fillStyle(COLORS.gold);
   g.fillCircle(x + 7, top + height - 22, 2.5);
 
@@ -350,12 +475,13 @@ function addGarden(scene: Phaser.Scene, x: number, y: number, width: number, hei
   g.fillRoundedRect(x - width / 2, y - height / 2, width, height, 10);
   g.lineStyle(4, 0x8b6847, 1);
   g.strokeRoundedRect(x - width / 2, y - height / 2, width, height, 10);
-  for (let gy = y - 28; gy <= y + 28; gy += 28) {
-    for (let gx = x - 44; gx <= x + 44; gx += 29) {
-      g.fillStyle(0x4ade80, 0.9);
-      g.fillCircle(gx, gy, 5);
-      g.fillStyle((gx + gy) % 2 === 0 ? 0xf9a8d4 : 0xfde68a);
-      g.fillCircle(gx, gy - 4, 3);
+  for (let gy = y - height / 2 + 12; gy < y + height / 2 - 4; gy += 16) {
+    g.fillStyle(0x5b4430).fillRect(x - width / 2 + 5, gy + 5, width - 10, 2);
+    for (let gx = x - width / 2 + 12; gx < x + width / 2 - 4; gx += 16) {
+      g.fillStyle(0x244935).fillRect(gx - 5, gy, 10, 5);
+      g.fillStyle(0x72905a).fillRect(gx - 4, gy - 3, 4, 5);
+      g.fillStyle(0x4e794b).fillRect(gx + 1, gy - 1, 4, 5);
+      g.fillStyle(0xc6b577).fillRect(gx, gy, 2, 2);
     }
   }
 }
@@ -455,32 +581,38 @@ function addTree(scene: Phaser.Scene, x: number, y: number, scale: number, addOb
   const g = scene.add.graphics().setDepth(1);
   g.fillStyle(0x071820, 0.35);
   g.fillEllipse(x + 5, y + 28, 64 * scale, 24 * scale);
-  g.fillStyle(0x6f4930);
-  g.fillRoundedRect(x - 8 * scale, y - 5 * scale, 16 * scale, 40 * scale, 5);
-  g.fillStyle(0x0d2f29);
-  g.fillCircle(x - 15 * scale, y - 20 * scale, 25 * scale);
-  g.fillCircle(x + 17 * scale, y - 22 * scale, 28 * scale);
-  g.fillCircle(x, y - 40 * scale, 31 * scale);
-  g.fillStyle(0x2f6e4f);
-  g.fillCircle(x - 11 * scale, y - 31 * scale, 22 * scale);
-  g.fillCircle(x + 13 * scale, y - 40 * scale, 20 * scale);
-  g.fillStyle(0x77c878, 0.65);
-  g.fillCircle(x - 15 * scale, y - 43 * scale, 8 * scale);
-  g.fillCircle(x + 10 * scale, y - 54 * scale, 7 * scale);
+  g.fillStyle(0x644d37).fillRect(x - 8 * scale, y - 6 * scale, 16 * scale, 40 * scale);
+  g.fillStyle(0x9a7950).fillRect(x - 7 * scale, y, 4 * scale, 31 * scale);
+  g.fillStyle(0x3a3b2d).fillRect(x + 5 * scale, y - 4, 3 * scale, 38 * scale);
+  g.fillRect(x - 13 * scale, y + 29 * scale, 27 * scale, 4 * scale);
+  // Stepped canopy clusters share a two-pixel contour and directional leaf lighting.
+  leafCluster(g, x, y - 30 * scale, 43 * scale, 0x183d32, 0x386747);
+  leafCluster(g, x - 15 * scale, y - 42 * scale, 27 * scale, 0x315d40, 0x62824f);
+  leafCluster(g, x + 19 * scale, y - 34 * scale, 25 * scale, 0x284f38, 0x4b7548);
   addObstacle(x, y + 16 * scale, 34 * scale, 26 * scale);
+}
+
+export function leafCluster(g: Phaser.GameObjects.Graphics, x: number, y: number, r: number, dark: number, light: number) {
+  for (let dy = -Math.floor(r / 2) * 2; dy <= r; dy += 2) {
+    const half = Math.floor(Math.sqrt(Math.max(0, r * r - dy * dy)) / 2) * 2;
+    g.fillStyle(dark).fillRect(Math.round(x - half), Math.round(y + dy), half * 2, 2);
+  }
+  for (let dy = -r + 7; dy < r - 5; dy += 8) {
+    for (let dx = -r + 6; dx < r - 5; dx += 10) {
+      if (dx * dx + dy * dy > (r - 5) ** 2) continue;
+      const lit = dx + dy < r * 0.25;
+      g.fillStyle(lit ? light : 0x214936, lit ? 0.8 : 0.5);
+      g.fillRect(Math.round(x + dx), Math.round(y + dy), 6, 2);
+      g.fillRect(Math.round(x + dx - 2), Math.round(y + dy + 2), 4, 2);
+    }
+  }
 }
 
 function addBush(scene: Phaser.Scene, x: number, y: number, scale: number) {
   const g = scene.add.graphics().setDepth(1);
-  g.fillStyle(0x092c28);
-  g.fillCircle(x - 12 * scale, y, 17 * scale);
-  g.fillCircle(x + 12 * scale, y, 17 * scale);
-  g.fillCircle(x, y - 9 * scale, 20 * scale);
-  g.fillStyle(0x287052);
-  g.fillCircle(x - 7 * scale, y - 6 * scale, 12 * scale);
-  g.fillCircle(x + 9 * scale, y - 9 * scale, 10 * scale);
-  g.fillStyle(0x86d98c, 0.55);
-  g.fillCircle(x - 8 * scale, y - 13 * scale, 4 * scale);
+  leafCluster(g, x - 11 * scale, y, 17 * scale, 0x173c31, 0x4e7650);
+  leafCluster(g, x + 11 * scale, y - 2 * scale, 17 * scale, 0x244c37, 0x66824e);
+  leafCluster(g, x, y - 9 * scale, 17 * scale, 0x305a3e, 0x6f8d56);
 }
 
 function addLantern(scene: Phaser.Scene, x: number, y: number) {

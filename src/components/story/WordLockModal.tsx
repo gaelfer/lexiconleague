@@ -42,8 +42,8 @@ export default function WordLockModal({
       const delay = correct ? 700 : 1200;
       closeTimer.current = setTimeout(() => {
         closeTimer.current = null;
-        EventBus.emit('question-result', { correct, doorId });
         onClose();
+        EventBus.emit('question-result', { correct, doorId });
       }, delay);
     },
     [doorId, question.answer_index, result, onClose],

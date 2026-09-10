@@ -7,7 +7,11 @@ import {
 } from '../avatar';
 import { resolveMovement, type Facing } from '../movement';
 import { facingVector } from '../combat';
-import { createInkHand } from './inkHand';
+import { createInkHand, createInkFoot } from './inkHand';
+import { INKLING_SCALE } from '../world/pixelTerrain';
+import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT } from '../pixelAvatar';
+import { tileCenter, nextGridStep, interpolateStep, type GridPoint } from '../gridMovement';
+import { bowPose,BOW_DURATION,BOW_RELEASE } from '../bowPose';
 
 const SPEED = 180;
 const SPIN_CHARGE_MS = 700;
@@ -18,16 +22,29 @@ export default class Player {
   public sprite: Phaser.Physics.Arcade.Image;
 
   private shadow: Phaser.GameObjects.Ellipse;
+  private artwork!: Phaser.GameObjects.Container;
   private visualLayers: Array<{ image: Phaser.GameObjects.Image; yOffset: number }> = [];
   private fillTintLayers: Array<{ image: Phaser.GameObjects.Image; color: number }> = [];
   private aura?: Phaser.GameObjects.Image;
   private sword: Phaser.GameObjects.Image;
+  private eyes!: Phaser.GameObjects.Image;
+  private bow: Phaser.GameObjects.Image;
+  private bowTexture: Phaser.Textures.CanvasTexture;
+  private queuedBow=false;
+  private bowReview=false;
+  private swordTrail: Phaser.GameObjects.Graphics;
+  private trailPoints: Array<{ x: number; y: number; age: number }> = [];
+  private bowPoseMs = 0;
+  private keyR: Phaser.Input.Keyboard.Key;
   private hands: [Phaser.GameObjects.Container, Phaser.GameObjects.Container];
-  private feet: [Phaser.GameObjects.Ellipse, Phaser.GameObjects.Ellipse];
+  private feet: [Phaser.GameObjects.Graphics, Phaser.GameObjects.Graphics];
   private walkElapsed = 0;
   private idleElapsed = 0;
   private idleBlend = 0;
   private isMoving = false;
+  private gridStep: { from: GridPoint; to: GridPoint; elapsed: number; duration: number } | null = null;
+  private queuedDirection: ReturnType<typeof resolveMovement> | null = null;
+  private interactQueuedUntil=0;
 
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   private keyW: Phaser.Input.Keyboard.Key;
@@ -58,6 +75,8 @@ export default class Player {
     avatar: StoryAvatarConfig,
     startHearts = 3,
   ) {
+    this.bowReview=process.env.NODE_ENV==='development'&&new URLSearchParams(window.location.search).get('bowReview')==='draw';
+    x = tileCenter(x); y = tileCenter(y);
     this.shadow = scene.add.ellipse(x, y + 24, 38, 14, 0x020617, 0.45).setDepth(8);
 
     if (avatar.aura !== 'none' && scene.textures.exists('player-aura')) {
@@ -77,35 +96,36 @@ export default class Player {
     this.sprite = scene.physics.add.image(x, y, 'player-hitbox');
     this.sprite.setAlpha(0).setDepth(9);
     this.sprite.setCollideWorldBounds(true);
+    this.sprite.setImmovable(true);
+    this.sprite.setDisplaySize(28, 24);
 
     const bodyColor = hexToNumber(avatar.color);
-    const footColor = Phaser.Display.Color.IntegerToColor(bodyColor).darken(22).color;
-    const makeLimb = (width: number, height: number, color: number, depth: number) => scene.add
-      .ellipse(x, y, width, height, color)
-      .setStrokeStyle(2, 0x10263a, 0.72)
-      .setDepth(depth);
-    this.feet = [makeLimb(13, 10, footColor, 9.6), makeLimb(13, 10, footColor, 9.6)];
+    this.feet = [createInkFoot(scene,x,y,bodyColor).setDepth(9.6),createInkFoot(scene,x,y,bodyColor).setDepth(9.6)];
     this.hands = [createInkHand(scene, x, y, bodyColor), createInkHand(scene, x, y, bodyColor)];
     this.hands.forEach((hand) => hand.setDepth(13.5));
 
     const base = scene.add
       .image(x, y, 'player-base')
-      .setDisplaySize(58, 58)
-      .setTintFill(hexToNumber(avatar.color))
+      .setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT)
       .setDepth(10);
-    this.fillTintLayers.push({ image: base, color: hexToNumber(avatar.color) });
     this.visualLayers.push({ image: base, yOffset: 0 });
 
     this.sword = scene.add.image(x + 20, y + 14, 'story-sword')
       .setOrigin(0.5, 54 / 66)
       .setDisplaySize(14, 50)
       .setDepth(14);
+    const bowKey=`story-bow-pose-${scene.scene.key}`;
+    if(scene.textures.exists(bowKey))scene.textures.remove(bowKey);
+    this.bowTexture=scene.textures.createCanvas(bowKey,64,64)!;
+    this.bow = scene.add.image(0,0,bowKey).setDepth(14).setVisible(false);
+    this.swordTrail = scene.add.graphics().setDepth(13.8);
 
     const offsets = AVATAR_BODY_OFFSETS[avatar.base] ?? AVATAR_BODY_OFFSETS.droplet_01;
     const eyes = scene.add
       .image(x, y + offsets.eyesY, 'player-eyes')
-      .setDisplaySize(58, 58)
+      .setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT)
       .setDepth(11);
+    this.eyes = eyes;
     this.visualLayers.push({ image: eyes, yOffset: offsets.eyesY });
 
     [
@@ -116,7 +136,7 @@ export default class Player {
       const isBottomAccessory = id === 'suit_01';
       const accessory = scene.add
         .image(x, y + (isBottomAccessory ? 0 : offsets.accessoryY), key)
-        .setDisplaySize(58 * offsets.accessoryScale, 58 * offsets.accessoryScale)
+        .setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT)
         .setDepth(12 + index);
       this.visualLayers.push({
         image: accessory,
@@ -132,6 +152,7 @@ export default class Player {
       Phaser.Input.Keyboard.KeyCodes.D,
       Phaser.Input.Keyboard.KeyCodes.E,
       Phaser.Input.Keyboard.KeyCodes.Q,
+      Phaser.Input.Keyboard.KeyCodes.R,
       Phaser.Input.Keyboard.KeyCodes.SPACE,
     ]);
     this.cursors = kb.createCursorKeys();
@@ -140,60 +161,125 @@ export default class Player {
     this.keyS = kb.addKey(Phaser.Input.Keyboard.KeyCodes.S);
     this.keyD = kb.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     this.keyQ = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    this.keyR = kb.addKey(Phaser.Input.Keyboard.KeyCodes.R);
     this.keyE = kb.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.keySpace = kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    const queueStep = (event: KeyboardEvent) => {
+      if (event.repeat) return;
+      const key = event.key.toLowerCase();
+      if(key==='r'){this.queuedBow=true;return;}
+      if(key==='e'||key===' '){this.interactQueuedUntil=scene.time.now+250;return;}
+      if (!['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)) return;
+      this.queuedDirection = resolveMovement({
+        up: key === 'w' || key === 'arrowup' || this.keyW.isDown || this.cursors.up.isDown,
+        down: key === 's' || key === 'arrowdown' || this.keyS.isDown || this.cursors.down.isDown,
+        left: key === 'a' || key === 'arrowleft' || this.keyA.isDown || this.cursors.left.isDown,
+        right: key === 'd' || key === 'arrowright' || this.keyD.isDown || this.cursors.right.isDown,
+      });
+    };
+    kb.on('keydown', queueStep);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => kb.off('keydown', queueStep));
 
+    // Scale the entire rig together: grip, blade, feet and cosmetics retain their alignment.
+    this.artwork = scene.add.container(0, 0, [
+      this.shadow, ...this.visualLayers.map(({ image }) => image),
+      ...this.feet, ...this.hands, this.sword, this.bow, this.swordTrail,
+    ]).setScale(INKLING_SCALE).setDepth(10);
     this.hearts = startHearts;
+    this.syncVisuals(0);
   }
 
   get x() { return this.sprite.x; }
   get y() { return this.sprite.y; }
 
   isInteractJustDown(): boolean {
-    return (
-      Phaser.Input.Keyboard.JustDown(this.keyE) ||
-      Phaser.Input.Keyboard.JustDown(this.keySpace)
-    );
+    const e=Phaser.Input.Keyboard.JustDown(this.keyE);
+    const space=Phaser.Input.Keyboard.JustDown(this.keySpace);
+    const buffered=this.interactQueuedUntil>this.sprite.scene.time.now;
+    this.interactQueuedUntil=0;
+    return e||space||buffered;
   }
 
   stopMovement() {
     if (!this.sprite.active || !this.sprite.body) return;
+    if (this.gridStep) {
+      this.sprite.body.reset(this.gridStep.to.x, this.gridStep.to.y);
+      this.gridStep = null;
+    }
     this.sprite.setVelocity(0, 0);
+    this.queuedDirection = null;
     this.isMoving = false;
     this.syncVisuals(0);
   }
 
   update(delta: number) {
+    if(this.bowReview){this.bowPoseMs=240;this.facing='right';this.syncVisuals(0);return;}
+    const previousBowMs = this.bowPoseMs;
+    this.bowPoseMs = Math.max(0, this.bowPoseMs - delta);
+    if (previousBowMs > BOW_RELEASE && this.bowPoseMs <= BOW_RELEASE) {
+      const pose=bowPose(this.x,this.y,this.facing,BOW_RELEASE,INKLING_SCALE);
+      EventBus.emit('player-bow', { ...pose.release, facing: this.facing });
+    }
     this.damageInvulnerabilityMs = Math.max(0, this.damageInvulnerabilityMs - delta);
     this.attackPoseMs = Math.max(0, this.attackPoseMs - delta);
-    this.handleMovement();
+    this.handleMovement(delta);
     this.handleAttack(delta);
     this.syncVisuals(delta);
   }
 
-  private handleMovement() {
+  private handleMovement(delta: number) {
+    if(this.bowPoseMs>0){this.sprite.setVelocity(0,0);this.isMoving=false;return;}
     const up    = this.cursors.up.isDown    || this.keyW.isDown;
     const down  = this.cursors.down.isDown  || this.keyS.isDown;
     const left  = this.cursors.left.isDown  || this.keyA.isDown;
     const right = this.cursors.right.isDown || this.keyD.isDown;
 
-    const movement = resolveMovement({ up, down, left, right });
-    if (movement.facing) this.facing = movement.facing;
+    const held = resolveMovement({ up, down, left, right });
+    const movement = held.facing ? held : this.queuedDirection ?? held;
+    if (!this.gridStep && movement.facing && this.bowPoseMs <= 0 && this.attackPoseMs <= 0) this.facing = movement.facing;
 
-    this.sprite.setVelocity(movement.x * SPEED, movement.y * SPEED);
-    this.isMoving = movement.x !== 0 || movement.y !== 0;
+    this.sprite.setVelocity(0, 0);
+    if (!this.gridStep) {
+      this.queuedDirection = null;
+      const from = { x: tileCenter(this.x), y: tileCenter(this.y) };
+      const to = nextGridStep(from, movement.x, movement.y, (a, b) => this.gridPathClear(a, b));
+      if (to) this.gridStep = { from, to, elapsed: 0, duration: Math.hypot(to.x - from.x, to.y - from.y) / SPEED * 1000 };
+    }
+    this.isMoving = !!this.gridStep;
+    if (this.gridStep) {
+      const step = this.gridStep;
+      step.elapsed += Math.min(delta, 50);
+      const point = interpolateStep(step.from, step.to, step.elapsed, step.duration);
+      this.sprite.body!.reset(point.x, point.y);
+      if (step.elapsed >= step.duration) this.gridStep = null;
+    }
+  }
+
+  private gridPathClear(from: GridPoint, to: GridPoint) {
+    const world = this.sprite.scene.physics.world;
+    const half = 15.9;
+    const x = Math.min(from.x, to.x) - half;
+    const y = Math.min(from.y, to.y) - half;
+    const width = Math.abs(to.x - from.x) + half * 2;
+    const height = Math.abs(to.y - from.y) + half * 2;
+    if (x < world.bounds.left || y < world.bounds.top || x + width > world.bounds.right || y + height > world.bounds.bottom) return false;
+    return !this.sprite.scene.physics.overlapRect(x, y, width, height, false, true).some((body) => body.enable);
   }
 
   private syncVisuals(delta: number) {
     if (this.isMoving) this.walkElapsed += delta;
     else this.walkElapsed = 0;
 
-    const idling = !this.isMoving && this.attackPoseMs <= 0 && !this.attackHeld;
+    const idling = !this.isMoving && this.attackPoseMs <= 0 && !this.attackHeld && this.bowPoseMs <= 0;
     this.idleElapsed += delta;
     this.idleBlend = Phaser.Math.Linear(this.idleBlend, idling ? 1 : 0, 1 - Math.exp(-delta / 160));
     const breath = Math.sin(this.idleElapsed * Math.PI * 2 / 2400) * this.idleBlend;
     const bob = this.isMoving ? Math.sin(this.walkElapsed * 0.018) * 2 : breath * 1.4;
-    const facesLeft = this.facing === 'left' || this.facing.endsWith('-left');
+    const spinning = this.attackPoseMs > 0 && this.attackPoseType === 'spin';
+    const spinAngle = spinning ? (1 - this.attackPoseMs / this.attackPoseDuration) * Math.PI * 2 : 0;
+    const startDirection = facingVector(this.facing);
+    const visualAngle = Math.atan2(startDirection.y, startDirection.x) + spinAngle;
+    const facesLeft = spinning ? Math.cos(visualAngle) < -0.25 : this.facing === 'left' || this.facing.endsWith('-left');
     const lean = this.isMoving
       ? facesLeft
         ? -3
@@ -206,9 +292,21 @@ export default class Player {
     this.shadow.setScale(this.isMoving ? 0.92 : 1, this.isMoving ? 0.88 : 1);
 
     for (const { image, yOffset } of this.visualLayers) {
-      image.setPosition(this.sprite.x, this.sprite.y + bob + yOffset);
+      image.setPosition(Math.round(this.sprite.x), Math.round(this.sprite.y + bob + yOffset));
       image.setFlipX(facesLeft);
-      image.setAngle(lean);
+      image.setAngle(0);
+    }
+    const facesBack = spinning ? Math.sin(visualAngle) < -0.2 : this.facing === 'up' || this.facing.startsWith('up-');
+    this.eyes.setVisible(!facesBack);
+    // Shift the facial features toward the travel direction in side/diagonal poses.
+    this.eyes.x += (spinning ? Math.cos(visualAngle) : startDirection.x) * 5;
+    // Turn through front, profile and back without tumbling the sprite on its side.
+    for (const { image } of this.visualLayers) {
+      if (image === this.aura) continue;
+      image.scaleX = Math.abs(image.scaleY) * (spinning ? 0.78 + 0.22 * Math.abs(Math.sin(visualAngle)) : 1);
+    }
+    for (const { image } of this.visualLayers) {
+      if (image.texture.key.startsWith('player-accessory-')) image.setDepth(facesBack ? 9.7 : 12);
     }
 
     const swordDirection = facingVector(this.facing);
@@ -233,7 +331,26 @@ export default class Player {
       .setFlipX(!attacking && facesLeft)
       .setAngle(swordAngle + (attacking ? 0 : lean))
       .setDisplaySize(14 * chargePulse, 50 * chargePulse)
-      .setDepth(attacking && (this.facing === 'up' || this.facing.startsWith('up-')) ? 9.5 : 14);
+      .setDepth(attacking && Math.sin(swingRadians) < -0.2 ? 9.5 : 14);
+
+    // Sample the actual blade tip: a short tapered silver wake, always behind it.
+    this.trailPoints.forEach((point) => { point.age += delta; });
+    this.trailPoints = this.trailPoints.filter((point) => point.age < 85);
+    if (attacking && delta > 0 && (spinning || poseProgress > 0.45)) {
+      this.trailPoints.push({
+        x: swordX + Math.cos(swingRadians) * 39,
+        y: swordY + Math.sin(swingRadians) * 39,
+        age: 0,
+      });
+    }
+    this.swordTrail.clear().setDepth(this.sword.depth - 0.1);
+    for (let i = 1; i < this.trailPoints.length; i++) {
+      const previous = this.trailPoints[i - 1];
+      const current = this.trailPoints[i];
+      const strength = 1 - previous.age / 85;
+      this.swordTrail.lineStyle(1 + strength * 3, 0xdce9ee, strength * 0.5);
+      this.swordTrail.lineBetween(previous.x, previous.y, current.x, current.y);
+    }
 
     const direction = facingVector(this.facing);
     const step = this.isMoving ? Math.sin(this.walkElapsed * 0.018) * 3.5 : 0;
@@ -248,19 +365,56 @@ export default class Player {
 
     const armSwing = this.isMoving ? Math.sin(this.walkElapsed * 0.018) * 2 : breath * 0.65;
     this.hands[0].setPosition(this.sprite.x + (facesLeft ? 15 : -15), this.sprite.y + 8 + bob + armSwing);
+    if (spinning) {
+      this.hands[0].setPosition(this.x - Math.cos(visualAngle) * 15, this.y + bob + 7 - Math.sin(visualAngle) * 10);
+      this.feet[0].setPosition(this.x - Math.sin(visualAngle) * 10, this.y + 21 - Math.cos(visualAngle) * 3);
+      this.feet[1].setPosition(this.x + Math.sin(visualAngle) * 10, this.y + 21 + Math.cos(visualAngle) * 3);
+    }
     // The sword origin is the center of its grip: hand and hilt share one pivot.
     this.hands[1].setPosition(swordX, swordY).setDepth(this.sword.depth + 0.1);
+    this.sword.setVisible(this.bowPoseMs <= 0);
+    this.bow.setVisible(this.bowPoseMs > 0);
+    if (this.bowPoseMs > 0) {
+      const pose=bowPose(this.x,this.y,this.facing,this.bowPoseMs,INKLING_SCALE);
+      this.bow.setPosition(pose.grip.x,pose.grip.y).setRotation(pose.angle).setDepth(facesBack?9.5:14);
+      const ctx=this.bowTexture.context;
+      ctx.clearRect(0,0,64,64);ctx.save();ctx.translate(32,32);
+      ctx.strokeStyle='#9c7149';ctx.lineWidth=3;ctx.beginPath();ctx.arc(-19,0,19,-Math.PI/2,Math.PI/2);ctx.stroke();
+      ctx.strokeStyle='#e8d8b0';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-19,-19);ctx.lineTo(pose.string,0);ctx.lineTo(-19,19);ctx.stroke();
+      if(this.bowPoseMs>BOW_RELEASE){
+        ctx.strokeStyle='#d8bd89';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pose.string,0);ctx.lineTo(pose.string+28,0);ctx.stroke();
+        ctx.fillStyle='#dce8e5';ctx.beginPath();ctx.moveTo(pose.string+30,0);ctx.lineTo(pose.string+23,-4);ctx.lineTo(pose.string+23,4);ctx.fill();
+      }
+      ctx.restore();this.bowTexture.refresh();
+      this.hands[1].setPosition(this.bow.x, this.bow.y).setDepth(this.bow.depth + 0.1);
+      this.hands[0].setPosition(this.bow.x + direction.x * pose.string, this.bow.y + direction.y * pose.string)
+        .setDepth(this.bow.depth + 0.1);
+    } else this.hands[0].setDepth(facesBack ? 9.6 : 13.5);
 
     if (this.aura) {
       const pulse = 1 + Math.sin(this.walkElapsed * 0.006) * 0.035;
-      this.aura.setScale(pulse);
+      this.aura.setDisplaySize(76 * pulse, 76 * pulse);
     }
+    // Children are authored around the world-space actor pivot. Compensate the
+    // parent translation so scaling never moves the actor off its physics body.
+    // The bottom half of the 16×32 frame is the occupied tile; the head is free
+    // to overlap the tile above without giving the character a two-tile hitbox.
+    this.artwork.setPosition(this.x * (1 - INKLING_SCALE), this.y * (1 - INKLING_SCALE) - 16);
+    this.artwork.sort('depth');
   }
 
   private handleAttack(delta: number) {
     if (this.attackCooldown > 0) {
       this.attackCooldown -= delta;
     }
+    const bowPressed=Phaser.Input.Keyboard.JustDown(this.keyR)||this.queuedBow;
+    this.queuedBow=false;
+    if (bowPressed && this.attackCooldown <= 0 && !this.attackHeld) {
+      this.stopMovement();
+      this.bowPoseMs = BOW_DURATION;
+      this.attackCooldown = 550;
+    }
+    if (this.bowPoseMs > 0) return;
 
     if (this.keyQ.isDown && !this.attackHeld) {
       this.attackHeld = true;

@@ -1,7 +1,9 @@
 import * as Phaser from 'phaser';
 import { EventBus } from '../EventBus';
-import type { StoryAvatarConfig } from '../avatar';
+import { hexToNumber, type StoryAvatarConfig } from '../avatar';
+import { convertAvatarTexture, convertAvatarGroup } from '../world/pixelAvatarTextures';
 import { VILLAGE_NPCS } from '../npcs';
+import { INTERIOR_ASSETS, INTERIOR_PLANS } from '../story/interiorPlans';
 
 /**
  * BootScene — generates all placeholder textures then hands off to DungeonScene.
@@ -18,6 +20,7 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    for (const asset of INTERIOR_ASSETS) this.load.image(`interior-${asset}`, `/story/interiors/${asset}.png`);
     // Every Inkling cosmetic shares a 100x100 viewBox, so the existing locker
     // assets can be layered directly inside Phaser without pre-baking every
     // possible avatar combination.
@@ -54,15 +57,41 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
+    // Bake each cosmetic separately so facing, gear and avatar customization remain intact.
+    convertAvatarTexture(this,'npc-0-base',0xf0a6aa,'luma-base');
+    convertAvatarGroup(this,[{key:'player-base',color:hexToNumber(this.avatar.color)},
+      ...['player-eyes','player-accessory-1','player-accessory-2'].map(key=>({key}))]);
+    VILLAGE_NPCS.forEach((npc,index)=>{
+      convertAvatarGroup(this,[{key:`npc-${index}-base`,color:hexToNumber(npc.color)},
+        {key:`npc-${index}-eyes`},{key:`npc-${index}-accessory`}]);
+    });
+    convertAvatarGroup(this,[{key:'thief-base',color:0x111827},{key:'thief-eyes'},{key:'thief-scarf'}]);
     this.makePlayerHitboxTexture();
     this.makeStorySwordTexture();
+    const arrow = this.add.graphics();
+    arrow.lineStyle(2, 0xd8bd89);
+    arrow.lineBetween(3, 5, 23, 5);
+    arrow.fillStyle(0xdce8e5);
+    arrow.fillTriangle(30, 5, 21, 1, 21, 9);
+    arrow.lineStyle(2, 0x8fcfb7);
+    arrow.lineBetween(2, 1, 7, 5);
+    arrow.lineBetween(2, 9, 7, 5);
+    arrow.generateTexture('story-arrow', 32, 10);
+    arrow.destroy();
     this.makeDoorTextures();
     this.makeEnemyTexture();
     this.makeCheckpointTexture();
     this.makeCoinTexture();
 
     EventBus.emit('current-scene-ready', this);
-    this.scene.start('DungeonScene', { chapterId: this.chapterId });
+    // Local visual-review entry point; never enabled in production builds.
+    const review = process.env.NODE_ENV === 'development'
+      ? new URLSearchParams(window.location.search).get('interiorReview') : null;
+    if (review && Object.hasOwn(INTERIOR_PLANS,review)) {
+      this.scene.start(review === 'archive' ? 'ArchiveScene' : 'VillageInteriorScene', { buildingId:review });
+      return;
+    }
+    this.scene.start(this.chapterId === 2 ? 'WordwoodScene' : 'DungeonScene', { chapterId: this.chapterId });
   }
 
   // ── Texture generators ──────────────────────────────────────────────────────

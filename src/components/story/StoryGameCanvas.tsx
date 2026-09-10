@@ -10,7 +10,7 @@ import HUDOverlay from './HUDOverlay';
 import WordLockModal from './WordLockModal';
 import type { Question } from '@/types';
 import { createGuestProfile, getProfile } from '@/lib/user/storage';
-import { markChapterComplete } from '@/lib/story/progress';
+import { markChapterComplete, getStoryProgress, isChapterUnlocked } from '@/lib/story/progress';
 
 interface StoryGameCanvasProps {
   chapterId: number;
@@ -46,11 +46,16 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
 
   // Chapter complete overlay
   const [chapterDone, setChapterDone] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   // ── Game lifecycle ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!containerRef.current || gameRef.current) return;
+    if (chapterId === 0 ? !getStoryProgress().completedChapters.includes(1) : !isChapterUnlocked(chapterId)) {
+      setAccessDenied(true);
+      return;
+    }
 
     const profile = getProfile() ?? createGuestProfile();
     questionsByDoorRef.current.clear();
@@ -124,13 +129,14 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
       {/* HUD */}
-      <HUDOverlay
+      {chapterId !== 0 && chapterId !== 2 && <HUDOverlay
         hearts={hearts}
         maxHearts={maxHearts}
         lexicoins={lexicoins}
         openedGates={openedGates}
         totalGates={TOTAL_CHAPTER_GATES}
-      />
+      />}
+      {accessDenied && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', color: '#e8d8b0' }}>Complete the previous chapter to explore here. <Link href="/story">Return to story map</Link></div>}
 
       <Link
         href="/story"
@@ -175,7 +181,7 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
           whiteSpace: 'nowrap',
         }}
       >
-        WASD · MOVE&nbsp;&nbsp; Q · SWORD&nbsp;&nbsp; HOLD Q · SPIN&nbsp;&nbsp; E · TALK / INTERACT
+        {chapterId === 2 ? 'WASD · MOVE   E · INSPECT / CHANGE   J · FIELD NOTES' : 'WASD · MOVE   Q · SWORD   HOLD Q · SPIN   R · BOW   E · TALK / INTERACT'}
       </div>
 
       {/* Word lock modal */}

@@ -20,21 +20,21 @@ export interface ChapterDef {
 export const CHAPTERS: ChapterDef[] = [
   {
     id: 1,
-    title: 'Inkwell Village',
+    title: 'The Road to Inkwell',
     region: 'Inkwell Village',
     regionIndex: 0,
     questionLevel: 3,
-    teaser: 'The corruption begins. Your companion runs.',
+    teaser: 'Clear the woodland approach and reach the village beyond the gatehouse.',
     hasBoss: false,
   },
   {
     id: 2,
-    title: 'Village Square',
-    region: 'Inkwell Village',
-    regionIndex: 0,
+    title: 'The Paths That Forgot',
+    region: 'Wordwood Forest',
+    regionIndex: 1,
     questionLevel: 3,
-    teaser: 'Rescue your companion from the corrupted inkling.',
-    hasBoss: true,
+    teaser: 'Three stolen words. A forest of false signs. Rebuild the path from the clues.',
+    hasBoss: false,
   },
   {
     id: 3,
@@ -150,7 +150,7 @@ export const REGIONS = [
   {
     index: 0,
     name: 'Inkwell Village',
-    chapters: [1, 2],
+    chapters: [1],
     color: '#34d399',
     vibe: 'Cozy, safe, familiar.',
     unlocked: true,
@@ -158,7 +158,7 @@ export const REGIONS = [
   {
     index: 1,
     name: 'Wordwood Forest',
-    chapters: [3, 4, 5],
+    chapters: [2, 3, 4, 5],
     color: '#4ade80',
     vibe: 'Lush but eerie.',
     unlocked: false,

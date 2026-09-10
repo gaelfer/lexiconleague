@@ -170,7 +170,8 @@ export function plankFloor(g: Phaser.GameObjects.Graphics, accent: number) {
   g.fillStyle(PALETTE.oak);
   g.fillRect(0, floorTop, width, height - floorTop);
 
-  const plankHeight = 34;
+  // One board course matches the 32px world construction grid.
+  const plankHeight = 40; // 32 world pixels after the compact room transform.
   let row = 0;
   for (let y = floorTop; y < height; y += plankHeight) {
     // Alternating tones plus a slow third beat stops the floor looking striped.
@@ -180,18 +181,18 @@ export function plankFloor(g: Phaser.GameObjects.Graphics, accent: number) {
 
     // Board seams: a dark line with a light lip beneath reads as a bevel.
     g.fillStyle(PALETTE.oakDark, 0.55);
-    g.fillRect(0, y + plankHeight - 3, width, 3);
+    g.fillRect(0, y + plankHeight - 1, width, 1);
     g.fillStyle(lighten(PALETTE.oak, 0.22), 0.3);
     g.fillRect(0, y + plankHeight, width, 1);
 
     // Butt joints and grain flecks.
-    for (let x = (row % 2 === 0 ? 120 : 300); x < width; x += 260) {
+    for (let x = (row % 2 === 0 ? 32 : 80); x < width; x += 96) {
       g.fillStyle(PALETTE.oakDark, 0.45);
-      g.fillRect(x, y + 2, 2, plankHeight - 5);
+      g.fillRect(x, y + 1, 1, plankHeight - 2);
     }
     for (let x = 40 + (row * 53) % 90; x < width; x += 118) {
       g.fillStyle(PALETTE.oakDark, 0.14);
-      g.fillRoundedRect(x, y + 11, 46, 3, 1);
+      g.fillRect(x, y + 8, 24, 1);
     }
     row++;
   }

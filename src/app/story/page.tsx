@@ -59,6 +59,12 @@ export default function StoryWorldMap() {
       </div>
 
       {/* Regions + chapters */}
+      {progress?.completedChapters.includes(1) && (
+        <Link href="/story/village" style={{ display: 'block', padding: 24, marginBottom: 32, border: '1px solid #527e70', borderRadius: 12, background: '#17332c', color: '#e8d8b0', textDecoration: 'none' }}>
+          <strong>Return to Inkwell Village</strong>
+          <p style={{ margin: '8px 0 0' }}>Visit the fountain square, explore the neighborhood streets, and drop in on your neighbors between adventures.</p>
+        </Link>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
         {REGIONS.map((region) => {
           const regionChapters = CHAPTERS.filter((c) => region.chapters.includes(c.id as never));

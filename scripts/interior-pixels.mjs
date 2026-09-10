@@ -1,0 +1,60 @@
+// Native 16px pixel clusters. No resizing, SVG rasterization or smoothing.
+import sharp from 'sharp';
+import { mkdir } from 'node:fs/promises';
+const out = new URL('../public/story/interiors/', import.meta.url);
+await mkdir(out,{recursive:true});
+const palettes={teal:['#26454a','#426c6b','#69938a','#a9c3a6'],rust:['#583a3c','#9a5747','#c18059','#e9bc85'],moss:['#354438','#64734c','#92a16a','#c4c68f'],plum:['#403849','#705570','#a78095','#d4b1b2']};
+const O='#292936',D='#493639',W='#80523d',M='#ad7950',L='#dfb379',C='#f0d9a3';
+let pixels;
+const r=(x,y,w,h,c)=>{const n=parseInt(c.slice(1),16),rgba=[(n>>16)&255,(n>>8)&255,n&255,255];for(let py=Math.max(0,y);py<Math.min(16,y+h);py++)for(let px=Math.max(0,x);px<Math.min(16,x+w);px++)pixels.set(rgba,(py*16+px)*4);};
+const wood=(x,y,w,h)=>{r(x,y,w,h,O);r(x+1,y+1,w-2,h-2,M);r(x+1,y+1,w-2,1,L);r(x+w-2,y+2,1,h-3,D);};
+const jar=(x,y,c)=>{r(x+1,y,3,1,O);r(x,y+1,5,5,O);r(x+1,y+1,3,4,c);r(x+1,y+1,1,3,C);};
+const candle=(x,y)=>{r(x-1,y+6,5,1,D);r(x,y+2,2,4,C);r(x,y,1,1,'#efbc68');r(x+1,y+1,1,1,'#ffe3a8');};
+const sprites={
+ 'bed-head':a=>{wood(1,0,14,16);r(3,3,10,13,D);r(4,4,8,5,C);r(4,4,7,3,'#fff1ce');r(3,10,10,6,a[1]);r(3,10,9,1,a[3]);r(3,11,2,5,a[2]);r(12,11,1,5,a[0]);},
+ 'bed-foot':a=>{r(1,0,14,14,O);r(2,0,12,13,W);r(3,0,10,12,a[1]);r(3,0,2,11,a[2]);r(12,0,1,12,a[0]);for(const y of [2,7]){r(7,y,3,1,a[3]);r(8,y-1,1,3,a[2]);}wood(1,12,14,3);r(2,15,2,1,D);r(12,15,2,1,D);},
+ shelf:()=>{wood(1,0,14,15);for(const y of [3,9]){r(2,y,12,4,D);['#587b70','#a9654f','#a79a6a','#7d6985','#69858a'].forEach((c,i)=>{r(2+i*2,y,1,4,c);r(2+i*2,y+1,1,1,C);});r(1,y+4,14,1,L);}},
+ cupboard:()=>{wood(1,0,14,15);wood(2,3,6,10);wood(8,3,6,10);r(6,7,1,2,C);r(9,7,1,2,C);},
+ chest:()=>{r(2,4,12,10,O);r(3,3,10,2,O);r(3,4,10,9,M);r(2,6,12,4,W);r(3,5,10,1,L);r(2,10,12,1,D);for(const x of [4,11])r(x,4,1,9,'#697972');r(7,9,3,4,O);r(8,10,1,2,C);},
+ chair:a=>{wood(4,1,9,7);r(6,3,5,3,a[1]);r(6,3,4,1,a[3]);wood(3,8,11,5);r(4,9,8,2,a[2]);r(3,13,2,3,D);r(12,13,2,3,D);},
+ table:()=>{r(2,11,2,5,D);r(12,11,2,5,D);wood(0,3,16,10);r(1,7,13,1,W);r(3,5,4,1,L);r(8,10,5,1,W);},
+ 'tea-table':()=>{sprites.table();r(3,5,4,4,O);r(3,5,3,3,C);r(4,6,2,1,W);jar(9,4,'#7e9d8b');},
+ desk:()=>{sprites.table();r(2,4,8,6,C);r(3,5,5,1,'#99845f');r(3,7,4,1,'#99845f');r(11,8,3,3,O);r(12,4,1,5,C);r(13,3,1,3,'#fff1ce');},
+ map:()=>{sprites.table();r(2,4,12,7,C);r(4,4,2,3,'#678b87');r(5,7,2,3,'#678b87');r(9,5,3,2,'#87905d');r(10,8,1,3,'#a76848');r(9,9,3,1,'#a76848');},
+ washstand:()=>{sprites.table();r(2,5,9,5,O);r(3,5,7,4,'#b2ac89');r(4,6,5,2,'#709b9c');r(4,6,3,1,'#c6d7c0');jar(10,1,'#bc9368');r(2,11,4,3,C);},
+ hearth:()=>{r(0,0,16,15,O);r(1,1,14,13,'#737975');for(let y=2;y<14;y+=4){r(1,y,14,1,'#adac90');r(y%8?4:11,y+1,1,3,'#464c50');}r(3,6,10,8,O);r(5,5,6,2,O);r(4,12,8,2,W);r(5,9,2,4,'#c67943');r(8,8,3,5,'#c67943');r(7,11,3,2,'#f1c678');wood(0,2,16,3);},
+ bread:()=>{sprites.table();r(3,5,10,5,D);r(4,4,8,5,'#d5a666');r(5,4,6,1,'#f1cc86');for(const x of [5,8,11])r(x,6,1,2,'#91603e');},
+ barrel:()=>{r(3,2,10,12,O);r(2,4,12,8,O);r(3,3,10,10,W);r(4,3,2,10,M);r(7,3,2,10,M);r(3,3,10,1,L);for(const y of [6,11]){r(2,y,12,2,'#424e50');r(3,y,10,10/10,'#8b9787');}},
+ plant:()=>{r(5,10,7,5,O);r(6,11,5,3,'#9c644f');r(6,11,1,3,'#d49b6b');r(4,9,9,2,W);r(5,9,7,1,L);r(8,4,1,6,'#576443');r(3,4,5,3,'#36584c');r(6,1,3,5,'#36584c');r(9,2,5,4,'#36584c');r(4,4,3,1,'#75946a');r(7,1,1,3,'#a5b77c');r(10,2,3,1,'#8fac78');},
+ 'seed-shelf':()=>{sprites.cupboard();r(2,3,12,7,D);jar(2,4,'#939365');jar(8,4,'#809585');r(1,10,14,1,L);},
+ armour:()=>{wood(1,0,14,3);r(2,3,1,12,D);r(13,3,1,12,D);r(5,4,7,7,O);r(4,5,9,3,O);r(6,5,5,5,'#627d89');r(6,5,1,4,'#b4c6be');r(10,6,1,4,'#3e5366');r(2,7,1,6,'#c4d0c6');r(1,12,3,1,L);},
+ lectern:()=>{wood(6,8,4,6);wood(3,13,10,3);wood(1,3,14,8);r(2,3,5,6,C);r(8,3,5,6,'#c4b58f');for(const y of [5,7]){r(3,y,3,1,'#8e8265');r(9,y,3,1,'#8e8265');}},
+ candles:()=>{sprites.table();candle(4,0);candle(11,2);},
+ chimes:()=>{wood(1,1,14,3);r(1,4,2,11,D);r(13,4,2,11,D);for(let i=0;i<3;i++){const x=5+i*3,y=6+i%2*2;r(x,4,1,y-4,L);r(x,y,2,6,'#829d98');r(x,y,1,5,'#d2d7b3');}},
+ mural:()=>{wood(0,0,16,16);r(2,2,12,12,'#c1b18b');r(3,7,3,5,'#587b6b');r(4,5,1,3,'#587b6b');r(10,6,3,6,'#756380');r(11,4,1,3,'#756380');r(8,2,1,6,D);r(7,8,1,6,D);r(4,8,1,1,C);r(11,7,1,1,C);},
+ tablet:()=>{r(3,0,10,12,O);r(4,1,8,10,'#b6b89f');r(4,1,7,1,'#eee0b5');r(11,3,1,8,'#71837c');r(7,3,3,2,'#374751');r(6,5,2,2,'#374751');r(8,7,2,2,'#374751');wood(2,12,12,3);},
+ floor:()=>{r(0,0,16,16,'#a68a62');for(let y=0;y<16;y+=4){r(0,y,16,1,'#c2a577');r(0,y+3,16,1,'#81694e');r(y%8?11:4,y+1,1,2,'#897052');}},
+ stone:()=>{r(0,0,16,16,'#596565');for(let y=0;y<16;y+=8){r(1,y+1,14,6,'#87918a');r(1,y+1,13,1,'#a6ac97');r(y?5:11,y+2,1,5,'#6b7774');}},
+ wall:()=>{r(0,0,16,16,'#c6b28a');r(0,0,16,1,'#ead3a2');r(0,15,16,1,'#ae9879');r(3,8,3,1,'#bca780');},
+ beam:()=>{sprites.wall();wood(0,0,4,16);},
+ skirting:()=>{sprites.wall();wood(0,11,16,5);},
+ window:()=>{sprites.wall();wood(1,0,14,15);r(3,2,10,10,'#364c57');r(4,3,8,8,'#85aaa3');r(4,3,3,1,'#c1d1b5');r(4,4,2,2,'#c1d1b5');r(8,2,1,10,W);r(3,7,10,1,W);wood(0,13,16,3);},
+ threshold:()=>{r(0,0,16,16,D);r(0,0,16,2,L);for(let y=3;y<16;y+=4){r(1,y,14,3,M);r(1,y,14,1,L);}},
+ 'way-sign':()=>{r(7,7,2,9,D);r(7,8,1,7,L);wood(0,1,16,8);r(2,4,10,1,D);r(2,6,6,1,W);},
+};
+for(const stage of ['seed','sprout','bloom'])sprites[`stone-${stage}`]=()=>{
+ r(1,1,14,14,O);r(2,2,12,12,'#697e70');r(2,2,11,1,'#bbc3a0');r(3,4,10,8,'#536c60');r(13,4,1,9,'#354d48');
+ if(stage==='seed'){r(6,6,4,5,'#c7c092');r(6,6,1,3,'#e1d5a6');r(9,9,1,2,'#687c5e');}
+ else{r(7,7,1,5,'#b0bd86');r(4,6,3,2,'#9aaf7d');r(8,5,4,2,'#b9c596');}
+ if(stage==='bloom'){r(6,3,4,5,'#d6bb89');r(5,4,6,3,'#c8a780');r(7,4,2,2,'#f0dba2');}
+};
+for(const v of ['t','m','b'])for(const h of ['l','c','r'])sprites[`rug-${v}${h}`]=a=>{
+ r(0,0,16,16,a[1]);r(7,5,2,6,a[2]);r(5,7,6,2,a[2]);r(7,7,2,2,a[1]);
+ if(v==='t'){r(0,0,16,1,a[0]);r(0,1,16,1,a[3]);}if(v==='b'){r(0,15,16,1,a[0]);r(0,14,16,1,a[3]);}
+ if(h==='l'){r(0,0,1,16,a[0]);r(1,0,1,16,a[3]);}if(h==='r'){r(15,0,1,16,a[0]);r(14,0,1,16,a[3]);}
+};
+for(const [name,draw] of Object.entries(sprites)){
+ const variants=(['bed-head','bed-foot','chair'].includes(name)||name.startsWith('rug'))?Object.entries(palettes):[['',palettes.teal]];
+ for(const [variant,palette] of variants){pixels=Buffer.alloc(16*16*4);draw(palette);await sharp(pixels,{raw:{width:16,height:16,channels:4}}).png().toFile(new URL(`${name}${variant?'-'+variant:''}.png`,out).pathname);}
+}
+console.log('Built native 16×16 interior sprites.');

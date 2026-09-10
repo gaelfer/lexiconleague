@@ -7,6 +7,17 @@
 - Blotlings: abandoned meanings given unstable form; some may eventually be restored.
 - Chapter One mystery: a masked thief uses a Blotling attack to steal the First Dictionary's definition of “meaning.”
 
+## Chapter Two and the persistent village
+
+- Completing Chapter One unlocks `/story/village`, a peaceful visit mode with all district routes open and no repeating attack.
+- The village hub adds a 1,600 × 1,000 northern residential quarter, accessed between Mira’s home and the tea room. A loop, cross-lanes, fountain green, and pond replace the former straight eastward extension.
+- Nell and Rowan gather around the green; Fenn, Tansy, and Oren can be visited inside homes. Original villagers use peaceful post-attack hub dialogue.
+- Four new enterable homes: baker Fenn, Bramble, Sir Serif, and the guest house. These are optional lore visits.
+- Chapter Two, “The Paths That Forgot,” is a separate 1,600 × 1,200 Wordwood exploration scene. It does not replay Chapter One.
+- Explore for three field notes in any order; cycle the bridge, burrow, and trail word signs with E; test the combined arrangement at the central stone.
+- The three words have one valid assignment. Wrong attempts provide meaning-based feedback, without health loss. J rereads collected clues. Notes and choices persist in the chapter checkpoint.
+- Restoring all three signs opens the northern route. Recovering the fragment completes Chapter Two and unlocks Chapter Three.
+
 ## Chapter One milestones
 
 1. **Archive Road attack** — protect the village and glimpse the thief.
@@ -26,7 +37,7 @@
 - **Market shops** — recovery quests, purchases, and merchant relationships.
 - **Mayor's Hall** — civic records, political tension, and restricted evidence.
 - **Resident homes** — optional character scenes that change after major events.
-- **Mara's House** — optional cartographer's home; family maps show how the village grew around forgotten words. Implemented.
+- **Mira's House** — optional cartographer's home; Mira's daughter Luma draws her own maps here and witnessed someone turning the eastern signs. Implemented.
 - **Mossbell Tea Room** — optional social interior; menus, regulars' cups, and a community noticeboard reveal village routines. Implemented.
 
 ## Rules for every interior
