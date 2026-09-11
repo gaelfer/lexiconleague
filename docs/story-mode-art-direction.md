@@ -64,15 +64,11 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   the authored paths; do not turn it back into a single straight road.
 - Wordwood’s signs visibly restore landmarks. Its final stones tell the sequence
   seed, sprout, bloom. Preserve both vocabulary and sanctuary progress on travel.
-- Body, face, and accessory layers use native 32×64 frames. Only the base/body
-  is quantized into 2×2 clusters, retaining the chunky character of 16×32 art;
-  faces, limbs, and accessories retain full pixel detail. Faces display within
-  a centered 24×48 footprint while the other layers remain 32×64, anchored
+- Body, face, and accessory layers use native 32×64 frames with 2×2 pixel
+  clusters throughout. Hands and feet also use 2×2 blocks for their outlines
+  and shading. All avatar layers share the same 32×64 display footprint, anchored
   over the occupied foot tile. Preserve one-tile movement collision and weapon grips.
-  Crop face source art slightly closer than its body group so the authored eyes
-  and mouth remain prominent inside that smaller footprint.
-  Anchor that crop at the authored expression center (50% across, 58% down),
-  compensating for the face display size so enlarging it never shifts it downward.
+  Use the same source crop for faces, bodies, and accessories to preserve alignment.
   The frame is NOT the silhouette: preserve the SVG's aspect ratio and pad the
   frame. Fit all cosmetic layers together, including wide star bodies; never
   stretch teardrops vertically to fill 32 pixels or crop their side points.
@@ -82,7 +78,7 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
 - Text is a readability exception: readableText.ts composites Phaser text canvases
   at full display resolution. Never downsample glyphs with the world framebuffer.
   Characters use the full-resolution compositor with nearest-neighbor sampling.
-  Preserve each expression’s distinct eyes and mouth at full 32×64 resolution;
+  Preserve each expression’s distinct eyes and mouth in the clustered 32×64 frame;
   never replace them with a generic smile. Hide faces for
   rear views.
 - NPCs use a planted stance: no independent fractional bobbing of their body,

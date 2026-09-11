@@ -1,8 +1,8 @@
 import * as Phaser from 'phaser';
-import { AVATAR_FRAME, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_HEIGHT, avatarRasterPlacement, pixelizeAvatar } from '../pixelAvatar';
+import { AVATAR_FRAME, avatarRasterPlacement, pixelizeAvatar } from '../pixelAvatar';
 
 /** Called once in Boot, before any sprite references the texture being replaced. */
-export function convertAvatarTexture(scene:Phaser.Scene,key:string,bodyColor?:number,outputKey=key,cropFraction=0.68,bodyCrop=cropFraction){
+export function convertAvatarTexture(scene:Phaser.Scene,key:string,bodyColor?:number,outputKey=key,cropFraction=0.68){
   if(!scene.textures.exists(key))return;
   const canvas=document.createElement('canvas');
   canvas.width=AVATAR_FRAME.width;canvas.height=AVATAR_FRAME.height;
@@ -11,22 +11,13 @@ export function convertAvatarTexture(scene:Phaser.Scene,key:string,bodyColor?:nu
   // Area sampling happens once; alpha quantization removes the resulting soft edge.
   const source=scene.textures.get(key).getSourceImage() as HTMLImageElement;
   const p=avatarRasterPlacement(source.width,source.height,cropFraction);
-  if(key.endsWith('-eyes')){
-    // Anchor the expression at its authored eye/mouth center (50%, 58%).
-    // A tighter crop grows around this point, not down from the SVG's top.
-    // Compensate for the face's 48px display height versus the body's 64px.
-    const body=avatarRasterPlacement(source.width,source.height,bodyCrop);
-    const center=AVATAR_FRAME.height/2;
-    const target=center+(body.dy+body.dh*0.58-center)*(AVATAR_LAYER_HEIGHT/AVATAR_FACE_LAYER_HEIGHT);
-    p.dy=target-p.dh*0.58;
-  }
   context.drawImage(source,p.sx,p.sy,p.sw,p.sh,p.dx,p.dy,p.dw,p.dh);
   const image=context.getImageData(0,0,canvas.width,canvas.height);
   // Face SVGs use translucent mouth, eyelid, and highlight strokes. A lower
   // alpha cutoff keeps those authored details—especially Pip's sleepy face—
   // while body silhouettes retain their firmer edge threshold.
   const alphaThreshold=key.endsWith('-eyes')?48:112;
-  image.data.set(pixelizeAvatar(image.data,canvas.width,canvas.height,bodyColor,alphaThreshold,key.endsWith('-base')));
+  image.data.set(pixelizeAvatar(image.data,canvas.width,canvas.height,bodyColor,alphaThreshold,true));
   context.putImageData(image,0,0);
   if(scene.textures.exists(outputKey))scene.textures.remove(outputKey);
   scene.textures.addCanvas(outputKey,canvas)?.setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -48,9 +39,6 @@ export function convertAvatarGroup(scene:Phaser.Scene,layers:{key:string;color?:
   }
   const groupCrop=Math.min(1,extent*2);
   for(const {key,color} of layers){
-    // The face occupies more of its smaller 24x48 display layer, keeping eyes
-    // and mouths legible without enlarging the layer over the body.
-    const crop=key.endsWith('-eyes')?Math.max(0.5,groupCrop*0.84):groupCrop;
-    convertAvatarTexture(scene,key,color,key,crop,groupCrop);
+    convertAvatarTexture(scene,key,color,key,groupCrop);
   }
 }

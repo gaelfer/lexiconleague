@@ -18,8 +18,8 @@ describe('story world scale', () => {
     expect(TILE_SIZE).toBe(32);
     expect(AVATAR_LAYER_WIDTH * INKLING_SCALE).toBe(32);
     expect(AVATAR_LAYER_HEIGHT * INKLING_SCALE).toBe(64);
-    expect(AVATAR_FACE_LAYER_WIDTH * INKLING_SCALE).toBe(24);
-    expect(AVATAR_FACE_LAYER_HEIGHT * INKLING_SCALE).toBe(48);
+    expect(AVATAR_FACE_LAYER_WIDTH * INKLING_SCALE).toBe(32);
+    expect(AVATAR_FACE_LAYER_HEIGHT * INKLING_SCALE).toBe(64);
   });
 
   it('fills adjacent 32px path tiles without a seam between their edges', () => {
