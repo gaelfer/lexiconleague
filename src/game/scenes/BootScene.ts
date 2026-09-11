@@ -71,6 +71,7 @@ export default class BootScene extends Phaser.Scene {
     for(const person of INN_PEOPLE)convertAvatarGroup(this,[{key:`inn-${person.id}-base`,color:person.color},{key:`inn-${person.id}-eyes`},{key:`inn-${person.id}-accessory`}]);
     // Bake each cosmetic separately so facing, gear and avatar customization remain intact.
     convertAvatarTexture(this,'npc-0-base',0xf0a6aa,'luma-base');
+    convertAvatarTexture(this,'npc-0-base',0xb95248,'bridgekeeper-base');
     convertAvatarGroup(this,[{key:'scholar-base',color:0xcd7f32},
       {key:'scholar-eyes'},{key:'scholar-glasses',color:0x483a32},{key:'scholar-quill'}]);
     convertAvatarTexture(this,'npc-2-base',0xcd7f32,'road-knight-base');
@@ -95,6 +96,7 @@ export default class BootScene extends Phaser.Scene {
     arrow.destroy();
     this.makeDoorTextures();
     this.makeEnemyTexture();
+    this.makeWoodlingTextures();
     this.makeCheckpointTexture();
     this.makeCoinTexture();
 
@@ -219,6 +221,28 @@ export default class BootScene extends Phaser.Scene {
     g.fillCircle(39, 35, 4);
     g.generateTexture('blotling', 48, 44);
     g.destroy();
+  }
+
+  private makeWoodlingTextures() {
+    // Woodlings are knot-eyed splinters animated with authored, readable silhouettes.
+    const make=(key:string,pose:'idle'|'windup'|'strike'|'hurt')=>{
+      const g=this.make.graphics({x:0,y:0,add:false} as never);
+      const lean=pose==='strike'?5:pose==='hurt'?-3:0;
+      g.fillStyle(0x17201d,.38).fillEllipse(16,29,27,7);
+      g.fillStyle(0x283027);
+      g.fillTriangle(4+lean,25,8+lean,12,12+lean,25).fillTriangle(20+lean,25,25+lean,9,29+lean,25);
+      g.fillStyle(pose==='windup'?0x6c6845:0x554934).fillRoundedRect(7+lean,7,18,20,5);
+      g.fillStyle(0x8a7650).fillRect(9+lean,8,3,17).fillRect(14+lean,6,2,20).fillRect(20+lean,9,3,15);
+      g.fillStyle(0xc3b276).fillRect(9+lean,8,11,2).fillRect(10+lean,12,2,2);
+      const eyeY=pose==='windup'?17:14;
+      g.fillStyle(0x201c21).fillCircle(12+lean,eyeY,2).fillCircle(20+lean,eyeY,2);
+      if(pose==='strike')g.fillStyle(0xb89868).fillTriangle(24,15,32,11,28,20);
+      if(pose==='hurt')g.lineStyle(2,0xd9c892).lineBetween(10,13,14,17).lineBetween(14,13,10,17).lineBetween(18,13,22,17).lineBetween(22,13,18,17);
+      else g.fillStyle(0xd0c38b).fillRect(11+lean,eyeY-1,1,1).fillRect(19+lean,eyeY-1,1,1);
+      g.fillStyle(0x3d4f3b).fillCircle(7+lean,8,3).fillCircle(23+lean,6,3);
+      g.generateTexture(`woodling-${key}`,32,32);g.destroy();
+    };
+    for(const pose of ['idle','windup','strike','hurt'] as const)make(pose,pose);
   }
 
   private makeCheckpointTexture() {

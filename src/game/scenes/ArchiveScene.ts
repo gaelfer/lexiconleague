@@ -9,6 +9,7 @@ import { EventBus } from '../EventBus';
 import type { StoryAvatarConfig } from '../avatar';
 import { getStoryProgress, saveStoryProgress } from '@/lib/story/progress';
 import { OPENING_STORY } from '../story/openingStory';
+import {expedition,saveExpedition,TABLET_RESEARCH} from '../story/repository';
 import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { createInkHand, createInkFoot } from '../entities/inkHand';
 
@@ -64,7 +65,7 @@ export default class ArchiveScene extends Phaser.Scene {
       createInkHand(this,-15,7,0xcd7f32),createInkHand(this,15,7,0xcd7f32),
     ]);
     this.addWall(464,304,32,32);
-    registerSpeaker(this,'SCHOLAR VELLUM',scholar);
+    registerSpeaker(this,'SCHOLAR BELLUM',scholar);
     this.physics.add.collider(this.player.sprite, this.walls);
     frameWorld(this);
 
@@ -101,9 +102,9 @@ export default class ArchiveScene extends Phaser.Scene {
 
   private checkInteractions() {
     const interactions = [
-      { x:464, y:304, label:'TALK TO SCHOLAR VELLUM', action:()=>this.talkToScholar() },
+      { x:464, y:304, label:'TALK TO SCHOLAR BELLUM', action:()=>this.talkToScholar() },
       { x: 400, y: 272, label: 'INSPECT THE EMPTY PEDESTAL', action: () => this.inspectPedestal() },
-      { x: 272, y: 336, label: 'LISTEN TO VELLUM’S CHIMES', action: () => this.readFieldGuide() },
+      { x: 272, y: 336, label: 'LISTEN TO BELLUM’S CHIMES', action: () => this.readFieldGuide() },
       { x: 528, y: 336, label: 'EXAMINE THE CRACKED MURAL', action: () => this.examineMural() },
       { ...ROOM_GRID.exit, label: 'LEAVE THE ARCHIVE', action: () => this.exitArchive() },
     ];
@@ -135,11 +136,11 @@ export default class ArchiveScene extends Phaser.Scene {
 
   private inspectPedestal() {
     const lines = this.inspectedPedestal
-      ? ['The carved cradle is empty. The stolen leaf belongs here.']
+      ? ['The damaged clasp rests on a clean cloth. A label reads: Evidence. Not a paperweight. — Bellum']
       : [
-          'A carved stone cradle once held a leaf of the First Dictionary. Its retaining clasp has been forced open.',
+          'The dictionary stand has been disturbed. Its retaining clasp is bent open.',
           'Purple ink has seeped into the fresh scratches. The same colour as the creatures on the road.',
-          'Vellum has laid a clean cloth over the broken clasp. He is keeping it for evidence.',
+          'Bellum has laid a clean cloth over the broken clasp. He is keeping it for evidence.',
         ];
     this.openDialogue('THE FIRST DICTIONARY', lines, () => {
       if (this.inspectedPedestal) return;
@@ -151,30 +152,44 @@ export default class ArchiveScene extends Phaser.Scene {
 
   private talkToScholar() {
     const progress = getStoryProgress();
+    if(expedition().tablet){
+      this.openDialogue('SCHOLAR BELLUM',expedition().studied?[
+        'The Tablet’s original lettering survives beneath the violet ink. Interference, not erasure. I’ve labelled the samples. And, this time, my tea.',
+        'I’m recording the changes before drawing any conclusions. You brought back evidence, not a guess. Thank you.',
+      ]:TABLET_RESEARCH,()=>saveExpedition({studied:true}));return;
+    }
     if (progress.opening === 'wordwood') {
-      this.openDialogue('SCHOLAR VELLUM', ['Restore Wordwood’s inscriptions, then investigate the sanctuary. Its stones may show where the stolen leaf went. The gatehouse’s eastern exit leads there.']);
+      this.openDialogue('SCHOLAR BELLUM', progress.completedChapters.includes(2) ? [
+        'Back! In one piece, too. Good. That was the part I couldn’t check in a reference book.',
+        'You describe the restored signs and the sanctuary gate opening.',
+        'Seed, sprout, bloom. An ordered growth sequence! I could spend a week on that. I won’t. Probably.',
+        'It tells us the inscriptions still respond. It doesn’t tell us what those creatures are. Let me compare your observations with my records before we call it an explanation.',
+      ] : [
+        'Wordwood first: restore the signs, then investigate beyond the sanctuary gate. Take the eastern exit in the northern gatehouse.',
+        'I’ve made a column for observations and a column for guesses. The guesses are winning. We need to do something about that.',
+      ]);
       return;
     }
     if (!progress.completedChapters.includes(1)) {
-      this.openDialogue('SCHOLAR VELLUM', ['The warning bell has sounded. Please check the road—there are people out there.']);
+      this.openDialogue('SCHOLAR BELLUM', ['The road—please, check the road. There are people out there. My notes can wait. All of them.']);
       return;
     }
-    this.openDialogue('SCHOLAR VELLUM', OPENING_STORY.scholar, () => {
+    this.openDialogue('SCHOLAR BELLUM', OPENING_STORY.scholar, () => {
       saveStoryProgress({opening:'wordwood'});
     });
   }
 
   private readFieldGuide() {
-    this.openDialogue('VELLUM’S MEMORY CHIMES', [
-      'The chimes replay Vellum’s voice: “Blotlings gather where abandoned ink has forgotten what it meant.”',
-      'One damaged chime whispers a forbidden ending: “Restoration may still be possible.”',
+    this.openDialogue('BELLUM’S MEMORY CHIMES', [
+      'Bellum’s recorded voice: “Violet residue. Origin unknown. Do not file under ordinary stains merely because the drawer is nearer.”',
+      'A pause. “Also, buy bread. That is not part of the experiment. Stop recording.”',
     ]);
   }
 
   private examineMural() {
     this.openDialogue('THE FOUNDING MURAL', [
-      'The oldest Inkling and the first Blotling are painted with the same green light at their centers.',
-      'Someone recently cracked the mural exactly between them.',
+      'The mural shows Inkwell’s founders carrying books beneath unfinished rafters. One has fallen asleep on a stack.',
+      'Bellum has tucked a note beside the crack: “A structural problem, not an artistic choice. Ask a mason.”',
     ]);
   }
 

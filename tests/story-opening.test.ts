@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getStoryProgress, saveStoryProgress, isChapterUnlocked, markChapterComplete } from '../src/lib/story/progress';
+import {OPENING_STORY,RESCUED_CHATTER} from '../src/game/story/openingStory';
 
 describe('solo opening progression',()=>{
+  it('introduces Bellum without explaining the Blotlings before the camp',()=>{
+    const dialogue=[...OPENING_STORY.rescue,...OPENING_STORY.scholar,...RESCUED_CHATTER['Sir Serif']].join(' ');
+    expect(dialogue).toContain('Scholar Bellum');
+    expect(dialogue).not.toContain('Vellum');
+    expect(dialogue).not.toMatch(/corrupted Inklings|counter-ink|stole a leaf/i);
+    expect(OPENING_STORY.scholar.join(' ')).toContain('mistake a theory for an answer');
+  });
   beforeEach(()=>{
     const data=new Map<string,string>();
     vi.stubGlobal('localStorage',{getItem:(key:string)=>data.get(key)??null,setItem:(key:string,value:string)=>data.set(key,value)});

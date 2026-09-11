@@ -8,7 +8,7 @@ export const ROOM_LAYOUTS: Record<VillageBuildingId, FurnitureSpec[]> = {
   nell:[item('bed',64,224,'NELL’S BED','A hand-sewn quilt in warm rust colours.'),item('table',304,272,'MENDING TABLE','Buttons, wool, and a scarf that belongs to Fenn.'),item('chest',624,400,'WOOL CHEST','A green ball of wool has escaped.')],
   home: [item('bed',64,224,'CHECK YOUR BED','One slipper. No sign of its partner. A mystery for a less urgent day.'),
     item('table',304,232,'CHECK BREAKFAST','Your toast has gone cold. Whoever cut it into triangles knew you well.'),
-    item('chest',624,400,'OPEN THE CHEST','A letter from Vellum. The date is tomorrow. That cannot be right.'),
+    item('chest',624,400,'OPEN THE CHEST','A letter from Bellum. The date is tomorrow. That cannot be right.'),
     item('rug',310,410,'', ''), item('plant',680,240,'CHECK THE PLANT','Still alive. You decide to count that as an achievement.')],
   baker: [item('bed',624,224,'CHECK THE QUILT','The quilt smells faintly of cinnamon.',0xb98761),
     item('table',112,248,'READ THE RECIPE','“One pinch.” Below it: “Fenn, YOUR pinch. Not Serif’s.”',0xb98761),

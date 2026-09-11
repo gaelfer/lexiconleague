@@ -5,7 +5,7 @@ import { leafCluster } from './InkwellVillage';
 /** Authored landmarks and quiet forest texture; no noise on the readable walking lanes. */
 export function wordwoodDetails(scene:Phaser.Scene,obstacle:(x:number,y:number,w:number,h:number)=>void){
   const g=scene.add.graphics().setDepth(-15);
-  for(const [cx,cy] of [[464,176],[1056,176],[480,496],[1088,496],[432,720],[1120,720],[560,1008],[1072,1040]]){
+  for(const [cx,cy] of [[592,176],[1056,176],[480,496],[944,464],[432,720],[1120,720],[560,1008],[1072,1040]]){
     for(const [dx,dy] of [[-32,-16],[32,0],[0,32]]){
       g.fillStyle(0x294331).fillRect(cx+dx-6,cy+dy,12,28);
       foreground(scene,cx+dx-32,cy+dy-52,64,64,canopy=>{
@@ -32,7 +32,7 @@ export function wordwoodDetails(scene:Phaser.Scene,obstacle:(x:number,y:number,w
   for(let y=32;y<128;y+=32)for(let x=704;x<896;x+=32){
     g.fillStyle(0x8c9b82).fillRect(x+1,y+1,30,30);g.fillStyle(0xc8caaa).fillRect(x+2,y+1,28,2);
   }
-  scene.add.image(784,48,'interior-tablet').setDisplaySize(32,32).setOrigin(0).setDepth(2);
+  // The Tablet is now inside the Repository, not on the outdoor terrace.
   // Fireflies: restrained movement, confined to foliage away from clue text.
   for(const [x,y] of [[448,384],[1136,400],[496,752],[1152,784]]){
     const light=scene.add.rectangle(x,y,2,2,0xd9ddb0,0.7).setDepth(3);

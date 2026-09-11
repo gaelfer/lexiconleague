@@ -55,12 +55,12 @@ export default class GatehouseScene extends Phaser.Scene{
     if(this.time.now<this.readyAt)return;
     const nearest=Object.entries(AREAS).sort((a,b)=>Phaser.Math.Distance.Between(this.player.x,this.player.y,a[1].door.x,a[1].door.y)-Phaser.Math.Distance.Between(this.player.x,this.player.y,b[1].door.x,b[1].door.y))[0];
     const close=Phaser.Math.Distance.Between(this.player.x,this.player.y,nearest[1].door.x,nearest[1].door.y)<=80;
-    this.hint.setText(close?(nearest[0]===this.source?`Return to ${nearest[1].name}.\nWalk onto the exit tile.`:nearest[0]==='wordwood'&&!isChapterUnlocked(2)?'Wordwood is not open yet.\nSpeak to Scholar Vellum in the Inkwell Archive.':`To ${nearest[1].name}.\nWalk onto the exit tile to travel.`):'West: Inkwell Road · East: Wordwood · South: Inkwell Village\nWalk onto an exit tile to travel.');
+    this.hint.setText(close?(nearest[0]===this.source?`Return to ${nearest[1].name}.\nWalk onto the exit tile.`:nearest[0]==='wordwood'&&!isChapterUnlocked(2)?'Wordwood is not open yet.\nSpeak to Scholar Bellum in the Inkwell Archive.':`To ${nearest[1].name}.\nWalk onto the exit tile to travel.`):'West: Inkwell Road · East: Wordwood · South: Inkwell Village\nWalk onto an exit tile to travel.');
     for(const [id,area] of Object.entries(AREAS)){
       if(Phaser.Math.Distance.Between(this.player.x,this.player.y,area.door.x,area.door.y)>.5)continue;
       const target=id as AreaId;
       if(target!==this.source&&target === 'wordwood' && !isChapterUnlocked(2)) {
-        this.hint.setText('Wordwood is not open yet.\nSpeak to Scholar Vellum in the Inkwell Archive.');return;
+        this.hint.setText('Wordwood is not open yet.\nSpeak to Scholar Bellum in the Inkwell Archive.');return;
       }
       if(target!==this.source&&!canTravel(target,getStoryProgress().completedChapters)){
         this.hint.setText('Clear the three Word Seals on Inkwell Road first.');return;

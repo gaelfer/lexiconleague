@@ -6,7 +6,9 @@ import type { Question } from '@/types';
 
 interface WordLockModalProps {
   doorId: string;
-  question: Question;
+  question: Pick<Question, 'prompt' | 'choices' | 'answer_index' | 'skill_tag'>;
+  title?: string;
+  repository?: boolean;
   gateNumber: number;
   totalGates: number;
   onClose: () => void;
@@ -18,6 +20,8 @@ export default function WordLockModal({
   gateNumber,
   totalGates,
   onClose,
+  title,
+  repository = false,
 }: WordLockModalProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const [result, setResult] = useState<'correct' | 'wrong' | null>(null);
@@ -43,10 +47,10 @@ export default function WordLockModal({
       closeTimer.current = setTimeout(() => {
         closeTimer.current = null;
         onClose();
-        EventBus.emit('question-result', { correct, doorId });
+        EventBus.emit(repository ? 'repository-question-result' : 'question-result', { correct, doorId });
       }, delay);
     },
-    [doorId, question.answer_index, result, onClose],
+    [doorId, question.answer_index, result, onClose, repository],
   );
 
   // Keyboard shortcuts 1-4
@@ -91,6 +95,9 @@ export default function WordLockModal({
     >
       {/* Modal card */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title ?? 'Restore Word Seal'}
         style={{
           background: 'linear-gradient(145deg, #142d35 0%, #0b1c2b 65%, #10263a 100%)',
           border: '1.5px solid rgba(244, 201, 107, 0.6)',
@@ -123,10 +130,10 @@ export default function WordLockModal({
                 color: '#f4c96b',
               }}
             >
-              Restore Word Seal {gateNumber}/{totalGates}
+              {title ?? `Restore Word Seal ${gateNumber}/${totalGates}`}
             </span>
             <span style={{ display: 'block', marginTop: 3, fontFamily: 'Outfit, sans-serif', fontSize: 11, color: '#75bda7' }}>
-              Choose the correct answer to open the path
+              {repository ? 'Choose the instruction that restores the mechanism' : 'Choose the correct answer to open the path'}
             </span>
           </div>
         </div>
@@ -227,7 +234,7 @@ export default function WordLockModal({
             }}
           >
             {result === 'correct'
-              ? '✓ Seal restored! The path is open. +10 Lexicoins'
+              ? repository ? '✓ The inscription responds.' : '✓ Seal restored! The path is open. +10 Lexicoins'
               : 'Study the highlighted answer, then try this seal again.'}
           </p>
         )}
@@ -243,7 +250,7 @@ export default function WordLockModal({
               marginTop: '14px',
             }}
           >
-            Press 1 – 4 to answer
+            Press 1 – {question.choices.length} to answer
           </p>
         )}
       </div>

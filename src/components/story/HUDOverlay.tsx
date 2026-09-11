@@ -6,9 +6,10 @@ interface HUDOverlayProps {
   lexicoins: number;
   openedGates: number;
   totalGates: number;
+  healthOnly?: boolean;
 }
 
-export default function HUDOverlay({ hearts, maxHearts, lexicoins, openedGates, totalGates }: HUDOverlayProps) {
+export default function HUDOverlay({ hearts, maxHearts, lexicoins, openedGates, totalGates, healthOnly=false }: HUDOverlayProps) {
   return (
     <div
       style={{
@@ -25,14 +26,14 @@ export default function HUDOverlay({ hearts, maxHearts, lexicoins, openedGates, 
       }}
     >
       {/* Hearts */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <div role="status" aria-label={`Health: ${hearts} of ${maxHearts}`} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#10242be8', padding: '8px 10px', borderRadius: 8 }}>
         {Array.from({ length: maxHearts }).map((_, i) => (
           <Heart key={i} filled={i < hearts} />
         ))}
       </div>
 
       {/* Lexicoins */}
-      <div
+      {!healthOnly && <div
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -45,10 +46,10 @@ export default function HUDOverlay({ hearts, maxHearts, lexicoins, openedGates, 
       >
         <CoinIcon />
         <span>{lexicoins}</span>
-      </div>
+      </div>}
 
       {/* Compact chapter progress: filled runes replace the old text label. */}
-      <div
+      {!healthOnly && <div
         aria-label={`${openedGates} of ${totalGates} Word Seals restored`}
         style={{
           display: 'flex',
@@ -76,7 +77,7 @@ export default function HUDOverlay({ hearts, maxHearts, lexicoins, openedGates, 
             }}
           />
         ))}
-      </div>
+      </div>}
     </div>
   );
 }

@@ -227,7 +227,7 @@ export default class DungeonScene extends Phaser.Scene {
     EventBus.emit('lexicoins-changed', { amount: this.player.lexicoins });
     EventBus.emit('word-gates-changed', { opened: this.openedGates, total: TOTAL_WORD_GATES });
 
-    if (this.chapterId === 0) this.showWorldMessage(getStoryProgress().opening==='scholar'?'Find Scholar Vellum — the Archive is on the east side of town':'Inkwell — a little time between adventures', '#8fcfb7');
+    if (this.chapterId === 0) this.showWorldMessage(getStoryProgress().opening==='scholar'?'Find Scholar Bellum — the Archive is on the east side of town':'Inkwell — a little time between adventures', '#8fcfb7');
     else if(this.chapterId===1&&getStoryProgress().completedChapters.includes(1))this.showWorldMessage('The road is clear — Inkwell’s gatehouse is to the east.','#b4c99b');
     else if (this.isRespawn || getStoryProgress().opening === 'chase') this.resumeAfterDeath();
     else this.startOpeningCutscene();
@@ -411,7 +411,7 @@ export default class DungeonScene extends Phaser.Scene {
           this.openStoryDialogue('AT THE VILLAGE GATES', OPENING_STORY.rescue, () => {
         saveStoryProgress({opening:'scholar'});
         markChapterComplete(1);
-        this.showWorldMessage('Find Scholar Vellum in Inkwell’s Archive', '#b4c99b');
+        this.showWorldMessage('Find Scholar Bellum in Inkwell’s Archive', '#b4c99b');
           });
         }});
       }});

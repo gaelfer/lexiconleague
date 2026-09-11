@@ -4,6 +4,7 @@ import DungeonScene from './scenes/DungeonScene';
 import ArchiveScene from './scenes/ArchiveScene';
 import VillageInteriorScene from './scenes/VillageInteriorScene';
 import WordwoodScene from './scenes/WordwoodScene';
+import RepositoryScene from './scenes/RepositoryScene';
 import GatehouseScene from './scenes/GatehouseScene';
 import WakeScene from './scenes/WakeScene';
 import InnScene from './scenes/InnScene';
@@ -60,6 +61,7 @@ export function createGame(
       new ArchiveScene(avatar),
       new VillageInteriorScene(avatar),
       new WordwoodScene(avatar),
+      new RepositoryScene(avatar),
       new GatehouseScene(avatar),
       new WakeScene(avatar),
       new InnScene(avatar),
@@ -73,13 +75,20 @@ export function createGame(
       const body=scene.children.list.flatMap(object=>object instanceof Phaser.GameObjects.Container?object.list:[object])
         .find((object):object is Phaser.GameObjects.Image=>object instanceof Phaser.GameObjects.Image&&object.texture.key==='player-base');
       const sign=scene.children.getByName('building-sign-label') as Phaser.GameObjects.Text|undefined;
+      const guardian=(scene as Phaser.Scene & {guardian?:{hp:number;defeated:boolean;sprite:{x:number;y:number};strikes:{x:number;y:number;elapsed:number}[]}}).guardian;
       return {scene:scene.scene.key,floor:observed.floor,room:observed.room,x:observed.player?.x,y:observed.player?.y,hearts:observed.player?.hearts,
+        raining:scene.data.get('wordwood-raining'),keepers:scene.children.list.filter(o=>o instanceof Phaser.GameObjects.Container&&o.name.startsWith('rescued-')).map(o=>({name:o.name,x:(o as Phaser.GameObjects.Container).x,y:(o as Phaser.GameObjects.Container).y})),
+        guardian:guardian?{hp:guardian.hp,defeated:guardian.defeated,x:guardian.sprite.x,y:guardian.sprite.y,strikes:guardian.strikes.map(s=>({x:s.x,y:s.y,elapsed:s.elapsed}))}:null,
         zoom:scene.cameras.main.zoom,body:body?{texture:body.texture.key,scaleX:body.scaleX,scaleY:body.scaleY,flipX:body.flipX,angle:body.angle}:null,
         dialogue:observed.activeDialogue?.text.text??observed.dialogue?.text.text,sign:sign?.visible?sign.text:undefined,
         luma:observed.luma?{x:observed.luma.x,y:observed.luma.y+16}:null,
         residents:observed.npcs?.map(npc=>npc.spec.name),speech:speechState(scene)};
     });
-    const api={state,reviewPosition:(x:number,y:number)=>{
+    const api={state,expeditionState:()=>{
+      const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {room?:string;locked?:boolean;enemies?:{defeated:boolean}[];panel?:Phaser.GameObjects.Container};
+      return {room:scene.room,locked:scene.locked,enemies:scene.enemies?.filter(e=>!e.defeated).length,
+        panel:scene.panel?.list.filter((o):o is Phaser.GameObjects.Text=>o instanceof Phaser.GameObjects.Text).map(o=>o.text)};
+    },reviewPosition:(x:number,y:number)=>{
       const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {player?:{stopMovement():void;sprite:Phaser.Physics.Arcade.Sprite}};
       if(Number.isFinite(x)&&Number.isFinite(y)){scene.player?.stopMovement();scene.player?.sprite.body?.reset(x,y);}
     },puzzleState:()=>{
@@ -94,8 +103,8 @@ export function createGame(
       const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {guestActivity?:unknown};
       return scene.guestActivity;
     },combatState:()=>{
-      const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {player?:{isDying:boolean;swordStowed:boolean};enemies?:{attackPhase:string;sprite:{x:number;y:number}}[]};
-      return {dying:scene?.player?.isDying,swordStowed:scene?.player?.swordStowed,enemies:scene?.enemies?.map(enemy=>({phase:enemy.attackPhase,x:enemy.sprite.x,y:enemy.sprite.y}))};
+      const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {player?:{isDying:boolean;swordStowed:boolean};enemies?:{defeated?:boolean;attackPhase:string;sprite:{x:number;y:number}}[]};
+      return {dying:scene?.player?.isDying,swordStowed:scene?.player?.swordStowed,enemies:scene?.enemies?.filter(e=>!e.defeated).map(enemy=>({phase:enemy.attackPhase,x:enemy.sprite.x,y:enemy.sprite.y}))};
     },takeTestHit:(amount=1,source?:{x:number;y:number})=>{
       const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {player?:{takeDamage(amount:number,source?:{x:number;y:number}):boolean}};
       return scene?.player?.takeDamage(amount,source);

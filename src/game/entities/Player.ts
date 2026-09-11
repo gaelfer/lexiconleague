@@ -241,6 +241,15 @@ export default class Player {
     EventBus.emit('health-changed',{hearts:this.hearts});
   }
 
+  /** Authored reward pose; preserves the avatar's size and actual cosmetics. */
+  holdItemAboveHead(){
+    this.stopMovement();this.facing='down';this.syncVisuals(0);
+    this.sword.setVisible(false);this.bow.setVisible(false);this.swordTrail.clear();
+    this.hands[0].setPosition(this.x-13,this.y-32).setDepth(15);
+    this.hands[1].setPosition(this.x+13,this.y-32).setDepth(15);
+    this.artwork.sort('depth');
+  }
+
   /** Cutscene-only resting pose; normal update restores the equipped weapon. */
   rest() {
     this.stopMovement();

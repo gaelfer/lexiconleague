@@ -10,7 +10,7 @@ export const HOME_OBJECTS = [
   { kind: 'chair', x:352, y:352, w:32, h:32, line:'A chair pulled close to the table.' },
   { kind: 'chair', x:480, y:320, w:32, h:32, line:'A spare place for a visitor.' },
   { kind: 'chair', x:480, y:352, w:32, h:32, line:'The cushion is a little crooked.' },
-  { kind: 'chest', x:192, y:416, w:64, h:64, line:'Vellum’s sealed letter is still here. It is dated tomorrow.' },
+  { kind: 'chest', x:192, y:416, w:64, h:64, line:'Bellum’s sealed letter is still here. It is dated tomorrow.' },
   { kind: 'plant', x:576, y:416, w:32, h:32, line:'New leaves. You must be doing something right.' },
 ] as const;
 

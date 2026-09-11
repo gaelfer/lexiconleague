@@ -18,8 +18,10 @@ interface StoryGameCanvasProps {
 
 interface WordLockState {
   doorId: string;
-  question: Question;
+  question: Pick<Question, 'prompt' | 'choices' | 'answer_index' | 'skill_tag'>;
   gateNumber: number;
+  title?: string;
+  repository?: boolean;
 }
 
 const TOTAL_CHAPTER_GATES = 3;
@@ -74,6 +76,8 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
     const onHealthChanged = ({ hearts: h }: { hearts: number }) => setHearts(h);
     const onLexicoinsChanged = ({ amount }: { amount: number }) => setLexicoins(amount);
     const onWordGatesChanged = ({ opened }: { opened: number; total: number }) => setOpenedGates(opened);
+    const onRepositoryQuestion = (payload: WordLockState) => setWordLock({...payload, repository:true});
+    const onRepositoryQuestionClosed = () => setWordLock(current => current?.repository ? null : current);
 
     const onNearDoor = ({ doorId, questionType }: { doorId: string; questionType: string }) => {
       const questions = getChapterQuestions(chapterId);
@@ -95,6 +99,8 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
     };
 
     EventBus.on('health-changed', onHealthChanged);
+    EventBus.on('repository-question', onRepositoryQuestion);
+    EventBus.on('repository-question-closed', onRepositoryQuestionClosed);
     EventBus.on('lexicoins-changed', onLexicoinsChanged);
     EventBus.on('word-gates-changed', onWordGatesChanged);
     EventBus.on('player-near-door', onNearDoor);
@@ -102,6 +108,8 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
 
     return () => {
       EventBus.off('health-changed', onHealthChanged);
+      EventBus.off('repository-question', onRepositoryQuestion);
+      EventBus.off('repository-question-closed', onRepositoryQuestionClosed);
       EventBus.off('lexicoins-changed', onLexicoinsChanged);
       EventBus.off('word-gates-changed', onWordGatesChanged);
       EventBus.off('player-near-door', onNearDoor);
@@ -129,12 +137,13 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
       {/* HUD */}
-      {chapterId !== 0 && chapterId !== 2 && <HUDOverlay
+      {chapterId !== 0 && <HUDOverlay
         hearts={hearts}
         maxHearts={maxHearts}
         lexicoins={lexicoins}
         openedGates={openedGates}
         totalGates={TOTAL_CHAPTER_GATES}
+        healthOnly={chapterId === 2}
       />}
       {accessDenied && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', color: '#e8d8b0' }}>Complete the previous chapter to explore here. <Link href="/story">Return to story map</Link></div>}
 
@@ -181,12 +190,15 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
           whiteSpace: 'nowrap',
         }}
       >
-        {chapterId === 2 ? 'WASD · MOVE   E · INSPECT / CHANGE   J · FIELD NOTES' : 'WASD · MOVE   Q · SWORD   HOLD Q · SPIN   R · BOW   E · TALK / INTERACT'}
+        {chapterId === 2 ? 'WASD · MOVE   Q · SWORD / HOLD TO SPIN   R · BOW   E · INSPECT   J · NOTES' : 'WASD · MOVE   Q · SWORD   HOLD Q · SPIN   R · BOW   E · TALK / INTERACT'}
       </div>
 
       {/* Word lock modal */}
       {wordLock && (
         <WordLockModal
+          key={wordLock.doorId}
+          title={wordLock.title}
+          repository={wordLock.repository}
           doorId={wordLock.doorId}
           question={wordLock.question}
           gateNumber={wordLock.gateNumber}

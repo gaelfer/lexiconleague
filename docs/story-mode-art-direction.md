@@ -90,6 +90,13 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   Field notes are optional hints, not a completion prerequisite. The completed
   verse opens the existing northern gate and directs the player there; it must
   not paint a new path over the terrain.
+- Wordwood is a two-part rainy expedition, not a giant-tree dungeon. Optional
+  workshop, gallery and storehouse rooms extend the forest. Beyond the gardener's
+  gate, the single-floor Sunken Repository contains a hall, sluice room, records,
+  seal chamber and Tablet vault. Distinguish flagstone floors from masonry walls;
+  show only real exits, keep props layered, and confine indoor rain to roof breaks.
+  Tablet pickup preserves character size/cosmetics, raises both hands, plays an
+  original short sting, and saves immediately. Bellum learns ink interference only.
 - Body, face, and accessory layers use native 32×64 frames. Bodies and accessories
   use 2×2 pixel clusters; faces are a 1px-detail exception so pupils, X-eyes and
   mouths retain their original gaps and expressions. Hands and feet use 2×2 blocks for their outlines

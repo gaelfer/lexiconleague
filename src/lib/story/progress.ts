@@ -17,6 +17,15 @@ export interface StoryProgress {
   defeatedRoadEnemies?: number[];
   visitedInkwell?: boolean;
   innRoomBooked?: boolean;
+  wordwoodExpedition?: {
+    drained?: boolean; key?: boolean; seal?: boolean; tablet?: boolean; studied?: boolean; checkpoint?: boolean;
+    maintenance?: boolean; gallery?: boolean; store?: boolean;
+    herbsUsed?: number;
+    gardenGateKey?: boolean;
+    gardenGateOpened?: boolean;
+    logGuardianFreed?: boolean;
+    cleared?: string[];
+  };
 }
 
 export interface StoryInventory {

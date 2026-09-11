@@ -13,13 +13,24 @@ import { drawGatehouse,enterGatehouse } from '../world/gatehouse';
 import {openDoorAnimation} from '../world/doorOpening';
 import { advanceEcho } from '../story/areaTravel';
 import { wordwoodDetails } from '../world/wordwoodDetails';
-import { markChapterComplete } from '@/lib/story/progress';
+import {wordwoodRain} from '../world/wordwoodRain';
+import {expedition,saveExpedition,landmarkRestored,canOpenGardenGate,type RepositoryRoom} from '../story/repository';
+import {wordwoodExterior} from '../world/wordwoodExteriors';
+import {EventBus} from '../EventBus';
+import {LogGuardian} from '../entities/LogGuardian';
+import {expeditionCombat} from '../world/expeditionCombat';
+import {createInkHand,createInkFoot} from '../entities/inkHand';
+import {keeperWalkHome} from '../world/keeperWalkHome';
 
 interface Site { x: number; y: number; label: string; action: () => void }
 
 /** A quiet, interconnected exploration puzzle. All clues and signs remain reachable. */
 export default class WordwoodScene extends Phaser.Scene {
   private player!: Player;
+  private puzzleObjects:Phaser.GameObjects.GameObject[]=[];
+  private gardenPlanted=false;
+  private guardian?:LogGuardian;
+  private guardianCombat?:(delta:number)=>void;
   private prompt!: Phaser.GameObjects.Text;
   private sites: Site[] = [];
   private words: Word[] = ['hollow', 'hollow', 'hollow'];
@@ -30,6 +41,7 @@ export default class WordwoodScene extends Phaser.Scene {
   private solved = false;
   private gate!: Phaser.Physics.Arcade.Image;
   private gateArt!:Phaser.GameObjects.Graphics;
+  private gateGrowth!:Phaser.GameObjects.Graphics;
   private completed = false;
   private locked=false;
   private echoStep=0;
@@ -38,11 +50,18 @@ export default class WordwoodScene extends Phaser.Scene {
   private echoTiles:Phaser.GameObjects.Rectangle[]=[];
   private feedback!:Phaser.GameObjects.Text;
   private landmarkChanges!:Phaser.GameObjects.Graphics;
+  private returnPoint?:{x:number;y:number};
+  private returnHearts=3;
+  private enteredAt=0;
 
   constructor(private avatar: StoryAvatarConfig) { super({ key: 'WordwoodScene' }); }
+  init(data:{returnPoint?:{x:number;y:number};hearts?:number}={}){this.returnPoint=data.returnPoint;this.returnHearts=data.hearts??3;}
 
   create() {
     this.locked=false;
+    this.puzzleObjects=[];this.gardenPlanted=false;
+    this.guardian=undefined;this.guardianCombat=undefined;
+    this.enteredAt=this.time.now;
     this.sites = []; this.labels = []; this.panel = null; this.completed = false;
     this.words=['hollow','hollow','hollow'];this.found=new Set();this.solved=false;
     this.echoStep=0;this.echoOpen=false;this.lastStone=-1;this.echoTiles=[];
@@ -51,7 +70,7 @@ export default class WordwoodScene extends Phaser.Scene {
       if (Array.isArray(saved.words) && saved.words.length === 3 && saved.words.every((w: Word) => WORDS.includes(w))) this.words = saved.words;
       if (Array.isArray(saved.found)) this.found = new Set(saved.found.filter((n: number) => Number.isInteger(n) && n >= 0 && n < 3));
       this.solved = saved.solved === true && checkWordwood(this.words) === null;
-      this.echoOpen=this.solved&&(saved.echoOpen===true||getStoryProgress().completedChapters.includes(2));
+      this.echoOpen=this.solved&&saved.echoOpen===true;
       if(this.solved&&Number.isInteger(saved.echoStep)&&saved.echoStep>=0&&saved.echoStep<3)this.echoStep=saved.echoStep;
     } catch { /* Old checkpoint formats safely start a new puzzle. */ }
     this.physics.world.setBounds(0, 0, 1600, 1200);
@@ -62,6 +81,7 @@ export default class WordwoodScene extends Phaser.Scene {
     };
     const g = this.add.graphics().setDepth(-20);
     grassTiles(g, 0, 0, 1600, 1200);
+    grassTiles(g,0,-128,1600,128);
     // Paths make a loop around the central clearing; every clue is reachable in any order.
     villagePaths(g, [[256,320,64,576],[256,256,1088,64],[1280,320,64,576],
       [256,896,1088,64],[768,256,64,768],[256,576,1088,64]]);
@@ -81,7 +101,7 @@ export default class WordwoodScene extends Phaser.Scene {
       this.tree(g, 70, y); this.tree(g, 1530, y);
       obstacle(65, y, 65, 55); obstacle(1535, y, 65, 55);
     }
-    for (const [x, y] of [[440, 440], [540, 790], [1090, 445], [1110, 790], [450, 1080], [1190, 1050]]) {
+    for (const [x, y] of [[440, 440], [540, 790], [1008, 445], [1110, 790], [450, 1080], [1190, 1050]]) {
       this.tree(g, x, y); obstacle(x, y + 10, 40, 38);
     }
     // Three exhibits illustrate the meanings without requiring outside knowledge.
@@ -106,7 +126,6 @@ export default class WordwoodScene extends Phaser.Scene {
     drawGatehouse(this,656,1072,obstacle);
     const gateSign={id:'wayfarer',x:688,y:1072,mountY:1044,name:'WAYFARER GATEHOUSE'};
     drawBuildingSign(this,gateSign);
-    this.add.image(608,768,'interior-desk').setDisplaySize(32,32).setOrigin(0).setDepth(2);obstacle(624,784,32,32);
     // The final gate spans the entire entrance to the little northern sanctuary.
     obstacle(384,144,768,32);obstacle(1216,144,768,32);
     for(let x=0;x<1600;x+=32)if(x<768||x>=832){g.fillStyle(0x435b4c).fillRect(x,128,32,32);g.fillStyle(0x8b9876).fillRect(x,128,32,3);}
@@ -116,8 +135,24 @@ export default class WordwoodScene extends Phaser.Scene {
     this.gateArt.fillStyle(0x4e483a).fillRect(764,112,8,48).fillRect(828,112,8,48).fillRect(768,118,64,6).fillRect(768,150,64,6);
     this.gateArt.fillStyle(0xb7aa7b).fillRect(765,112,2,46).fillRect(768,118,64,2);
     for(let x=776;x<828;x+=12){this.gateArt.fillStyle(0x647b58).fillRect(x,123,4,27);this.gateArt.fillStyle(0x9ba778).fillRect(x,123,1,22);}
+    this.gateGrowth=this.add.graphics().setDepth(3);
+    for(let row=0;row<5;row++)for(let col=0;col<7;col++){
+      const x=752+col*14+(row%2)*6,y=104+row*12;
+      this.gateGrowth.fillStyle(0x203e32).fillRect(x,y,20,14);
+      this.gateGrowth.fillStyle((col+row)%2?0x496a40:0x385b3b).fillRect(x+2,y,14,8);
+      this.gateGrowth.fillStyle(0x81965d).fillRect(x+2,y,8,2);
+      if(col%2===0)this.gateGrowth.fillStyle(0x756044).fillRect(x+8,y+8,4,10);
+    }
+    this.sites.push({x:816,y:176,label:'INSPECT THE GARDENER’S GATE',action:()=>{
+      if(!this.echoOpen){this.say('Thick brambles swallow the gate. Small buds cling to the tangled stems.');return;}
+      if(!canOpenGardenGate()){this.say(!expedition().maintenance?'Water still strains against the gate’s lower hinges.':!expedition().gardenGateKey?'The exposed lock bears a leaf. A water-stained carving beside it shows the bridgekeeper’s chest.':'Dark roots still grip the hinges. Something stirs in the gallery or storehouse.');return;}
+      saveExpedition({gardenGateOpened:true});this.gate.body!.enable=false;this.tweens.add({targets:this.gateArt,y:-24,alpha:0,duration:500});
+      this.say('The leaf key turns. Freed from the water and restless roots, the gate lifts.');
+    }});
     const arriving=new URLSearchParams(window.location.search).get('arrival')==='gatehouse';
-    this.player = new Player(this, arriving?656:800, arriving?1104:944, this.avatar);
+    const checkpoint=expedition().checkpoint&&this.echoOpen&&!arriving?{x:816,y:112}:undefined;
+    this.player = new Player(this,this.returnPoint?.x??checkpoint?.x??(arriving?656:800),this.returnPoint?.y??checkpoint?.y??(arriving?1104:944),this.avatar,this.returnHearts);
+    EventBus.emit('health-changed',{hearts:this.player.hearts});
     wallSignReader(this,this.player,[gateSign]);
     if(process.env.NODE_ENV==='development'){
       const review=new URLSearchParams(window.location.search).get('sceneReview');
@@ -125,8 +160,30 @@ export default class WordwoodScene extends Phaser.Scene {
       if(review&&points[review])this.player.sprite.body!.reset(...points[review]);
     }
     this.physics.add.collider(this.player.sprite, walls);
-    this.cameras.main.setBounds(0, 0, 1600, 1200).startFollow(this.player.sprite, true, 0.12, 0.12);
+    this.cameras.main.setBounds(0, -128, 1600, 1328).startFollow(this.player.sprite, true, 0.12, 0.12);
     frameWorld(this);
+    wordwoodRain(this);
+    // Small separate interiors extend the woodland loop without replacing its puzzle.
+    for(const [room,x,y] of [['maintenance',432,240],['gallery',1136,560],['store',1008,880],['hall',816,80]] as const){
+      if(room!=='hall')villagePaths(g,[[x-16,y-16,32,room==='store'?64:80]]);
+      const width=room==='hall'?96:128;
+      const masonry=this.add.graphics().setDepth(-4);
+      masonry.fillStyle(0x263d38).fillRect(x-width/2,y-80,width,64);
+      for(let yy=y-80;yy<y-16;yy+=16)for(let xx=x-width/2;xx<x+width/2;xx+=32){
+        masonry.fillStyle(yy%32?0x778675:0x657c6e).fillRect(xx+1,yy+1,30,14);
+        masonry.fillStyle(0xa6ad8e).fillRect(xx+2,yy+1,27,2);
+      }
+      masonry.fillStyle(0x162b28).fillRect(x-16,y-48,32,32);
+      masonry.fillStyle(0xb4b399).fillRect(x-20,y-52,40,5).fillRect(x-20,y-48,4,32).fillRect(x+16,y-48,4,32);
+      masonry.fillStyle(0x425f48).fillRect(x-width/2,y-84,width,6);
+      masonry.fillStyle(0x899568).fillRect(x-width/2+4,y-84,22,2).fillRect(x+20,y-84,12,2);
+      masonry.fillStyle(0x788b73).fillRect(x-16,y-16,32,8);masonry.fillStyle(0xc1c3a1).fillRect(x-16,y-16,32,2);
+      obstacle(x,y-64,width,32);obstacle(x-width/4-8,y-32,width/2-16,32);obstacle(x+width/4+8,y-32,width/2-16,32);
+      masonry.destroy();wordwoodExterior(this,room,x,y);
+      this.sites.push({x,y,label:`ENTER ${room}`,action:()=>this.enterRepository(room,{x,y})});
+      const plaque={id:room,x:x+32,y,mountY:y-32,name:room==='hall'?'SUNKEN REPOSITORY':room==='gallery'?'RAIN GALLERY':room==='store'?'GARDENER’S STOREHOUSE':'BRIDGEKEEPER’S WORKSHOP'};
+      drawBuildingSign(this,plaque);wallSignReader(this,this.player,[plaque]);
+    }
     this.input.keyboard!.addCapture(Phaser.Input.Keyboard.KeyCodes.J);
     this.input.keyboard!.on('keydown-J', this.openJournal, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -134,6 +191,7 @@ export default class WordwoodScene extends Phaser.Scene {
     });
     this.prompt = this.add.text(0, 0, '', { fontFamily: 'Arial', fontSize: '12px', color: '#f3e3c2', backgroundColor: '#142b27', padding: { x: 10, y: 7 } }).setOrigin(0.5).setDepth(80);
     this.feedback=this.add.text(400,74,'',{fontFamily:'Georgia',fontSize:'14px',color:'#e5dab3',backgroundColor:'#283e34',padding:{x:12,y:6}}).setOrigin(0.5).setScrollFactor(0).setDepth(100).setVisible(false);
+    const beforePuzzle=new Set(this.children.list);
     for(const [i,x] of [688,816,944].entries()){
       const pad=this.add.rectangle(x,720,32,32,0x657668,0).setStrokeStyle(1,0x67796a).setDepth(-3);this.echoTiles.push(pad);
       this.add.image(x,720,`interior-stone-${['seed','bloom','sprout'][i]}`).setDisplaySize(32,32).setDepth(2);
@@ -155,22 +213,81 @@ export default class WordwoodScene extends Phaser.Scene {
       this.add.image(x,y,'interior-lectern').setDisplaySize(32,32).setDepth(2);obstacle(x,y,32,32);
       this.sites.push({ x, y: y + 28, label: 'READ FIELD NOTE', action: () => { this.found.add(i); this.save(); this.say(CLUES[i] + '\n\nCopied into your field notes. Press J to reread them anywhere.'); } });
     });
-    g.fillStyle(0x455f52).fillRect(768,608,64,32);g.fillStyle(0xb5bd9b).fillRect(768,608,64,3);
+    const plinth=this.add.graphics().setDepth(-8);
+    plinth.fillStyle(0x455f52).fillRect(768,608,64,32);plinth.fillStyle(0xb5bd9b).fillRect(768,608,64,3);
     this.add.image(768,576,'interior-tablet').setDisplaySize(32,32).setOrigin(0).setDepth(2);
     this.add.image(800,576,'interior-lectern').setDisplaySize(32,32).setOrigin(0).setDepth(2);
     obstacle(800,608,64,64);
     this.sites.push({ x: 800, y: 664, label: 'TEST THE THREE SIGNS', action: () => this.testSigns() });
+    this.puzzleObjects=this.children.list.filter(object=>!beforePuzzle.has(object));
+    const beforeVerse=new Set(this.children.list);
+    this.add.image(608,768,'interior-desk').setDisplaySize(32,32).setOrigin(0).setDepth(2);obstacle(624,784,32,32);
+    this.puzzleObjects.push(...this.children.list.filter(object=>!beforeVerse.has(object)));
     this.sites.push({x:656,y:1072,label:'RETURN THROUGH THE GATEHOUSE',action:()=>{this.save();this.player.stopMovement();this.locked=true;openDoorAnimation(this,656,1056,()=>this.player.walkThroughDoor(()=>enterGatehouse(this,'wordwood')),'wayfarer');}});
     this.events.on(Phaser.Scenes.Events.RESUME,()=>{this.locked=false;this.cameras.main.fadeIn(180);});
     this.sites.push({x:624,y:784,label:'READ THE GARDENER’S VERSE',action:()=>this.say('First a SEED sleeps below.\nThen a SPROUT greets the sun.\nAt last the BLOOM opens.\n\nWhen the signs agree, walk this story across the three stones. A wrong step begins the verse again; nothing else is lost.')});
-    this.sites.push({ x: 800, y: 80, label: 'RECOVER THE LIVING FRAGMENT', action: () => {
-      if (!this.echoOpen || this.completed) return;
-      this.completed = true;markChapterComplete(2);this.save();
-      this.say('The fragment warms in your hands. Somewhere in Inkwell, a missing word returns to a page.\n\nWordwood is restored. You can keep exploring or return through the gatehouse.');
-    } });
     this.refreshSigns(); if (this.echoOpen) this.openRoute();
+    if(expedition().logGuardianFreed)this.plantGarden();
+    if(!expedition().logGuardianFreed&&expedition().tablet){
+      this.guardian=new LogGuardian(this,(x,y)=>{
+        saveExpedition({logGuardianFreed:true});this.refreshSigns();this.plantGarden();
+        EventBus.emit('wordwood-rain-stop');
+        this.feedback.setVisible(false);this.rescuedKeepers(x,y,walls);
+      });
+      this.guardianCombat=expeditionCombat(this,this.player,walls,[this.guardian],()=>this.locked||!!this.panel,()=>{
+        this.locked=true;this.cameras.main.fadeOut(350);
+        this.time.delayedCall(400,()=>this.scene.restart({returnPoint:{x:816,y:208},hearts:3}));
+      });
+      this.cameras.main.stopFollow().pan(1223,457,650);
+      this.time.delayedCall(1800,()=>this.cameras.main.startFollow(this.player.sprite,true,.12,.12));
+      this.feedback.setText('The hollow log cracks. Something tangled in violet ink is coming out.').setVisible(true);
+      this.time.delayedCall(5000,()=>this.feedback.setVisible(false));
+    }
     if(this.found.size===0&&!this.solved&&!(process.env.NODE_ENV==='development'&&new URLSearchParams(window.location.search).has('sceneReview')))
       this.say('THE PATHS THAT FORGOT\n\nRestore the bridge, burrow and winding trail by changing their describing words, then test your answers at the central stone. The field notes offer hints if you need them — collecting them is optional.\n\nThe old gardener left one last puzzle for the sanctuary. J keeps your notes close. Your progress stays saved when you return to Inkwell.');
+  }
+
+  private plantGarden(){
+    if(this.gardenPlanted)return;this.gardenPlanted=true;
+    this.puzzleObjects.forEach(object=>object.destroy());this.puzzleObjects=[];
+    this.labels=[];this.echoTiles=[];
+    this.sites=this.sites.filter(site=>!site.label.startsWith('CHANGE ')&&!['READ FIELD NOTE','TEST THE THREE SIGNS','READ THE GARDENER’S VERSE'].includes(site.label));
+    const garden=this.add.graphics().setDepth(-4).setName('restored-wordwood-garden');
+    // Four planted beds leave the central north–south walking lane unobstructed.
+    for(const [x,y] of [[656,672],[864,672],[656,768],[864,768]]){
+      garden.fillStyle(0x354a32).fillRect(x-4,y-4,104,72);
+      garden.fillStyle(0xa6a37e).fillRect(x-4,y-4,104,4).fillRect(x-4,y,4,64);
+      garden.fillStyle(0x715841).fillRect(x,y,96,64);
+      for(let row=0;row<3;row++)for(let col=0;col<5;col++){
+        const fx=x+10+col*18,fy=y+12+row*18;
+        garden.fillStyle(0x3c653f).fillRect(fx,fy,2,10).fillRect(fx-4,fy+4,10,2);
+        garden.fillStyle((row+col)%3===0?0xd6b971:(row+col)%3===1?0xc48881:0xc7d2a1).fillRect(fx-3,fy-3,8,5).fillRect(fx-1,fy-5,4,9);
+        garden.fillStyle(0xf0dba1).fillRect(fx,fy-1,2,2);
+      }
+    }
+    for(const x of [752,832]){this.add.image(x,608,'interior-gallery-bench').setDisplaySize(32,32).setDepth(2);}
+    this.sites.push({x:816,y:656,label:'ENJOY THE GARDEN',action:()=>this.say('Flowers have taken root where the old word stones stood. The rain has finally passed.')});
+  }
+
+  private rescuedKeepers(x:number,y:number,walls:Phaser.Physics.Arcade.StaticGroup){
+    for(const [name,dx,key,color] of [['BRIDGEKEEPER',-32,'bridgekeeper-base',0xb95248],['GARDENER',32,'npc-1-base',0x65c58f]] as const){
+      const parts=[this.add.ellipse(0,22,32,10,0x10252b,.4),createInkFoot(this,-8,21,color),createInkFoot(this,8,21,color),
+        this.add.image(0,0,key).setDisplaySize(32/.78,64/.78),this.add.image(0,0,'npc-1-eyes').setDisplaySize(32/.78,64/.78),
+        createInkHand(this,-14,7,color),createInkHand(this,14,7,color)];
+      const actor=this.add.container(x+dx,y-16,parts).setScale(.78).setDepth(10).setName(`rescued-${name.toLowerCase()}`);
+      this.time.delayedCall(name==='BRIDGEKEEPER'?650:3200,()=>{
+        const bubble=this.add.text(actor.x,actor.y-58,name==='BRIDGEKEEPER'?'Thanks! I don’t remember a thing.':'Thank you! What happened?',{fontSize:'12px',fontFamily:'Georgia',color:'#eee1be',backgroundColor:'#1c3430',padding:{x:8,y:6},wordWrap:{width:170}}).setOrigin(.5,1).setDepth(80);
+        this.time.delayedCall(2500,()=>{bubble.destroy();keeperWalkHome(this,actor,walls,name==='BRIDGEKEEPER'?{x:432,y:272}:{x:1008,y:912});});
+      });
+    }
+  }
+
+  private enterRepository(room:RepositoryRoom,point:{x:number;y:number}){
+    if(room==='hall'&&(!this.echoOpen||!canOpenGardenGate()||!expedition().gardenGateOpened))return;
+    if(room==='hall')saveExpedition({checkpoint:true});
+    this.save();this.locked=true;this.player.stopMovement();
+    const enter=()=>this.player.walkThroughDoor(()=>this.scene.start('RepositoryScene',{room,hearts:this.player.hearts,returnPoint:{x:point.x,y:point.y+32}}));
+    if(room!=='maintenance')enter();else openDoorAnimation(this,point.x,point.y-16,enter,'cottage');
   }
 
   private tree(g: Phaser.GameObjects.Graphics, x: number, y: number) {
@@ -185,17 +302,21 @@ export default class WordwoodScene extends Phaser.Scene {
     });
   }
   private openJournal() {
-    if (this.panel) return;
+    if (this.panel||this.locked) return;
+    if(this.gardenPlanted){this.say('The keepers are safe. A garden now grows in the old puzzle clearing.');return;}
     this.say('FIELD NOTES\n\n' + (this.found.size ? [...this.found].sort().map((i) => CLUES[i]).join('\n\n') : 'No notes yet. Look for pale survey papers beside the paths.')+'\n\nSanctuary verse: seed → sprout → bloom.');
   }
   private refreshSigns() {
     this.labels.forEach((label, i) => label.setText(this.words[i].toUpperCase()));
     const g=this.landmarkChanges;g.clear();
-    if(this.words[0]==='sturdy')for(const x of [248,318])for(const y of [402,442,482,520]){
+    if(this.words[0]==='sturdy'&&(this.solved||landmarkRestored(0)))for(const x of [248,318])for(const y of [402,442,482,520]){
       g.fillStyle(0x384334).fillRect(x,y,9,12);g.fillStyle(0xd1b980).fillRect(x,y,9,3);g.fillStyle(0x8a754d).fillRect(x+1,y+3,3,8);
     }
-    if(this.words[1]==='hollow'){g.fillStyle(0x101f1c).fillEllipse(1223,457,34,48);g.fillStyle(0x91a96e).fillRect(1216,451,3,3).fillRect(1230,451,3,3);}
-    if(this.words[2]==='winding')for(const [x,y] of [[672,828],[704,804],[736,844],[768,804]]){g.fillStyle(0xd8c993).fillRect(x,y,8,8);g.fillStyle(0x768a58).fillRect(x+3,y+8,2,6);}
+    if(this.words[1]==='hollow'&&(this.solved||landmarkRestored(1))){g.fillStyle(0x101f1c).fillEllipse(1223,457,34,48);if(!expedition().logGuardianFreed&&!expedition().tablet)g.fillStyle(0x91a96e).fillRect(1216,451,3,3).fillRect(1230,451,3,3);}
+    if(this.words[2]==='winding'&&(this.solved||landmarkRestored(2)))for(const [x,y] of [[672,828],[704,804],[736,844],[768,804]]){g.fillStyle(0xd8c993).fillRect(x,y,8,8);g.fillStyle(0x768a58).fillRect(x+3,y+8,2,6);}
+    for(const [i,x,y] of [[0,272,544],[1,1296,544],[2,816,864]]){
+      g.fillStyle(this.solved||landmarkRestored(i)?0xbace99:0x4a5051).fillRect(x-8,y-8,16,4);
+    }
   }
   private save() {
     if(process.env.NODE_ENV==='development'&&new URLSearchParams(window.location.search).has('sceneReview'))return;
@@ -203,16 +324,16 @@ export default class WordwoodScene extends Phaser.Scene {
     saveStoryProgress({ chapterCheckpoints: { ...progress.chapterCheckpoints, 2: JSON.stringify({ words: this.words, found: [...this.found], solved: this.solved,echoOpen:this.echoOpen,echoStep:this.echoStep }) } });
   }
   private testSigns() {
-    if (this.solved) { this.say(this.echoOpen?'The northern sanctuary gate is open. Head north through the newly opened gate.':'The signs agree. Now walk the gardener’s verse across the stones: seed, sprout, bloom.'); return; }
+    if (this.solved) { this.say(this.echoOpen?'The northern gate is uncovered. Its leaf-shaped lock is within reach.':'The signs agree. Now walk the gardener’s verse across the stones: seed, sprout, bloom.'); return; }
     const error = checkWordwood(this.words);
     if (error) { this.say(error + '\n\nNothing is lost. Revisit a sign with E and consult your field notes with J.'); return; }
     this.solved = true; this.save();
     this.say('STURDY bears weight. HOLLOW leaves space inside. WINDING bends along its route.\n\nThe three stones south of here wake up. Read the gardener’s verse and walk its stages in order to open the sanctuary.');
   }
   private openRoute(animate=false) {
-    this.gate.body!.enable = false; this.gate.setVisible(false);
-    if(animate)this.tweens.add({targets:this.gateArt,y:-24,alpha:0,duration:500,ease:'Sine.easeInOut',onComplete:()=>this.gateArt.setVisible(false)});
-    else this.gateArt.setVisible(false);
+    if(expedition().gardenGateOpened&&canOpenGardenGate()){this.gate.body!.enable=false;this.gateArt.setVisible(false);}
+    if(animate)this.tweens.add({targets:this.gateGrowth,y:12,alpha:0,duration:900,ease:'Sine.easeInOut',onComplete:()=>this.gateGrowth.setVisible(false)});
+    else this.gateGrowth.setVisible(false);
   }
   private say(text: string) {
     this.panel?.destroy(); this.player.stopMovement(); this.prompt.setVisible(false);
@@ -223,12 +344,14 @@ export default class WordwoodScene extends Phaser.Scene {
     this.nextInput = this.time.now + 220;
   }
   update(_time: number, delta: number) {
+    if((this.locked||this.panel)&&this.guardian&&!this.guardian.defeated)this.guardian.sprite.setVelocity(0,0);
     if(this.locked)return;
     if (this.panel) {
       if (this.time.now > this.nextInput && this.player.isInteractJustDown()) { this.panel.destroy(); this.panel = null; }
       return;
     }
     this.player.update(delta);
+    this.guardianCombat?.(delta);if(this.player.isDying)return;
     this.labels.forEach(label=>label.setVisible(Phaser.Math.Distance.Between(this.player.x,this.player.y,label.x,label.y+29)<160));
     const stone=[688,816,944].findIndex(x=>Phaser.Math.Distance.Between(this.player.x,this.player.y,x,720)<9);
     if(stone!==this.lastStone){
@@ -237,7 +360,7 @@ export default class WordwoodScene extends Phaser.Scene {
         this.echoStep=advanceEcho(this.echoStep,stone);
         this.echoTiles.forEach(tile=>tile.setStrokeStyle(1,0x67796a));
         this.echoTiles[stone].setStrokeStyle(2,0xdce1a7);
-        this.feedback.setText(this.echoStep===3?'The northern gate is open! Head north to the newly opened sanctuary gate.':this.echoStep?`${this.echoStep} / 3 — the verse continues.`:'The verse restarts. Seed, sprout, bloom.').setVisible(true);
+        this.feedback.setText(this.echoStep===3?'The northern brambles bloom and loosen, uncovering an old gate.':this.echoStep?`${this.echoStep} / 3 — the verse continues.`:'The verse restarts. Seed, sprout, bloom.').setVisible(true);
         if(this.echoStep!==3)this.time.delayedCall(3200,()=>{if(!this.echoOpen)this.feedback.setVisible(false);});
         if(this.echoStep===3){this.echoOpen=true;this.openRoute(true);}
         this.save();
@@ -247,6 +370,11 @@ export default class WordwoodScene extends Phaser.Scene {
       .sort((a, b) => Phaser.Math.Distance.Between(this.player.x, this.player.y, a.x, a.y) - Phaser.Math.Distance.Between(this.player.x, this.player.y, b.x, b.y))[0];
     this.prompt.setVisible(!!nearest);
     if (nearest) {
+      if(nearest.label.startsWith('ENTER ')){
+        this.prompt.setVisible(false);
+        if(this.time.now-this.enteredAt>500&&this.player.wantsDoorAt(nearest.x,nearest.y,'up'))nearest.action();
+        return;
+      }
       if(nearest.label==='RETURN THROUGH THE GATEHOUSE'){
         this.prompt.setVisible(false);
         if(this.player.wantsDoorAt(nearest.x,nearest.y,'up'))nearest.action();
