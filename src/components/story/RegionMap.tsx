@@ -8,6 +8,7 @@ import {worldPoint,regionPoint,trailPoint} from '@/lib/story/mapProjection';
 import {WORDWOOD_APPROACH} from '@/game/story/wordwoodApproach';
 import {drawLocalChart} from './localCharts';
 import s from './AdventureUI.module.css';
+import NorthernChart from './NorthernChart';
 
 type Mark={x:number;y:number;label:string};
 const anchors:Record<AdventureArea,Mark>={road:{x:105,y:164,label:'Inkwell Road'},village:{x:176,y:184,label:'Inkwell'},wordwood:{x:246,y:76,label:'Wordwood'}};
@@ -45,6 +46,7 @@ function drawChart(canvas:HTMLCanvasElement,view:'region'|AdventureArea){
  if(view==='region'){
   // The shared gatehouse is the junction, not the village: west road,
   // south village, east forest. Keep the regional survey deliberately broad.
+  for(let y=0;y<8;y++)rect(74+y,96+y,16-y*2,1,'#b8aa7f');
   for(const road of [[[36,154],[154,154]],[[154,154],[154,176],[176,176]],[[154,154],[186,154],[198,136],[198,106],[218,92],[246,69]]]){line(road,6,'#8a8358');line(road,3,'#e1ce96');}
   for(let i=0;i<4;i++){const x=120+i*13,y=45-i%2*6;rect(x,y+8,17,3,'#808361');for(let n=0;n<8;n++)rect(x+8-n,y+n,n*2+1,1,n<4?'#c8c295':'#929875');rect(x+6,y+2,3,3,'#e5d7ad');}
  }else if(view==='wordwood'){
@@ -77,19 +79,24 @@ function drawChart(canvas:HTMLCanvasElement,view:'region'|AdventureArea){
  line([[30,182],[30,201]],1,'#8c784e');line([[21,192],[39,192]],1,'#8c784e');line([[30,182],[27,191],[30,189],[33,191],[30,182]],1,'#786849');
  for(const [x,y] of [[8,8],[304,8],[8,200],[304,200]]){rect(x,y,8,1,'#a38b58');rect(x,y,1,8,'#a38b58');}
 }
-export default function RegionMap({area,waypoints,position}:{area:AdventureArea;waypoints:QuestWaypoint[];position?:{x:number;y:number}}){
- const [view,setView]=useState<'region'|AdventureArea|'wordwood-trail'>('region'),canvas=useRef<HTMLCanvasElement>(null);
- useEffect(()=>{if(canvas.current){if(view==='wordwood'||view==='village'||view==='wordwood-trail')drawLocalChart(canvas.current,view);else drawChart(canvas.current,view);}},[view]);
+export default function RegionMap({area,waypoints,position,northernPosition}:{area:AdventureArea;waypoints:QuestWaypoint[];position?:{x:number;y:number};northernPosition?:{x:number;y:number}}){
+ const [selected,setSelected]=useState<'region'|AdventureArea|'wordwood-trail'|'northmeadow'>(northernPosition?'northmeadow':'region'),canvas=useRef<HTMLCanvasElement>(null);
+ const view=selected==='northmeadow'?'region':selected;
+ useEffect(()=>{if(canvas.current){if(view==='wordwood'||view==='village'||view==='wordwood-trail')drawLocalChart(canvas.current,view);else drawChart(canvas.current,view);}},[view,selected]);
+ const controls=<div className={s.chartControls}><label>Chart <select value={selected} onChange={e=>setSelected(e.target.value as typeof selected)}><option value="region">Inkwell region</option><option value={area}>{AREA_NAMES[area]} · {area==='wordwood'?'Clearing':'Local chart'}</option>{area==='wordwood'&&<option value="wordwood-trail">Wordwood · Wayfarer approach</option>}<option value="northmeadow">Northmeadow · Local chart</option></select></label><span>North ↑</span></div>;
+ if(selected==='northmeadow')return <section>{controls}<NorthernChart position={northernPosition}/></section>;
  const localPoint=(x:number,y:number)=>view==='wordwood-trail'?trailPoint(x,y):worldPoint(view==='region'?area:view,x,y);
  const offChart=area==='wordwood'&&position&&((view==='wordwood'&&position.y>1200)||(view==='wordwood-trail'&&position.y<1200));
- const player=position&&!offChart?(view==='region'?regionPoint(area,position.x,position.y):localPoint(position.x,position.y)):undefined;
+ const player=northernPosition?(view==='region'?{x:82+(northernPosition.x-464)/960*22,y:103+(northernPosition.y-336)/1536*34}:undefined):position&&!offChart?(view==='region'?regionPoint(area,position.x,position.y):localPoint(position.x,position.y)):undefined;
  const labels:Mark[]=view==='region'?[...Object.values(anchors),{...regionPoint('road',ROAD_HOME.x,ROAD_HOME.y),label:'Your house'}]:view==='wordwood'?[{...worldPoint(view,816,112),label:'Repository'},{...worldPoint(view,432,272),label:'Workshop'},{...worldPoint(view,1136,592),label:'Rain Gallery'},{...worldPoint(view,1008,912),label:'Storehouse'}]:view==='village'?[{...worldPoint(view,1040,320),label:'Archive'},{...worldPoint(view,848,1200),label:'Lantern Inn'}]:[{...worldPoint('road',ROAD_HOME.x,ROAD_HOME.y),label:'Your house'},{...worldPoint('road',3056,336),label:'Wayfarer Gate'},{...worldPoint('road',1184,282),label:'Survey camp'},{...worldPoint('road',1936,340),label:'Old orchard'},{x:170,y:180,label:'Inkwell Road'}];
  if(view==='wordwood-trail')labels.splice(0,labels.length,{...trailPoint(gateWaypoint.wordwood.x,gateWaypoint.wordwood.y),label:'Wayfarer Gate'},{...trailPoint(816,1232),label:'To Wordwood Clearing'},{...trailPoint(864,1808),label:'River crossing'});
  if(view==='region')labels.push({x:154,y:124,label:'Wayfarer Gate'});
- else if(view==='village')labels.push({...worldPoint(view,gateWaypoint[view].x,gateWaypoint[view].y),label:'Wayfarer Gate'},{...worldPoint(view,208,176),label:'Bakery'},{...worldPoint(view,432,176),label:'Scriptorium'});
+ if(view==='region')labels.push({x:82,y:103,label:'Watchtower'},{x:91,y:132,label:'Northmeadow'});
+ if(view==='village')labels.push({...worldPoint('village',TOWN.bell.x,TOWN.bell.y),label:'Great Bell'},{...worldPoint('village',784,176),label:'Mossbell Tea Room'});
+ if(view==='village')labels.push({...worldPoint(view,gateWaypoint[view].x,gateWaypoint[view].y),label:'Wayfarer Gate'},{...worldPoint(view,208,176),label:'Bakery'},{...worldPoint(view,432,176),label:'Scriptorium'});
  else if(view==='wordwood')labels.push({...worldPoint(view,800,1120),label:'To Wayfarer approach'});
  return <section>
-  <div className={s.chartControls}><label>Chart <select value={view} onChange={e=>setView(e.target.value as typeof view)}><option value="region">Inkwell region</option><option value={area}>{AREA_NAMES[area]} · {area==='wordwood'?'Clearing':'Local chart'}</option>{area==='wordwood'&&<option value="wordwood-trail">Wordwood · Wayfarer approach</option>}</select></label><span>North ↑</span></div>
+  {controls}
   <div className={s.chart}><canvas ref={canvas} width="320" height="216" aria-label={`${view==='region'?'Inkwell region':view==='wordwood-trail'?'Wayfarer approach':AREA_NAMES[view]} pixel-art map`} role="img"/>
    {labels.map(mark=><span key={mark.label} className={s.chartLabel} style={{left:`${mark.x/320*100}%`,top:`${(mark.y+8)/216*100}%`}}>{mark.label}</span>)}
    {player&&<span className={s.playerPin} title="Your location" aria-label="Your location" data-map-x={player.x} data-map-y={player.y} style={{left:`${player.x/320*100}%`,top:`${player.y/216*100}%`}}>▲</span>}

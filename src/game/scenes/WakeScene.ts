@@ -75,8 +75,8 @@ export default class WakeScene extends Phaser.Scene {
           this.sleepPose=sleepingInkling(this,224,224,hexToNumber(this.avatar.color),'teal');
           this.hint.setText('A little peace and quiet.\n\nE  GET UP');
           this.time.delayedCall(900,()=>{
-            this.player.healFully();this.rested=true;
-            this.hint.setText('Fully rested — all hearts restored.\n\nE  GET UP');
+            this.player.restoreAfterSleep();this.rested=true;
+            this.hint.setText('Fully rested — hearts restored, plus one yellow heart.\n\nE  GET UP');
             this.cameras.main.fadeIn(600,8,15,24);this.sleeping=false;this.awake=false;this.readyAt=this.time.now+600;
           });
         });

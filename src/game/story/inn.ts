@@ -1,4 +1,5 @@
 import type { InteriorPlan, RoomProp } from './interiorPlans';
+import {clockPhase,type WorldClock} from '../../lib/story/worldClock';
 
 export const INN_ROOM_COLUMNS=[1,5,9] as const;
 export const INN_PEOPLE=[
@@ -15,11 +16,13 @@ export const canEnterInnRoom=(floor:number,room:number,booked:boolean)=>
   (floor===1||floor===2)&&room>=1&&room<=3&&(!isPlayerInnRoom(floor,room)||booked);
 const p=(asset:string,col:number,row:number,label:string,line:string):RoomProp=>({asset,col,row,label,line});
 /** Each guest has two nearby work spots, connected by clear floor tiles. */
-export function innRoutine(floor:number,room:number){
+export function innRoutine(floor:number,room:number,clock?:WorldClock){
   const index=(floor-1)*3+room-1;
   const starts=[7,2,7,2,2,7];
   const activities=[['sorting letters','checking the addresses'],['tending seedlings','checking the window light'],['reading','looking for a reference'],['repairing a clock','sorting tiny tools'],['folding towels','checking the fresh linen'],['sketching rooftops','studying the view']];
-  if(index===1)return [0,1].map(()=>({col:1,row:5,activity:'enjoying a quiet cup of tea',wait:Infinity}));
+  if(clock&&clockPhase(clock)==='Dusk')return [0,1].map(()=>({col:[9,1,9,1,1,9][index],row:5,activity:'enjoying evening tea',wait:Infinity}));
+  if(clock&&clockPhase(clock)==='Afternoon')return [starts[index]+1,starts[index]].map((col,i)=>({col,row:1,activity:['putting the morning’s work in order','preparing for tomorrow'][i],wait:5400+i*1600}));
+  if(index===1&&!clock)return [0,1].map(()=>({col:1,row:5,activity:'enjoying a quiet cup of tea',wait:Infinity}));
   return [starts[index],starts[index]+1].map((col,i)=>({col,row:1,activity:activities[index][i],wait:4800+i*1800}));
 }
 export function innPlan(floor:1|2,room?:number):InteriorPlan{
@@ -36,7 +39,8 @@ export function innPlan(floor:1|2,room?:number):InteriorPlan{
       p('cupboard',leftBed?0:10,0,'WARDROBE','Cedar shelves, a spare quilt, and two wooden coat pegs.'),
       p(assets[index],work,0,labels[index],lines[index]),
       p(index===1?'plant':index===4?'cupboard':'shelf',work+1,0,'PERSONAL THINGS',index===4?'Wren has labelled this shelf: Room 202. Fresh linen only.':'A few familiar things make a strange room feel like home.'),
-      p('washstand',leftBed?10:0,0,'WASHSTAND','A pitcher, rosemary soap, and a neatly folded towel.'),
+      p('washstand',leftBed?10:0,index===3?3:0,'WASHSTAND','A pitcher, rosemary soap, and a neatly folded towel.'),
+      ...(index===3?[p('bed-head',0,0,'COPPER’S BUNK','A copper-coloured blanket, neatly folded.'),p('bed-foot',0,1,'COPPER’S BUNK','Road dust clings to the boots tucked underneath.')]:[]),
       p('tea-table',leftBed?8:2,5,'TEA TRAY','A little tray keeps the cups together. Someone saved you a biscuit.'),
       p('chair',leftBed?9:1,5,'CHAIR','An oak chair turned toward the tea tray.'),
       p('plant',leftBed?10:0,6,'WINDOW HERBS','Mint scents the quiet room.'),
@@ -54,6 +58,7 @@ export function innPlan(floor:1|2,room?:number):InteriorPlan{
     p('tea-table',0,5,'TEA','A pot of mossbell tea. Still warm.'),
     p('chair',0,6,'CHAIR','Sit long enough and someone will bring you a biscuit.'),
     p('plant',7,0,'POTTED FERN','The innkeeper turns it toward the window every morning.'),
+    p('tea-table',8,4,'MORNING COFFEE','Wren keeps a strong pot ready for the early watch.'),
   ]:[p('shelf',3,0,'TRAVELLERS’ LIBRARY','Take a book. Leave a book. Please leave the shelf.'),
     p('plant',7,0,'POTTED FERN','A small tag says: Upstairs fern. Do not swap.'),
     p('shelf',0,2,'BORROWED TALES','A traveller has left a book of sea stories. Every monster has been given a moustache.'),

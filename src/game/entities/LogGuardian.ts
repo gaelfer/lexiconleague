@@ -5,6 +5,7 @@ export class LogGuardian {
   sprite:Phaser.Physics.Arcade.Image;
   defeated=false;
   hp=10;
+  get canReceiveHit(){return !this.defeated&&!this.emerging&&this.invulnerable<=0;}
   hurtbox:Phaser.Physics.Arcade.Image;
   meleeRadius=18;
   private elapsed=0;
@@ -77,6 +78,7 @@ export class LogGuardian {
         .fillRect(x,y+2,7,3).fillRect(x+1,y+5,5,1).fillRect(x+2,y+6,3,1).fillRect(x+3,y+7,1,1);
     }
     if(this.emerging)return false;
+    if((this.sprite.getData('staggerUntil')??0)>this.scene.time.now){this.sprite.setVelocity(0,0);return false;}
     this.cooldown-=dt;this.contact-=dt;
     const dx=target.x-this.sprite.x,dy=target.y-this.sprite.y,d=Math.hypot(dx,dy);
     this.sprite.setVelocity(d>45?dx/d*64:0,d>45?dy/d*64:0);

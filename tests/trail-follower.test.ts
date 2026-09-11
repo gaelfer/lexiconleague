@@ -18,3 +18,9 @@ describe('Luma follows the travelled grid path',()=>{
     expect(first.position.y).toBe(second.position.y);
   });
 });
+it('reads getter-based player coordinates when starting an escort',()=>{
+ const leader={get x(){return 144;},get y(){return 240;}};
+ const follower=new TrailFollower({x:144,y:208},leader);
+ const position=follower.update({x:144,y:272},1000);
+ expect(position).toEqual({x:144,y:240});
+});

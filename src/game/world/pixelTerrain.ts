@@ -5,15 +5,15 @@ export const TILE_SIZE = MAP_TILE;
 export const INKLING_SCALE = 0.78;
 
 /** One native 16px tile occupies 32 map units. Variants survive reloads. */
-export function grassTiles(g: Phaser.GameObjects.Graphics, x: number, y: number, width: number, height: number) {
-  g.fillStyle(0x284e40).fillRect(x, y, width, height);
+export function grassTiles(g: Phaser.GameObjects.Graphics, x: number, y: number, width: number, height: number,meadow=false) {
+  g.fillStyle(meadow?0x587950:0x284e40).fillRect(x, y, width, height);
   for (let py = y; py < y + height; py += TILE_SIZE) {
     for (let px = x; px < x + width; px += TILE_SIZE) {
       const n = Math.abs((px / TILE_SIZE * 73 + py / TILE_SIZE * 131) | 0);
       if (n % 7 > 2) continue;
       const dx = n % 9;
-      g.fillStyle(n % 3 ? 0x345d48 : 0x224638).fillRect(px + dx, py + 10, 6, 2);
-      g.fillStyle(0x53734f, 0.65).fillRect(px + dx + 1, py + 7, 1, 3);
+      g.fillStyle(meadow?(n%3?0x668859:0x496b48):n % 3 ? 0x345d48 : 0x224638).fillRect(px + dx, py + 10, 6, 2);
+      g.fillStyle(meadow?0x8ca16b:0x53734f, 0.65).fillRect(px + dx + 1, py + 7, 1, 3);
       g.fillRect(px + dx + 4, py + 8, 1, 2);
     }
   }

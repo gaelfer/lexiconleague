@@ -25,6 +25,13 @@ export interface StoryProgress {
   trackedSideQuests?: string[];
   questOverlayVisible?: boolean;
   learnedSkills?: ('spin'|'focused-spin'|'wide-spin')[];
+  combatLoadout?: import('./combatLoadout').CombatLoadout;
+  /** Set by a future story milestone; existing saves keep the screen locked. */
+  combatArtsUnlocked?: boolean;
+  bonusHeart?: number;
+  worldClock?: {day:number;elapsed:number};
+  northernStory?: {tea?:boolean;rumour?:boolean;escortDay?:number;escort?:boolean;campCleared?:boolean;outpostFloors?:number[];dictionary?:boolean;cured?:boolean;returnedToPost?:boolean;reported?:boolean};
+  inkMeter?:number;
   quests?: Record<string,{status:'active'|'completed';steps:string[]}>;
   wordwoodExpedition?: {
     drained?: boolean; key?: boolean; seal?: boolean; tablet?: boolean; studied?: boolean; checkpoint?: boolean;
@@ -43,8 +50,8 @@ export interface StoryInventory {
   equippedWeapon: 'sword' | 'bow' | 'shield';
   unlockedWeapons: string[];
   /** Missing in older saves: both existing tools remain ready to use. Empty means unequipped. */
-  equippedGear?: ('sword'|'bow')[];
-  toolSlots?: {Q:'sword'|'bow'|null;R:'sword'|'bow'|null;F:'sword'|'bow'|null};
+  equippedGear?: ('sword'|'bow'|'shield')[];
+  toolSlots?: {Q:'sword'|'bow'|'shield'|null;R:'sword'|'bow'|'shield'|null;F:'sword'|'bow'|'shield'|null};
   /** itemId → quantity */
   consumables: Record<string, number>;
   keyItems: string[];

@@ -1,5 +1,6 @@
 /** Four connected outdoor compositions; seal positions remain save-compatible. */
 export const ROAD_PATHS = [
+  [1120,0,96,160],
   [32,256,832,96], [96,224,352,160],
   [864,256,160,96],[960,160,96,192],[960,160,416,96],
   [1312,160,96,192],[1312,256,352,96],

@@ -19,6 +19,7 @@ export function drawLocalChart(canvas:HTMLCanvasElement,view:'wordwood'|'village
  const rectPath=(x:number,y:number,w:number,h:number)=>{const p=point(x,y),end=point(x+w,y+h);r(p.x-1,p.y-1,end.x-p.x+2,end.y-p.y+2,'#8f9267');r(p.x,p.y,end.x-p.x,end.y-p.y,'#dbca98');r(p.x+1,p.y+1,Math.max(1,end.x-p.x-2),Math.max(1,end.y-p.y-2),'#e6d7aa');};
  const streets=view==='village'?TOWN.streets:view==='wordwood'?WORDWOOD_PATHS:[];
  for(const [x,y,w,h] of streets)rectPath(x,y,w,h);
+ if(view==='village'){const p=point(TOWN.bell.x,TOWN.bell.y);r(p.x-4,p.y-8,8,9,'#4b6159');r(p.x-2,p.y-6,4,6,'#c4a86b');r(p.x-5,p.y+1,10,2,'#82927a');}
  if(paths.length){line(paths,8,'#899166');line(paths,6,'#d6c28c');line(paths,3,'#ead8a6');}
  if(view==='wordwood')rectPath(768,928,64,272);
  // Tree groves are placed around paths and buildings, never over their marks.

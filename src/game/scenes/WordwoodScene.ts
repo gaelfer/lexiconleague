@@ -1,3 +1,5 @@
+import {keeperPeriod} from '../story/keeperActivities';
+import {keeperSchedule} from '../world/keeperSchedule';
 import * as Phaser from 'phaser';
 import { frameWorld } from '../world/framing';
 import {foreground} from '../world/foreground';
@@ -251,7 +253,7 @@ export default class WordwoodScene extends Phaser.Scene {
     if(expedition().logGuardianFreed){
       this.plantGarden();
       if(!this.returnPoint||!this.registry.has('wordwood-keepers'))this.registry.set('wordwood-keepers',rollKeeperActivities());
-      const activities=this.registry.get('wordwood-keepers');
+      const activities=keeperPeriod(getStoryProgress().worldClock)!=='day'?{gardener:'away',bridgekeeper:'home'}:this.registry.get('wordwood-keepers');
       if(activities.gardener==='garden'){
         const gardener=createKeeper(this,'gardener',848,688,'garden');
         this.sites.push({x:848,y:720,label:'TALK TO THE GARDENER',action:()=>keeperSpeech(this,gardener,'A little water, a little sun. They’re coming along nicely.')});
@@ -271,6 +273,7 @@ export default class WordwoodScene extends Phaser.Scene {
         this.sites.push({x,y:y+32,label:'TALK TO THE BRIDGEKEEPER',action:()=>keeperSpeech(this,keeper,tree?'A few sound timbers will keep that bridge standing.':'Good to hear the stream again.')});
       }
     }
+    if(expedition().logGuardianFreed)keeperSchedule(this,walls);
     if(!expedition().logGuardianFreed&&expedition().tablet){
       this.guardian=new LogGuardian(this,(x,y)=>{
         saveExpedition({logGuardianFreed:true});repairSecondaryBridge();this.refreshSigns();this.plantGarden();

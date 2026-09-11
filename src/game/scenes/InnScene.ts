@@ -13,6 +13,10 @@ import { ROOM_GRID } from '../story/interiorPlans';
 import { canEnterInnRoom, innPlan, innRoutine, INN_ROOM_COLUMNS, INN_PEOPLE, isPlayerInnRoom } from '../story/inn';
 import { getStoryProgress, saveStoryProgress } from '@/lib/story/progress';
 import {acceptSidequest} from '@/lib/story/adventure';
+import {copperLocation} from '../story/villageRoutine';
+import {clockPhase} from '../../lib/story/worldClock';
+import {storyResident} from '../entities/storyResident';
+import {dailyWork} from '../world/dailyWork';
 
 type Arrival={floor?:1|2;room?:number;hearts?:number;rested?:boolean;x?:number;y?:number};
 type Site={x:number;y:number;label:string;action:()=>void};
@@ -31,6 +35,7 @@ export default class InnScene extends Phaser.Scene{
   private pendingChoice:boolean|null=null;
   private sleepPose?:ReturnType<typeof sleepingInkling>;
   private sleepUntil=0;
+  private routineKey='';
   private guest?:{npc:Phaser.GameObjects.Container;body:Phaser.Physics.Arcade.Image;site:Site;stops:ReturnType<typeof innRoutine>;index:number;elapsed:number;walking:boolean};
   get guestActivity(){const g=this.guest;return this.floor===1&&this.room===3?{x:272,y:240,activity:'sleeping'}:g?{x:g.site.x,y:g.site.y,activity:g.walking?'walking':g.stops[g.index].activity}:null;}
 
@@ -43,6 +48,7 @@ export default class InnScene extends Phaser.Scene{
     this.sleepPose=undefined;this.sleepUntil=0;
   }
   create(){
+    const clock=getStoryProgress().worldClock;this.routineKey=`${clock?clockPhase(clock):''}:${copperLocation(clock)}`;
     const walls=this.physics.add.staticGroup();
     const wall=(x:number,y:number,w:number,h:number)=>{const body=this.physics.add.staticImage(x,y,'__DEFAULT').setVisible(false).setDisplaySize(w,h).refreshBody();walls.add(body);return body;};
     const furniture=buildTileInterior(this,'guest',wall,innPlan(this.floor,this.room));
@@ -56,19 +62,28 @@ export default class InnScene extends Phaser.Scene{
     }});
     if(this.room){
       const person=INN_PEOPLE.find(p=>p.room===this.floor*100+this.room!)!;
-      if(person.id==='rue'){
+      if((person.id==='rue'&&!getStoryProgress().worldClock)||(person.id!=='fern'&&getStoryProgress().worldClock&&clockPhase(getStoryProgress().worldClock!)==='Night')){
         const plan=innPlan(this.floor,this.room),bed=plan.props.find(p=>p.asset==='bed-head')!;
         const x=ROOM_GRID.x+bed.col*32,y=ROOM_GRID.floorY;
         sleepingInkling(this,x,y,person.color,plan.palette,`inn-${person.id}-base`);
         this.sites=this.sites.filter(s=>s.label!=='BED');
-        this.sites.push({x:x+16,y:y+48,label:'RUE — SLEEPING',action:()=>this.say('Rue has fallen asleep halfway through a chapter. You leave her to it.')});
+        this.sites.push({x:x+16,y:y+48,label:`${person.name.toUpperCase()} — SLEEPING`,action:()=>this.say(`${person.name} is fast asleep. You leave them to rest.`)});
       }else{
-      const stops=innRoutine(this.floor,this.room),first=stops[0];
+      const stops=innRoutine(this.floor,this.room,getStoryProgress().worldClock),first=stops[0];
       const x=ROOM_GRID.x+first.col*32+16,y=ROOM_GRID.floorY+first.row*32+16;
       const {npc,body}=this.addPerson(person,x,y-16,wall);
       const site={x,y,label:`TALK TO ${person.name.toUpperCase()}`,action:()=>this.say(`${person.name}: ${person.line}`)};
       this.sites.push(site);this.guest={npc,body,site,stops,index:0,elapsed:0,walking:false};
       }
+    }
+    const copper=copperLocation(getStoryProgress().worldClock);
+    if(this.floor===2&&this.room===1){
+      if(copper==='inn-bed')sleepingInkling(this,224,224,0xcd7f32,'teal','road-knight-base');
+      this.sites.push({x:240,y:272,label:'COPPER’S BUNK',action:()=>this.say(copper==='inn-bed'?'Copper is sleeping after her watch. Her helmet rests beside the bed.':'A spare uniform is folded beneath the pillow. Copper’s name is stitched into it.')});
+    }
+    if(!this.room&&this.floor===1&&copper==='inn-coffee'){
+      storyResident(this,464,368,2,'DAME COPPER',0xcd7f32,true);wall(464,368,24,20);
+      this.sites.push({x:464,y:368,label:'TALK TO DAME COPPER',action:()=>this.say('Copper: One coffee before the crossing. Give me a moment to wake up, then I’ll take my post.')});
     }
     if(!this.room){
       // A continuous wall band behind the doorframes, with no walkable pockets
@@ -126,6 +141,7 @@ export default class InnScene extends Phaser.Scene{
   }
   private addInnkeeper(wall:(x:number,y:number,w:number,h:number)=>Phaser.Physics.Arcade.Image){
     const {npc}=this.addPerson(INN_PEOPLE[0],304,336,wall);
+    dailyWork(this,npc,'concierge');
     npc.list.slice(0,2).forEach(part=>(part as Phaser.GameObjects.Graphics).setVisible(false));
     // Reception is reachable from the front of the desk.
     this.sites=this.sites.filter(site=>site.label!=='RECEPTION');
@@ -142,8 +158,8 @@ export default class InnScene extends Phaser.Scene{
     if(this.sleepPose){
       if(this.time.now>=this.sleepUntil){
         this.sleepPose.destroy();this.sleepPose=undefined;this.player.setSleeping(false);
-        this.player.healFully();this.rested=true;
-        this.say('You wake beneath the warm quilt.\n\nAll hearts restored.');
+        this.player.restoreAfterSleep();this.rested=true;
+        this.say('You wake beneath the warm quilt.\n\nAll hearts restored, plus one yellow bonus heart.');
       }
       return;
     }
@@ -155,6 +171,8 @@ export default class InnScene extends Phaser.Scene{
       return;
     }
     this.player.update(delta);
+    const clock=getStoryProgress().worldClock,key=`${clock?clockPhase(clock):''}:${copperLocation(clock)}`;
+    if(key!==this.routineKey){this.player.stopMovement();this.scene.restart({floor:this.floor,room:this.room,hearts:this.player.hearts,rested:this.rested,x:this.player.x,y:this.player.y});return;}
     this.updateGuest(delta);
     const exit={x:400,y:464,label:this.room?'BACK TO THE LANDING':this.floor===1?'LEAVE THE INN':'DOWNSTAIRS',action:()=>{
       if(this.room){const col=INN_ROOM_COLUMNS[this.room-1];this.change({floor:this.floor,x:224+col*32+16,y:272});}

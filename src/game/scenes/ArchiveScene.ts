@@ -13,6 +13,7 @@ import { OPENING_STORY } from '../story/openingStory';
 import {expedition,saveExpedition,TABLET_RESEARCH} from '../story/repository';
 import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { createInkHand, createInkFoot } from '../entities/inkHand';
+import {unlockClock,northernProgress} from '../../lib/story/worldClock';
 
 interface ArchiveDialogue {
   speaker:string;
@@ -67,6 +68,7 @@ export default class ArchiveScene extends Phaser.Scene {
     ]);
     this.addWall(464,304,32,32);
     registerSpeaker(this,'SCHOLAR BELLUM',scholar);
+    dailyWork(this,scholar,'scholar');
     this.physics.add.collider(this.player.sprite, this.walls);
     frameWorld(this);
 
@@ -136,6 +138,7 @@ export default class ArchiveScene extends Phaser.Scene {
   }
 
   private inspectPedestal() {
+    if(getStoryProgress().northernStory?.reported){this.openDialogue('THE FIRST DICTIONARY',['The First Dictionary is home. Bellum has placed the bent clasp beside it rather than hiding the damage.','A new note reads: “Mallow: restored. Witnessed by Copper, Finch, Rook, and our traveller. Begin here.”']);return;}
     const lines = this.inspectedPedestal
       ? ['The damaged clasp rests on a clean cloth. A label reads: Evidence. Not a paperweight. — Bellum']
       : [
@@ -153,6 +156,14 @@ export default class ArchiveScene extends Phaser.Scene {
 
   private talkToScholar() {
     const progress = getStoryProgress();
+    if(progress.northernStory?.cured){
+      this.openDialogue('SCHOLAR BELLUM',progress.northernStory.reported?['The dictionary did not destroy that Blotling. It restored the Inkling beneath it. A cure, not a better weapon.','The village bell calls people home. Perhaps the dictionary helps them remember who is coming home. We must test that carefully.']:[
+        'You set the First Dictionary on Bellum’s desk. Copper describes the camp; you explain how the bandits helped the frightened Blotling remember its name.',
+        'You watched the violet ink come away—and the same person remained? With witnesses? Then we can say it at last: Blotlings can be cured.',
+        'The caretakers gave us hope. This gives us a method to study. We must learn its limits before promising it to everyone.',
+        'And those bandits helped you? Good. Let us begin by calling them our witnesses, not our suspects.',
+      ],()=>northernProgress({reported:true}));return;
+    }
     if(progress.opening==='wordwood'&&!progress.quests?.['field-notes']&&!expedition().logGuardianFreed){
       this.openDialogue('SCHOLAR BELLUM',['One small favour: look for the three survey papers beside Wordwood’s paths. Copy what you find into your notes; they may help us understand the old inscriptions.'],()=>acceptSidequest('field-notes'));return;
     }
@@ -165,7 +176,7 @@ export default class ArchiveScene extends Phaser.Scene {
         'They turned back into Inklings? Both of them? Oh. That changes rather a lot. I’m putting my pen down for this.',
         'Then these creatures may be corrupted Inklings after all—not merely ink that learned to move. You brought two people home. That is more important than any of my theories.',
         'It does not prove every Blotling has someone inside. But it gives us a reason to look for a way to bring them back. Carefully. And with considerably more hope.',
-      ]:[])],()=>saveExpedition({studied:true}));return;
+      ]:[]),...(expedition().logGuardianFreed&&!progress.worldClock?['Enough theories for one afternoon. Go to the Mossbell Tea Room. Nell and Pip are celebrating the caretakers’ return.','Listen for Inkwell’s great bell. It has called this village together for generations. Four gentle dusk strokes mean the kettle is on. I’ll keep working—someone must.']:[])],()=>{saveExpedition({studied:true});if(expedition().logGuardianFreed)unlockClock();});return;
     }
     if (progress.opening === 'wordwood') {
       this.openDialogue('SCHOLAR BELLUM', progress.completedChapters.includes(2) ? [
@@ -248,3 +259,4 @@ export default class ArchiveScene extends Phaser.Scene {
     });
   }
 }
+import {dailyWork} from '../world/dailyWork';

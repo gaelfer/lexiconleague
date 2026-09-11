@@ -8,10 +8,14 @@ import RepositoryScene from './scenes/RepositoryScene';
 import GatehouseScene from './scenes/GatehouseScene';
 import WakeScene from './scenes/WakeScene';
 import InnScene from './scenes/InnScene';
+import NorthernTrailScene from './scenes/NorthernTrailScene';
 import { speechState } from './entities/inklingSpeech';
 import { normalizeStoryAvatar } from './avatar';
 import type { InkAvatarConfig } from '@/types';
 import { DISPLAY_SCALE } from './pixelScale';
+import {EventBus} from './EventBus';
+import Blotling from './entities/Blotling';
+import {installGlobalClock} from './world/globalClock';
 
 /**
  * Creates and returns a Phaser.Game instance mounted inside `parent`.
@@ -65,11 +69,17 @@ export function createGame(
       new GatehouseScene(avatar),
       new WakeScene(avatar),
       new InnScene(avatar),
+      new NorthernTrailScene(avatar),
     ],
   });
   // Resize the native viewport, never stretch its pixels by a fractional FIT scale.
   game.canvas.style.imageRendering = 'pixelated';
+  installGlobalClock(game);
   if (process.env.NODE_ENV === 'development' && new URLSearchParams(location.search).has('storyTest')) {
+    const attacks:unknown[]=[];const arrows:unknown[]=[];
+    const recordAttack=(e:unknown)=>attacks.push(e),recordArrow=(e:unknown)=>arrows.push(e);
+    EventBus.on('player-attack',recordAttack);EventBus.on('player-bow',recordArrow);
+    game.events.once(Phaser.Core.Events.DESTROY,()=>{EventBus.off('player-attack',recordAttack);EventBus.off('player-bow',recordArrow);});
     const state = () => game.scene.getScenes(true).map(scene => {
       const observed = scene as Phaser.Scene & { floor?:number;room?:number;player?: {x:number;y:number;hearts:number}; luma?:{x:number;y:number}; npcs?:{spec:{name:string}}[]; activeDialogue?: {text:Phaser.GameObjects.Text}; dialogue?: {text:Phaser.GameObjects.Text} };
       const body=scene.children.list.flatMap(object=>object instanceof Phaser.GameObjects.Container?object.list:[object])
@@ -84,7 +94,7 @@ export function createGame(
         luma:observed.luma?{x:observed.luma.x,y:observed.luma.y+16}:null,
         residents:observed.npcs?.map(npc=>npc.spec.name),speech:speechState(scene)};
     });
-    const api={state,equipmentState:()=>{
+    const api={state,reviewCombatEnemy:(x:number,y:number)=>{const scene=game.scene.getScenes(true)[0] as Phaser.Scene&{enemies?:Blotling[]};if(!scene.enemies)return;const enemy=new Blotling(scene,x,y,5);enemy.sprite.setName('combat-test-enemy');scene.enemies.push(enemy);const targets=scene.data.get('combat-targets')?.();if(targets&&targets!==scene.enemies)targets.push(enemy);},reviewEnemies:()=>{const scene=game.scene.getScenes(true)[0] as Phaser.Scene&{enemies?:{hp:number;sprite:Phaser.GameObjects.Image}[]};return scene.enemies?.filter(e=>e.sprite.name==='combat-test-enemy').map(e=>({hp:e.hp,x:e.sprite.x,y:e.sprite.y,bound:(e.sprite.getData('boundUntil')??0)>scene.time.now,staggered:(e.sprite.getData('staggerUntil')??0)>scene.time.now}));},actionLog:()=>({attacks,arrows}),reviewFacing:(facing:string)=>{const s=game.scene.getScenes(true)[0] as Phaser.Scene&{player?:{facing:string}};if(s.player)s.player.facing=facing;},reviewHeal:()=>{const s=game.scene.getScenes(true)[0] as Phaser.Scene&{player?:{healFully():void}};s.player?.healFully();},equipmentState:()=>{
       const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {player?:{gear:string[];slots:unknown;attackHoldMs:number;attackPoseType:string;attackPoseMs:number;bowPoseMs:number;sword:{visible:boolean}}};
       return {gear:scene.player?.gear,slots:scene.player?.slots,holdMs:scene.player?.attackHoldMs,attackType:scene.player?.attackPoseType,swordVisible:scene.player?.sword.visible,attackMs:scene.player?.attackPoseMs,bowMs:scene.player?.bowPoseMs};
     },keeperPositions:()=>game.scene.getScenes(true)[0].children.list.filter((o):o is Phaser.GameObjects.Container=>o instanceof Phaser.GameObjects.Container&&o.name.startsWith('keeper-')).map(o=>({name:o.name,x:o.x,y:o.y,activity:o.getData('activity')})),reviewDialogue:(text:string)=>{
@@ -117,7 +127,9 @@ export function createGame(
       const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {player?:{takeDamage(amount:number,source?:{x:number;y:number}):boolean}};
       return scene?.player?.takeDamage(amount,source);
     }};
+    Object.assign(api,{worldClock:()=>game.registry.get('world-clock'),northernState:()=>{const s=game.scene.getScenes(true)[0] as Phaser.Scene&{enemies?:Blotling[];copper?:{rig:Phaser.GameObjects.Container}};return{enemies:s.enemies?.filter(e=>!e.defeated).map(e=>({x:e.sprite.x,y:e.sprite.y})),copper:s.copper?{x:s.copper.rig.x,y:s.copper.rig.y}:undefined};}});
     Object.assign(window,{__storyTest:api});
+    Object.assign(api,{residentState:()=>game.scene.getScenes(true)[0].children.list.filter((o):o is Phaser.GameObjects.Container=>o instanceof Phaser.GameObjects.Container&&o.name.startsWith('resident-')).map(o=>({name:o.name,x:o.x,y:o.y,visible:o.visible}))});
     game.events.once(Phaser.Core.Events.DESTROY,()=>{
       if(Reflect.get(window,'__storyTest')===api)Reflect.deleteProperty(window,'__storyTest');
     });

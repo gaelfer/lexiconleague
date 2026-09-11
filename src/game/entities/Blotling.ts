@@ -17,6 +17,7 @@ export default class Blotling {
   private variant:'blotling'|'woodling';
   get attackPhase(){return this.attackMs<0?'idle':this.attackMs<300?'windup':this.attackMs<440?'strike':'recover';}
   public defeated = false;
+  get canReceiveHit(){return !this.defeated&&this.hitStun<=0;}
 
   constructor(scene: Phaser.Scene, x: number, y: number, hp = 2, variant:'blotling'|'woodling'='blotling') {
     this.hp=hp;
@@ -29,6 +30,7 @@ export default class Blotling {
 
   update(delta: number, target: { x: number; y: number }): boolean {
     if (this.defeated) return false;
+    if(Math.max(this.sprite.getData('boundUntil')??0,this.sprite.getData('staggerUntil')??0)>this.sprite.scene.time.now){this.hitStun=Math.max(0,this.hitStun-delta);this.sprite.setVelocity(0,0);this.attackMs=-1;return false;}
     this.elapsed += delta;
     this.attackCooldown = Math.max(0, this.attackCooldown - delta);
     this.hitStun = Math.max(0, this.hitStun - delta);

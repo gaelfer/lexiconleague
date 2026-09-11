@@ -91,7 +91,7 @@ export function readableText(scene:Phaser.Scene,world:Phaser.Cameras.Scene2D.Cam
       if(!(object instanceof Phaser.GameObjects.Image)||!object.getData('story-foreground')||!object.visible)continue;
       const m=Phaser.GameObjects.GetCalcMatrix(object,world).calc;
       ctx.setTransform(m.a*DISPLAY_SCALE,m.b*DISPLAY_SCALE,m.c*DISPLAY_SCALE,m.d*DISPLAY_SCALE,Math.round(m.e*DISPLAY_SCALE),Math.round(m.f*DISPLAY_SCALE));
-      ctx.drawImage(object.frame.source.image as CanvasImageSource,0,0);
+      ctx.drawImage(object.frame.source.image as CanvasImageSource,object.frame.cutX,object.frame.cutY,object.frame.cutWidth,object.frame.cutHeight,-object.displayOriginX,-object.displayOriginY,object.width,object.height);
     }
     ctx.restore();
     // Mask caretakers using their own feet, independently of the player's layer.
@@ -108,7 +108,7 @@ export function readableText(scene:Phaser.Scene,world:Phaser.Cameras.Scene2D.Cam
         if(typeof foot==='number'?resident.y+16>=foot-8:!object.getData('story-foreground'))continue;
         const m=Phaser.GameObjects.GetCalcMatrix(object,world).calc;
         ctx.setTransform(m.a*DISPLAY_SCALE,m.b*DISPLAY_SCALE,m.c*DISPLAY_SCALE,m.d*DISPLAY_SCALE,Math.round(m.e*DISPLAY_SCALE),Math.round(m.f*DISPLAY_SCALE));
-        ctx.drawImage(object.frame.source.image as CanvasImageSource,0,0);
+        ctx.drawImage(object.frame.source.image as CanvasImageSource,object.frame.cutX,object.frame.cutY,object.frame.cutWidth,object.frame.cutHeight,-object.displayOriginX,-object.displayOriginY,object.width,object.height);
       }
       ctx.restore();ctx=mainContext;ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(residentLayer,0,0);ctx.restore();
     }

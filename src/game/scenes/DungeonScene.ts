@@ -1,5 +1,14 @@
+import {copperLocation} from '../story/villageRoutine';
+import {escortMorningReady} from '../../lib/story/worldClock';
 import * as Phaser from 'phaser';
-import {spinProfile} from '../../lib/story/skills';
+import {villageBell,VILLAGE_BELL} from '../world/villageBell';
+import {northernProgress} from '../../lib/story/worldClock';
+import {residentWalk} from '../world/residentWalk';
+import {residentDoor,RESIDENT_HOMES} from '../story/villageRoutine';
+import {SKETCHBOOK_PIXELS} from '../../lib/story/sketchbookArt';
+import {arrowPierces,combatLoadout} from '../../lib/story/combatLoadout';
+import {combatEffects,hitEnemy,sealReward} from '../world/combatEffects';
+import {LUMA_SKETCHBOOK,recoverSketchbook,rewardLumaQuest} from '../../lib/story/lumaQuest';
 import {tileCenter} from '../gridMovement';
 import {openDoorAnimation,type DoorStyle} from '../world/doorOpening';
 import {interactionScore,atDoorway} from '../interaction';
@@ -53,6 +62,8 @@ interface DoorData {
 interface NpcData {
   spec: VillageNpcSpec;
   body: Phaser.Physics.Arcade.Image;
+  rig?:Phaser.GameObjects.Container;
+  follower?:TrailFollower;
 }
 
 interface DialogueData {
@@ -91,6 +102,7 @@ export default class DungeonScene extends Phaser.Scene {
   private follower?: TrailFollower;
   private introObjects: Phaser.GameObjects.GameObject[] = [];
   private npcs: NpcData[] = [];
+  private routines:((delta:number)=>void)[]=[];
   private activeDialogue: DialogueData | null = null;
   private dialogueNextAllowedAt = 0;
   private investigationStage: 'defend' | 'inspect' | 'archive' | 'seals' = 'defend';
@@ -121,6 +133,7 @@ export default class DungeonScene extends Phaser.Scene {
     this.luma=undefined;this.follower=undefined;
     this.introObjects = [];
     this.npcs = [];
+    this.routines=[];
     this.activeDialogue = null;
 
     // Story progress must outlive a death respawn. ArchiveScene keeps its own
@@ -174,6 +187,7 @@ export default class DungeonScene extends Phaser.Scene {
 
     // Scenery and gate colliders need the player to exist first.
     this.buildVillage();
+    if(this.chapterId===0)villageBell(this,this.addObstacle);
     this.buildingNotices.forEach(sign=>drawBuildingSign(this,sign));
     wallSignReader(this,this.player,this.buildingNotices);
 
@@ -216,6 +230,7 @@ export default class DungeonScene extends Phaser.Scene {
     EventBus.on('game-paused', this.onPause, this);
     EventBus.on('game-resumed', this.onResume, this);
     EventBus.on('player-attack', this.onPlayerAttack, this);
+    combatEffects(this,this.player,()=>this.enemies,()=>this.locked);
     EventBus.on('player-bow', this.onPlayerBow, this);
     EventBus.on('player-died', this.onPlayerDied, this);
     EventBus.on('archive-investigation-complete', this.onArchiveInvestigationComplete, this);
@@ -223,6 +238,12 @@ export default class DungeonScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
     // Announce ready to React
+    if(this.chapterId===1&&!getStoryProgress().quests?.['lumas-sketchbook']?.steps.includes('found')){
+      const {x,y}=LUMA_SKETCHBOOK,g=this.add.graphics().setDepth(6).setName('luma-sketchbook');
+      g.fillStyle(0x172a2c,.25).fillRect(x-6,y+8,18,5);
+      for(const [px,py,w,h,color] of SKETCHBOOK_PIXELS)g.fillStyle(parseInt(color.slice(1),16)).fillRect(x-12+px,y-12+py,w,h);
+      if(!getStoryProgress().claimedRewards.includes('sketchbook-briars')){const vines=this.add.graphics().setDepth(7).setName('luma-book-briars');vines.lineStyle(3,0x435a36).lineBetween(x-20,y+9,x+16,y-10).lineBetween(x-14,y-12,x+18,y+12).lineStyle(2,0x91a76b).lineBetween(x-7,y-4,x-7,y-13).lineBetween(x+7,y+5,x+15,y+2);}
+    }
     EventBus.emit('current-scene-ready', this);
     EventBus.emit('health-changed', { hearts: this.player.hearts });
     EventBus.emit('lexicoins-changed', { amount: this.player.lexicoins });
@@ -277,7 +298,8 @@ export default class DungeonScene extends Phaser.Scene {
       this.addWall(800, -500, 1600, 1000);
       this.addWall(2400, -958, 1600, 28);
       this.addWall(3174, -500, 28, 1000);
-    } else this.addWall(worldW / 2, WALL_T / 2, worldW, WALL_T);
+    } else if(this.chapterId===1){this.addWall(560,WALL_T/2,1120,WALL_T);this.addWall((1216+worldW)/2,WALL_T/2,worldW-1216,WALL_T);}
+    else this.addWall(worldW / 2, WALL_T / 2, worldW, WALL_T);
     this.addWall(worldW / 2, VILLAGE_HEIGHT - WALL_T / 2, worldW, WALL_T);
     this.addWall(WALL_T / 2, VILLAGE_HEIGHT / 2, WALL_T, VILLAGE_HEIGHT);
     this.addWall(worldW - WALL_T / 2, VILLAGE_HEIGHT / 2, WALL_T, VILLAGE_HEIGHT);
@@ -370,6 +392,24 @@ export default class DungeonScene extends Phaser.Scene {
 
     this.player.update(delta);
     if(this.player.isDying)return;
+    this.data.set('resident-player-x',this.player.x);this.data.set('resident-player-y',this.player.y);this.routines.forEach(update=>update(delta));
+    if(this.chapterId===1){const p=getStoryProgress(),npc=this.npcs.find(n=>n.spec.name==='Dame Copper');if(npc?.rig){
+      const onDuty=copperLocation(this.registry.get('world-clock')??p.worldClock)==='post';npc.rig.setVisible(onDuty);npc.body.body!.enable=onDuty;
+      if(p.northernStory?.escort&&!p.northernStory.returnedToPost){npc.follower??=new TrailFollower({x:npc.body.x,y:npc.body.y},this.player);const next=npc.follower.update(this.player,delta);const dy=next.y-npc.body.y;npc.body.setPosition(next.x,next.y).refreshBody();npc.rig.setPosition(Math.round(next.x),Math.round(next.y)-16);npc.spec.x=next.x;npc.spec.y=next.y;(npc.rig.list[4] as Phaser.GameObjects.Image).setVisible(dy>=0);(npc.rig.list.slice(1,3) as Phaser.GameObjects.Image[]).forEach((foot,i)=>foot.setY(21+Math.round(Math.sin(this.time.now/100+i*Math.PI)*3)));
+       if(p.northernStory.cured&&Math.hypot(this.player.x-2928,this.player.y-272)<70&&Math.hypot(next.x-2928,next.y-272)<110){
+        this.locked=true;this.player.stopMovement();
+        const sync=()=>{npc.rig!.setPosition(Math.round(npc.body.x),Math.round(npc.body.y)-16);npc.spec.x=npc.body.x;npc.spec.y=npc.body.y;(npc.rig!.list.slice(1,3) as Phaser.GameObjects.Image[]).forEach((foot,i)=>foot.setY(21+Math.round(Math.sin(this.time.now/100+i*Math.PI)*3)));npc.body.refreshBody();};
+        this.tweens.add({targets:npc.body,x:2928,duration:Math.max(200,Math.abs(npc.body.x-2928)/.09),onUpdate:sync,onComplete:()=>this.tweens.add({targets:npc.body,y:272,duration:Math.max(200,Math.abs(npc.body.y-272)/.09),onUpdate:sync,onComplete:()=>{
+          northernProgress({returnedToPost:true});this.locked=false;this.openStoryDialogue('DAME COPPER',['This is my post. You handled yourself well up there.','Take the dictionary to Bellum. Tell him we saw Mallow come back. Safe travels, friend.']);
+        }})});return;
+       }
+      }else if(!onDuty){npc.spec.x=-9999;npc.spec.y=-9999;}else{npc.spec.x=npc.body.x;npc.spec.y=npc.body.y;}
+    }}
+    if(this.chapterId===1&&this.player.y<65&&Math.abs(this.player.x-1168)<48){
+      this.interactPrompt.setText(getStoryProgress().northernStory?.escort?'NORTH · THE SURVEY TRAIL':'Speak to Dame Copper before taking the northern trail.').setPosition(this.player.x,this.player.y-64).setVisible(true);
+      if(this.player.wantsDoorAt(1168,16,'up')){if(getStoryProgress().northernStory?.escort){this.player.sprite.body!.reset(1168,48);this.scene.pause();this.scene.launch('NorthernTrailScene');}else this.player.sprite.body!.reset(1168,48);}return;
+    }
+    if(this.chapterId===0&&Math.hypot(this.player.x-VILLAGE_BELL.x,this.player.y-VILLAGE_BELL.y)<64){this.interactPrompt.setText('[ E ] INKWELL’S GREAT BELL').setPosition(this.player.x,this.player.y-64).setVisible(true);if(this.player.isInteractJustDown())this.openStoryDialogue('THE GREAT BELL',['Names are cut into the bronze: generations of bellkeepers, each beneath the last.','A worn inscription reads: “For warning. For welcome. For those still finding their way home.”']);return;}
     if(this.luma && this.follower){
       const previousY=this.luma.y;
       const point=this.follower.update({x:this.player.x,y:this.player.y},delta);
@@ -493,13 +533,16 @@ export default class DungeonScene extends Phaser.Scene {
     if (this.locked || !this.sys.isActive()) return;
 
     let defeatedThisAttack = 0;
+    if(this.chapterId===1&&this.children.getByName('luma-book-briars')&&(type==='spin'?Math.hypot(x-LUMA_SKETCHBOOK.x,y-LUMA_SKETCHBOOK.y)<=80:isInSwordArc({x,y},LUMA_SKETCHBOOK,facing??this.player.facing,64))){
+      const p=getStoryProgress();if(saveStoryProgress({claimedRewards:[...new Set([...p.claimedRewards,'sketchbook-briars'])]}))this.children.getByName('luma-book-briars')?.destroy();
+    }
 
     for (const enemy of this.enemies) {
       if (enemy.defeated) continue;
       const inRange = type === 'spin'
-        ? Phaser.Math.Distance.Between(x, y, enemy.sprite.x, enemy.sprite.y) <= spinProfile(getStoryProgress()).radius
+        ? Phaser.Math.Distance.Between(x, y, enemy.sprite.x, enemy.sprite.y) <= 80
         : isInSwordArc({ x, y }, enemy.sprite, facing ?? this.player.facing, 64);
-      if (inRange && enemy.takeHit(x, y, type === 'spin' ? spinProfile(getStoryProgress()).damage : 1)) {
+      if (inRange && hitEnemy(enemy,x,y,type==='spin'?2:1)) {
         defeatedThisAttack += 1;
         this.spawnInkBurst(enemy.sprite.x, enemy.sprite.y);
       }
@@ -518,10 +561,12 @@ export default class DungeonScene extends Phaser.Scene {
     }
   };
 
-  private onPlayerBow = ({ x, y, facing }: { x: number; y: number; facing: Facing }) => {
+  private onPlayerBow = ({ x, y, facing,charged=false,angle,spectral=false }: { x: number; y: number; facing: Facing;charged?:boolean;angle?:number;spectral?:boolean }) => {
     if (this.locked || !this.sys.isActive()) return;
-    const direction = facingVector(facing);
+    const direction = angle===undefined?facingVector(facing):{x:Math.cos(angle),y:Math.sin(angle)};
+    let pierces=arrowPierces(getStoryProgress(),charged);const hit=new Set<Blotling>();
     const arrow = this.physics.add.image(x, y, 'story-arrow').setDepth(15).setScale(0.78);
+    if(charged||spectral)arrow.setTint(0xa7e6d3);
     arrow.setRotation(Math.atan2(direction.y, direction.x));
     arrow.body.setSize(10, 10);
     arrow.setVelocity(direction.x * 430, direction.y * 430);
@@ -538,9 +583,11 @@ export default class DungeonScene extends Phaser.Scene {
     for (const enemy of this.enemies) {
       if (enemy.defeated) continue;
       colliders.push(this.physics.add.overlap(arrow, enemy.sprite, () => {
-        if (!arrow.active || enemy.defeated) return;
-        if (enemy.takeHit(arrow.x, arrow.y, 1)) this.spawnInkBurst(enemy.sprite.x, enemy.sprite.y);
-        remove();
+        if (!arrow.active || enemy.defeated||hit.has(enemy)) return;
+        hit.add(enemy);
+        if (hitEnemy(enemy,arrow.x,arrow.y,1,!spectral)) this.spawnInkBurst(enemy.sprite.x, enemy.sprite.y);
+        if(charged)enemy.sprite.setData('staggerUntil',this.time.now+450);
+        if(pierces--<=0)remove();
         if (this.investigationStage === 'defend' && this.openingEnemies.every((e) => e.defeated)) {
           this.investigationStage = 'seals';
           this.evidenceTrail.setAlpha(0.9);
@@ -549,7 +596,7 @@ export default class DungeonScene extends Phaser.Scene {
         }
       }));
     }
-    this.time.delayedCall(1400, remove);
+    this.time.delayedCall(charged&&combatLoadout(getStoryProgress()).ring==='clarity'?2000:1400, remove);
   };
 
 
@@ -611,7 +658,8 @@ export default class DungeonScene extends Phaser.Scene {
           'Go on ahead. If any more purple ink crawls out of the trees, it will have to get past me.',
         ]};
       }
-      if (spec.house || (spec.hubOnly && this.chapterId !== 0)) return;
+      if ((spec.house&&!(this.chapterId===0&&getStoryProgress().worldClock)) || (spec.hubOnly && this.chapterId !== 0)) return;
+      if(this.chapterId===0&&spec.house)spec={...spec,...residentDoor(RESIDENT_HOMES[spec.name])};
       if(this.chapterId===0)spec={...spec,x:tileCenter(spec.x),y:tileCenter(spec.y)};
       const offsets = AVATAR_BODY_OFFSETS[spec.base] ?? AVATAR_BODY_OFFSETS.droplet_01;
       const container = this.add.container(spec.x, spec.y - 16).setDepth(10).setScale(0.78);
@@ -641,8 +689,9 @@ export default class DungeonScene extends Phaser.Scene {
       const body = this.physics.add.staticImage(spec.x, spec.y, '__DEFAULT');
       body.setDisplaySize(24, 20).setAlpha(0).refreshBody();
       this.physics.add.collider(this.player.sprite, body);
-      this.npcs.push({ spec, body });
+      this.npcs.push({ spec, body,rig:container });
       registerSpeaker(this,spec.name,container);
+      if(this.chapterId===0)this.routines.push(residentWalk(this,container,body,spec,this.walls));
     });
   }
 
@@ -676,6 +725,13 @@ export default class DungeonScene extends Phaser.Scene {
   }
 
   private openDialogue(npc: NpcData) {
+    if(npc.spec.name==='Dame Copper'&&getStoryProgress().northernStory?.returnedToPost){this.openStoryDialogue('DAME COPPER',['The crossing is quiet. I still think about Mallow saying his friend’s name.','Good to see you, travelling companion. The meadow is yours to explore—mind the night watch out there.']);return;}
+    if(npc.spec.name==='Dame Copper'&&getStoryProgress().northernStory?.rumour&&!escortMorningReady()){this.openStoryDialogue('DAME COPPER',['We leave in the morning. Get some sleep; I’ll be here at the crossing when you’re ready.'],()=>{});return;}
+    if(npc.spec.name==='Dame Copper'&&getStoryProgress().northernStory?.rumour){this.openStoryDialogue('DAME COPPER',['Serif sent you? Good. The tracks leave the survey camp to the north. I’ll take the trail with you.','Stay close. If something charges, let it meet my shield first. We’ll hear what these bandits have to say—after we get there.'],()=>northernProgress({escort:true}));return;}
+    const quest=getStoryProgress().quests?.['lumas-sketchbook'];
+    if(npc.spec.name==='Mira'&&quest?.steps.includes('returned')&&quest.status!=='completed'){
+      this.openStoryDialogue('Mira',['She’s been carrying that book everywhere. I thought she’d ask about the muddy pages. She only asked whether I liked my smile.','Thank you for bringing it back. There’s an old travelling bow I no longer use. I’d rather it went with someone careful.','It’s yours. Keep your feet planted when you draw, and don’t loose an arrow unless you know what’s beyond it.'],()=>{if(rewardLumaQuest())this.showWorldMessage('TRAVELLING BOW · Assign it in Inventory','#b5d6b0');});return;
+    }
     this.openStoryDialogue(npc.spec.name, this.chapterId===1
       ? RESCUED_CHATTER[npc.spec.name]??npc.spec.dialogue
       : this.chapterId === 0 ? npc.spec.hubDialogue ?? npc.spec.dialogue : npc.spec.dialogue);
@@ -742,6 +798,11 @@ export default class DungeonScene extends Phaser.Scene {
 
   private buildingNotices:BuildingSign[]=[];
   private checkInteractionProximity() {
+    if(this.chapterId===1&&getStoryProgress().quests?.['lumas-sketchbook']&&!getStoryProgress().quests?.['lumas-sketchbook']?.steps.includes('found')&&Math.hypot(this.player.x-LUMA_SKETCHBOOK.x,this.player.y-LUMA_SKETCHBOOK.y)<48){
+      if(this.children.getByName('luma-book-briars')){this.interactPrompt.setText('[ E ] INSPECT THE BRAMBLES').setPosition(this.player.x,this.player.y-62).setVisible(true);if(this.player.isInteractJustDown())this.openStoryDialogue('A GREEN RIBBON',['A thorny runner has caught the ribbon. One careful cut would free the little book.']);return;}
+      this.interactPrompt.setText('[ E ] PICK UP THE SKETCHBOOK').setPosition(this.player.x,this.player.y-62).setVisible(true);
+      if(this.player.isInteractJustDown())this.openStoryDialogue('A GREEN RIBBON',['A small sketchbook, caught beneath an apple branch. On the first page, someone has drawn Mira with a very careful smile.'],()=>{if(recoverSketchbook())this.children.getByName('luma-sketchbook')?.destroy();});return;
+    }
     if(this.chapterId===1 && Math.abs(this.player.x-208)<=48 && Math.abs(this.player.y-240)<=40){
       this.interactPrompt.setVisible(false);
       if(this.player.wantsDoorAt(208,240,'up'))this.openEntrance(208,218,()=>this.enterVillageBuilding('home'),'cottage');
@@ -964,6 +1025,7 @@ export default class DungeonScene extends Phaser.Scene {
   private openDoor(door: DoorData) {
     if (door.isOpen || !door.image.active || !door.image.body) return;
     door.isOpen = true;
+    sealReward(this.player,`road-${door.gateNumber}`);
     this.solvedGates.add(door.gateNumber);
     if(this.chapterId===1)this.saveRoad();
 
@@ -1048,7 +1110,8 @@ export default class DungeonScene extends Phaser.Scene {
     this.scene.resume();
   };
 
-  private onSceneResumed = (_systems:Phaser.Scenes.Systems,data?:{rested?:boolean}) => {
+  private onSceneResumed = (_systems:Phaser.Scenes.Systems,data?:{rested?:boolean;fromNorth?:boolean}) => {
+    if(data?.fromNorth){const npc=this.npcs.find(n=>n.spec.name==='Dame Copper');if(npc?.rig&&!getStoryProgress().northernStory?.returnedToPost){npc.body.setPosition(1168,16).refreshBody();npc.rig.setPosition(1168,0);npc.spec.x=1168;npc.spec.y=16;npc.follower=new TrailFollower({x:1168,y:16},this.player);}}
     if(data?.rested)this.player.healFully();
     // Returning from an interior releases the lock taken by the doorway fade.
     this.locked = false;

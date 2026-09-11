@@ -12,10 +12,12 @@ import { INKLING_SCALE } from '../world/pixelTerrain';
 import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { tileCenter, nextGridStep, interpolateStep, type GridPoint } from '../gridMovement';
 import { bowPose,BOW_DURATION,BOW_RELEASE } from '../bowPose';
-import {getStoryInventory,getStoryProgress,saveStoryInventory} from '../../lib/story/progress';
-import {equippedGear,toolSlots,TOOL_KEYS,type GearId} from '../../lib/story/equipment';
-import {spinProfile} from '../../lib/story/skills';
-import {SWORD_HOLD_THRESHOLD_MS,swordChargeMs,swordReleaseAction} from '../swordInput';
+import {getStoryInventory,getStoryProgress,saveStoryInventory,saveStoryProgress} from '../../lib/story/progress';
+import {equippedGear,toolSlots,type GearId} from '../../lib/story/equipment';
+import {maxCombatHearts} from '../../lib/story/combatLoadout';
+import {CombatController} from './CombatController';
+import {dashTiles} from '../combatActions';
+import {sleepUntilMorning} from '../../lib/story/worldClock';
 
 const SPEED = 180;
 const SWING_COOLDOWN_MS = 300;
@@ -41,7 +43,9 @@ export default class Player {
   private keyR: Phaser.Input.Keyboard.Key;
   private keyF: Phaser.Input.Keyboard.Key;
   private slots=toolSlots(getStoryInventory());
-  private spin=spinProfile(getStoryProgress());
+  public combat!:CombatController;
+  private dashing=false;
+  private chargedArrow=false;
   private spinCue!: Phaser.GameObjects.Graphics;
   private hands: [Phaser.GameObjects.Container, Phaser.GameObjects.Container];
   private feet: [Phaser.GameObjects.Graphics, Phaser.GameObjects.Graphics];
@@ -79,7 +83,7 @@ export default class Player {
   public isDying=false;
   private attackPoseMs = 0;
   private attackPoseDuration = 1;
-  private attackPoseType: 'swing' | 'spin' = 'swing';
+  private attackPoseType: 'swing' | 'spin' | 'lunge' = 'swing';
 
   public hearts: number;
   private gear:GearId[]=equippedGear(getStoryInventory());
@@ -186,9 +190,7 @@ export default class Player {
     const queueStep = (event: KeyboardEvent) => {
       if (event.repeat) return;
       const key = event.key.toLowerCase();
-      if(TOOL_KEYS.some(slot=>slot.toLowerCase()===key&&this.slots[slot]==='sword')){this.swordPressAt=performance.now();return;}
       if(['w','arrowup','s','arrowdown'].includes(key))this.doorIntent={direction:key==='w'||key==='arrowup'?'up':'down',until:scene.time.now+220};
-      if(TOOL_KEYS.some(slot=>slot.toLowerCase()===key&&this.slots[slot]==='bow')){this.queuedBow=true;return;}
       if(key==='e'||key===' '){this.interactQueuedUntil=scene.time.now+250;return;}
       if (!['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)) return;
       this.queuedDirection = resolveMovement({
@@ -199,27 +201,25 @@ export default class Player {
       });
     };
     kb.on('keydown', queueStep);
-    const releaseSword=(event:KeyboardEvent)=>{
-      if(this.swordPressAt!==null&&TOOL_KEYS.some(slot=>slot.toLowerCase()===event.key.toLowerCase()&&this.slots[slot]==='sword')){
-        this.swordReleaseMs=performance.now()-this.swordPressAt;this.swordPressAt=null;
-      }
-    };
-    kb.on('keyup',releaseSword);
-    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {kb.off('keydown', queueStep);kb.off('keyup',releaseSword);});
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => kb.off('keydown', queueStep));
 
     // Scale the entire rig together: grip, blade, feet and cosmetics retain their alignment.
     this.artwork = scene.add.container(0, 0, [
       this.shadow, ...this.visualLayers.map(({ image }) => image),
       ...this.feet, ...this.hands, this.sword, this.bow, this.swordTrail,
     ]).setScale(INKLING_SCALE).setDepth(10);
-    this.hearts = startHearts;
+    this.hearts = Math.min(this.maxHearts,scene.game.registry.get('combat:hearts')??(startHearts===3?this.maxHearts:startHearts));
+    this.combat=new CombatController(scene,this);
     this.spinCue=scene.add.graphics().setDepth(11);
     const refreshGear=()=>{
       const next=equippedGear(getStoryInventory());
       const slots=toolSlots(getStoryInventory());
-      this.spin=spinProfile(getStoryProgress());
+      this.hearts=Math.min(scene.game.registry.get('combat:hearts')??this.hearts,this.maxHearts);
+      if(scene.sys.isActive())scene.game.registry.set('combat:hearts',this.hearts);
+      if(scene.sys.isActive())EventBus.emit('health-changed',{hearts:this.hearts,maxHearts:this.maxHearts});
       if(JSON.stringify(slots)===JSON.stringify(this.slots))return;
       this.slots=slots;
+      this.combat.cancel();
       this.swordPressAt=null;this.swordReleaseMs=null;
       this.gear=next;this.attackHeld=false;this.attackHoldMs=0;this.attackPoseMs=0;this.bowPoseMs=0;this.queuedBow=false;
       this.swordTrail.clear();this.clearAvatarTint();this.syncVisuals(0);
@@ -229,6 +229,7 @@ export default class Player {
     // Room scenes create their own Player, while the outdoor Player may remain
     // paused. Keep the timer on the game, not on any one of those instances.
     const restoreSword=()=>{
+      this.hearts=Math.min(this.maxHearts,scene.game.registry.get('combat:hearts')??this.hearts);EventBus.emit('health-changed',{hearts:this.hearts,maxHearts:this.maxHearts});
       if(this.doorReturn){this.sprite.body!.reset(this.doorReturn.x,this.doorReturn.y);this.sprite.body!.enable=true;this.doorReturn=null;}
       this.doorReadyAt=scene.time.now+450;this.doorIntent=null;
       this.swordIdleMs=scene.registry.get('story:swordIdleMs')??0;
@@ -269,9 +270,11 @@ export default class Player {
   setSleeping(value:boolean){this.stopMovement();this.artwork.setVisible(!value);}
 
   healFully() {
-    this.hearts=3;
-    EventBus.emit('health-changed',{hearts:this.hearts});
+    this.heal(this.maxHearts);
   }
+  restoreAfterSleep(){sleepUntilMorning();saveStoryProgress({bonusHeart:1});this.healFully();}
+  get maxHearts(){return maxCombatHearts(getStoryProgress());}
+  heal(amount:number){this.hearts=Math.min(this.maxHearts,this.hearts+amount);this.sprite.scene.game.registry.set('combat:hearts',this.hearts);EventBus.emit('health-changed',{hearts:this.hearts,maxHearts:this.maxHearts});}
 
   /** Authored reward pose; preserves the avatar's size and actual cosmetics. */
   holdItemAboveHead(){
@@ -313,6 +316,7 @@ export default class Player {
 
   update(delta: number) {
     if(this.isDying)return;
+    if(this.dashing){this.syncVisuals(delta);return;}
     this.damageInvulnerabilityMs=Math.max(0,this.damageInvulnerabilityMs-delta);
     if(this.hurtMs>0||this.recoil){
       this.hurtMs=Math.max(0,this.hurtMs-delta);
@@ -330,13 +334,15 @@ export default class Player {
     if(this.bowReview){this.bowPoseMs=240;this.facing='right';this.syncVisuals(0);return;}
     const previousBowMs = this.bowPoseMs;
     this.bowPoseMs = Math.max(0, this.bowPoseMs - delta);
-    if (previousBowMs > BOW_RELEASE && this.bowPoseMs <= BOW_RELEASE) {
+    if (!this.combat.drawing && !this.combat.awaitingBowRelease && previousBowMs > BOW_RELEASE && this.bowPoseMs <= BOW_RELEASE) {
       const pose=bowPose(this.x,this.y,this.facing,BOW_RELEASE,INKLING_SCALE);
-      EventBus.emit('player-bow', { ...pose.release, facing: this.facing });
+      EventBus.emit('player-bow', { ...pose.release, facing: this.facing,charged:this.chargedArrow });
     }
     this.attackPoseMs = Math.max(0, this.attackPoseMs - delta);
     this.handleMovement(delta);
-    this.handleAttack(delta);
+    this.attackCooldown=Math.max(0,this.attackCooldown-delta);
+    this.combat.update(delta);
+    if(this.combat.drawing)this.bowPoseMs=BOW_RELEASE+1;
     if(this.attackHeld||this.attackPoseMs>0)this.swordIdleMs=0;
     else if(this.bowPoseMs<=0)this.swordIdleMs=Math.min(15700,this.swordIdleMs+delta);
     if(this.sprite.scene.registry.get('story:swordIdleMs')!==this.swordIdleMs)
@@ -345,7 +351,7 @@ export default class Player {
   }
 
   private handleMovement(delta: number) {
-    if(this.bowPoseMs>0){this.sprite.setVelocity(0,0);this.isMoving=false;return;}
+    if(this.bowPoseMs>0||this.combat?.movementLocked){this.sprite.setVelocity(0,0);this.isMoving=false;return;}
     const up    = this.cursors.up.isDown    || this.keyW.isDown;
     const down  = this.cursors.down.isDown  || this.keyS.isDown;
     const left  = this.cursors.left.isDown  || this.keyA.isDown;
@@ -374,11 +380,14 @@ export default class Player {
 
   private gridPathClear(from: GridPoint, to: GridPoint) {
     const world = this.sprite.scene.physics.world;
-    const half = 15.9;
-    const x = Math.min(from.x, to.x) - half;
-    const y = Math.min(from.y, to.y) - half;
-    const width = Math.abs(to.x - from.x) + half * 2;
-    const height = Math.abs(to.y - from.y) + half * 2;
+    // Sweep the real foot collider, not an inflated full-tile square. The old
+    // padding caught furniture in the neighbouring row before our feet did.
+    const halfX = this.sprite.displayWidth / 2;
+    const halfY = this.sprite.displayHeight / 2;
+    const x = Math.min(from.x, to.x) - halfX;
+    const y = Math.min(from.y, to.y) - halfY;
+    const width = Math.abs(to.x - from.x) + halfX * 2;
+    const height = Math.abs(to.y - from.y) + halfY * 2;
     if (x < world.bounds.left || y < world.bounds.top || x + width > world.bounds.right || y + height > world.bounds.bottom) return false;
     return !this.sprite.scene.physics.overlapRect(x, y, width, height, false, true).some((body) => body.enable);
   }
@@ -438,32 +447,22 @@ export default class Player {
     const attackAngle = this.attackPoseMs > 0
       ? this.attackPoseType === 'spin'
         ? poseProgress * 360
-        : -72 + poseProgress * 144
+        : this.attackPoseType==='lunge'?0:-72 + poseProgress * 144
       : 0;
     const attacking = this.attackPoseMs > 0;
-    const chargeMs=swordChargeMs(this.attackHoldMs);
-    const charging = this.spin.learned && this.attackHeld && chargeMs >= this.spin.chargeMs;
+    const charging = false;
     this.spinCue?.clear();
     if(this.spinCue&&this.artwork.visible&&!this.isDying){
       // Match the rig's scaled offsets and lifted origin, not the invisible hitbox.
-      const ringY=this.y+20*INKLING_SCALE-16;
-      const meterY=this.y-48*INKLING_SCALE-16;
-      if(this.spin.learned&&this.attackHeld&&this.attackHoldMs>=SWORD_HOLD_THRESHOLD_MS){
-        const progress=Math.min(1,chargeMs/this.spin.chargeMs);
-        this.spinCue.lineStyle(charging?3:2,charging?0xffedab:0x67dcca,.95);
-        for(let i=0;i<12;i++)if(i/12<progress){const a=i*Math.PI/6;this.spinCue.strokeRect(this.x+Math.cos(a)*28-2,ringY+Math.sin(a)*15-2,4,4);}
-        this.spinCue.fillStyle(0x162e30,.95).fillRect(this.x-22,meterY,44,7);
-        this.spinCue.fillStyle(charging?0xffedab:0x67dcca,1).fillRect(this.x-20,meterY+2,40*progress,3);
-        if(charging)this.spinCue.lineStyle(2,0xffedab,1).strokeCircle(this.x,ringY,24);
-      }
       if(attacking&&this.attackPoseType==='spin'){
-        this.spinCue.lineStyle(4,0x8ae7da,1-poseProgress).beginPath().arc(this.x,this.y+12*INKLING_SCALE-16,this.spin.radius*poseProgress,poseProgress*6,poseProgress*6+Math.PI*1.6).strokePath();
+        this.spinCue.lineStyle(4,0x8ae7da,1-poseProgress).beginPath().arc(this.x,this.y+12*INKLING_SCALE-16,80*poseProgress,poseProgress*6,poseProgress*6+Math.PI*1.6).strokePath();
       }
     }
     const swordAngle = attacking ? baseSwordAngle + attackAngle : -8 + breath * 1.5;
     const swingRadians = Phaser.Math.DegToRad(swordAngle - 90);
-    const swordX = this.sprite.x + (attacking ? Math.cos(swingRadians) * 15 : (facesLeft ? -15 : 15));
-    const swordY = this.sprite.y + bob + (attacking ? 7 + Math.sin(swingRadians) * 10 : 10);
+    const reach=this.attackPoseType==='lunge'?15+32*Math.sin(poseProgress*Math.PI):15;
+    const swordX = this.sprite.x + (attacking ? Math.cos(swingRadians) * reach : (facesLeft ? -15 : 15));
+    const swordY = this.sprite.y + bob + (attacking ? 7 + Math.sin(swingRadians) * (this.attackPoseType==='lunge'?reach:10) : 10);
     const chargePulse = charging ? 1.08 + Math.sin(this.attackHoldMs * 0.025) * 0.08 : 1;
     this.sword
       .setPosition(swordX, swordY)
@@ -511,7 +510,7 @@ export default class Player {
     }
     // The sword origin is the center of its grip: hand and hilt share one pivot.
     this.hands[1].setPosition(swordX, swordY).setDepth(this.sword.depth + 0.1);
-    this.sword.setVisible(this.gear.includes('sword')&&this.bowPoseMs <= 0&&!this.swordStowed).setAlpha(1);
+    this.sword.setVisible((this.gear.includes('sword')||this.attackPoseMs>0)&&this.bowPoseMs <= 0&&!this.swordStowed).setAlpha(1);
     // Reach over the shoulder, slide the blade away, then relax the empty hand.
     // Interrupting with Q restores the normal grip in the same update as the hit.
     if(this.gear.includes('sword')&&this.swordIdleMs>15000&&this.bowPoseMs<=0){
@@ -534,7 +533,11 @@ export default class Player {
       this.bow.setPosition(pose.grip.x,pose.grip.y).setRotation(pose.angle).setDepth(facesBack?9.5:14);
       const ctx=this.bowTexture.context;
       ctx.clearRect(0,0,64,64);ctx.save();ctx.translate(32,32);
-      ctx.strokeStyle='#9c7149';ctx.lineWidth=3;ctx.beginPath();ctx.arc(-19,0,19,-Math.PI/2,Math.PI/2);ctx.stroke();
+      // Carved recurved limbs, pale wood edge, and a wrapped central grip.
+      ctx.lineJoin='miter';ctx.strokeStyle='#273c36';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-19,-19);ctx.lineTo(-14,-17);ctx.lineTo(-8,-13);ctx.lineTo(-3,-6);ctx.lineTo(-2,0);ctx.lineTo(-3,6);ctx.lineTo(-8,13);ctx.lineTo(-14,17);ctx.lineTo(-19,19);ctx.stroke();
+      ctx.strokeStyle='#af8150';ctx.lineWidth=4;ctx.stroke();
+      ctx.strokeStyle='#e0bc7c';ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle='#496551';ctx.fillRect(-5,-5,6,10);ctx.fillStyle='#a8ad7e';ctx.fillRect(-5,-4,5,1);ctx.fillRect(-5,0,5,1);ctx.fillRect(-5,4,5,1);
       ctx.strokeStyle='#e8d8b0';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-19,-19);ctx.lineTo(pose.string,0);ctx.lineTo(-19,19);ctx.stroke();
       if(this.bowPoseMs>BOW_RELEASE){
         ctx.strokeStyle='#d8bd89';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pose.string,0);ctx.lineTo(pose.string+28,0);ctx.stroke();
@@ -558,57 +561,40 @@ export default class Player {
     this.artwork.sort('depth');
   }
 
-  private handleAttack(delta: number) {
-    if (this.attackCooldown > 0) {
-      this.attackCooldown -= delta;
-    }
-    const keys={Q:this.keyQ,R:this.keyR,F:this.keyF};
-    const bowSlot=TOOL_KEYS.find(key=>this.slots[key]==='bow');
-    const swordSlot=TOOL_KEYS.find(key=>this.slots[key]==='sword');
-    const swordDown=!!swordSlot&&keys[swordSlot].isDown;
-    const bowPressed=(!!bowSlot&&Phaser.Input.Keyboard.JustDown(keys[bowSlot]))||this.queuedBow;
-    this.queuedBow=false;
-    if (this.gear.includes('bow') && bowPressed && this.attackCooldown <= 0 && !this.attackHeld) {
-      this.stopMovement();
-      this.bowPoseMs = BOW_DURATION;
-      this.attackCooldown = 550;
-    }
-    if (this.bowPoseMs > 0) {this.swordPressAt=null;this.swordReleaseMs=null;return;}
-    if(!this.gear.includes('sword'))return;
-
-    const released=this.swordReleaseMs;
-    this.swordReleaseMs=null;
-    this.attackHeld=swordDown&&this.swordPressAt!==null;
-    this.attackHoldMs=this.attackHeld?performance.now()-this.swordPressAt!:0;
-    if(released!==null){
-      const action=swordReleaseAction(released,this.spin.learned,this.spin.chargeMs);
-      if(action==='swing')this.performSwordSwing();
-      else if(action==='spin')this.performSpinAttack();
-    }
-    if(!swordDown)this.swordPressAt=null;
+  fireBow(charged:boolean){this.chargedArrow=charged;this.bowPoseMs=BOW_DURATION;}
+  lungePose(){this.attackPoseType='lunge';this.attackPoseDuration=400;this.attackPoseMs=400;}
+  cancelBow(){this.bowPoseMs=0;}
+  dash(count:number,redline:boolean){
+    const scene=this.sprite.scene,from={x:tileCenter(this.x),y:tileCenter(this.y)},points=dashTiles(from,this.facing,count,(a,b)=>this.gridPathClear(a,b));
+    if(!points.length)return;
+    this.dashing=true;this.combat.cancel();
+    const hit=new Set<unknown>();
+    const step=(index:number)=>{const pose={x:this.x,y:this.y};scene.tweens.add({targets:pose,...points[index],duration:90,onUpdate:()=>{const previous={x:this.x,y:this.y};this.sprite.body!.reset(pose.x,pose.y);if(redline)EventBus.emit('combat-effect',{scene,id:'redline',x:previous.x,y:previous.y,end:{x:pose.x,y:pose.y},hit,facing:this.facing});this.syncVisuals(16);},onComplete:()=>{if(index+1<points.length)step(index+1);else this.dashing=false;}});};step(0);
   }
-
-  private performSwordSwing() {
-    if (this.attackCooldown > 0) return;
+  slash() {
+    if (this.attackCooldown > 0) return false;
     this.attackCooldown = SWING_COOLDOWN_MS;
     this.attackPoseType = 'swing';
     this.attackPoseDuration = 220;
     this.attackPoseMs = this.attackPoseDuration;
     EventBus.emit('player-attack', { type: 'swing', facing: this.facing, x: this.x, y: this.y });
+    return true;
   }
 
-  private performSpinAttack() {
+  spinAttack() {
     if (this.attackCooldown > 0) return;
     this.attackCooldown = SPIN_COOLDOWN_MS;
     this.attackPoseType = 'spin';
-    this.attackPoseDuration = this.spin.durationMs;
+    this.attackPoseDuration = 420;
     this.attackPoseMs = this.attackPoseDuration;
     EventBus.emit('player-attack', { type: 'spin', x: this.x, y: this.y });
   }
 
   takeDamage(amount: number,source?:{x:number;y:number}): boolean {
-    if (this.damageInvulnerabilityMs > 0 || this.hearts <= 0) return false;
+    if(this.dashing||this.damageInvulnerabilityMs > 0 || this.hearts <= 0)return false;
+    if(this.combat.block(source))return false;
     this.damageInvulnerabilityMs = 1300;
+    this.combat.cancel();
     this.swordPressAt=null;this.swordReleaseMs=null;
     this.stopMovement();
     this.attackHeld=false;this.attackHoldMs=0;this.attackPoseMs=0;this.bowPoseMs=0;this.queuedBow=false;
@@ -624,7 +610,10 @@ export default class Player {
       const to=nextGridStep(from,rx,ry,(a,b)=>this.gridPathClear(a,b));
       if(to)this.recoil={from,to,elapsed:0};
     }
-    this.hearts = Math.max(0, this.hearts - amount);
+    const bonus=Math.max(0,Math.min(1,getStoryProgress().bonusHeart??0));
+    if(bonus>0)saveStoryProgress({bonusHeart:Math.max(0,bonus-amount)});
+    this.hearts = Math.max(0, this.hearts - Math.max(0,amount-bonus));
+    this.sprite.scene.game.registry.set('combat:hearts',this.hearts);
     this.visualLayers.forEach(({image})=>image.setData('story-brightness',.4));
     EventBus.emit('health-changed', { hearts: this.hearts });
     if (this.hearts <= 0) {
@@ -634,6 +623,7 @@ export default class Player {
   }
 
   private playDeath(){
+    this.sprite.scene.game.registry.set('combat:hearts',this.maxHearts);
     this.isDying=true;this.recoil=null;this.sprite.setVelocity(0,0);
     this.sword.setVisible(false);this.bow.setVisible(false);this.swordTrail.clear();
     const layers=this.visualLayers.map(({image})=>({image,y:image.y,w:image.displayWidth,h:image.displayHeight}));

@@ -1,0 +1,16 @@
+import type {ArtId,HeartRingId,InkburstId} from '@/lib/story/combatLoadout';
+type BadgeId=ArtId|HeartRingId|InkburstId;
+/** Original equip-card emblems: warm paper, printed ink and distinct silhouettes. */
+export default function CombatGlyph({id,size=60}:{id:BadgeId;size?:number}){
+ const ink='#293a35',paper='#f0dfb2',red='#b96149',green='#789881',gold='#c49d57';
+ return <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" style={{flexShrink:0}}><circle cx="33" cy="34" r="28" fill="#796e50" opacity=".25"/><circle cx="31" cy="30" r="27" fill={paper} stroke={ink} strokeWidth="2"/><circle cx="31" cy="30" r="23" fill="none" stroke="#b7a579" strokeWidth="1" strokeDasharray="2 3"/><g stroke={ink} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round">
+ {id==='inkwhirl'&&<><path d="M14 30C10 11 44 9 50 26M48 19L51 29L41 27M49 35C48 51 17 53 12 38M20 39L11 36L12 46" fill="none" stroke={green} strokeWidth="5"/><path d="M22 41L38 17L45 15L44 24L28 44Z" fill="#a5b9ad"/><path d="M19 36L33 45M24 42L19 49" stroke={ink} strokeWidth="5"/><path d="M29 32L39 19" stroke={paper}/></>}
+ {id==='quill-dash'&&<><path d="M20 40C13 27 32 9 49 13C48 29 39 40 22 42L17 50" fill={green}/><path d="M22 42L42 20M29 34L29 22M35 29L44 28" fill="none"/><path d="M8 24H16M5 31H13M7 38H13" stroke={red} strokeWidth="3"/></>}
+ {id==='lunge'&&<><path d="M11 44L46 18L54 17L50 25L17 49Z" fill="#a5b9ad"/><path d="M13 39L24 51M14 47L8 52" strokeWidth="5"/><path d="M25 34L45 21" stroke={paper}/><path d="M44 8L45 12M56 28L60 30M55 11L58 8" stroke={red}/></>}
+ {id==='wordbind'&&<><path d="M17 12H44L48 48H20Z" fill="#d1bb87"/><path d="M23 20H38M24 27H40M25 34H37" stroke="#806f52"/><path d="M12 39C8 23 24 19 29 31L34 43C40 55 56 43 48 33C44 29 41 32 40 36" fill="none" stroke="#8a7395" strokeWidth="6"/><path d="M10 44L15 39L20 45" fill={green}/></>}
+ {(['resolve','recall','clarity'] as string[]).includes(id)&&<><ellipse cx="31" cy="37" rx="16" ry="15" fill={gold}/><ellipse cx="31" cy="38" rx="9" ry="9" fill={paper}/>{id==='resolve'?<path d="M31 28L19 19C12 9 25 6 31 14C37 6 51 10 43 20Z" fill={red}/>:id==='recall'?<><path d="M15 12Q23 8 31 14Q39 8 47 12V28Q39 23 31 29Q23 23 15 28Z" fill={paper}/><path d="M31 14V29M20 17L26 18M36 18L42 17"/><path d="M10 37L7 31L16 33" fill={green}/></>:<><path d="M31 7L42 18L31 29L20 18Z" fill="#87b3ab"/><path d="M25 18H37M31 11V25" stroke={paper}/><path d="M47 10V17M44 14H51" stroke={gold}/></>}</>}
+ {id==='redline'&&<><path d="M8 37L28 30L21 21L54 13L37 31L44 38L14 51L24 38Z" fill={red}/><path d="M15 42L43 22" stroke={paper} strokeWidth="4"/><path d="M10 23H19M6 30H17" stroke={ink}/></>}
+ {id==='marginal-storm'&&<><path d="M13 17C9 8 24 6 27 13C32 3 47 8 45 16C56 17 53 27 44 27H18C10 28 7 20 13 17Z" fill="#8b809f"/>{[20,32,44].map((x,i)=><g key={x}><path d={`M${x} ${30+i%2*4}L${x-5} 49M${x-10} 44L${x-5} 51L${x+1} 46`} fill="none" stroke={green} strokeWidth="3"/></g>)}</>}
+ {id==='final-draft'&&<><path d="M13 14Q31 20 49 14V32Q44 47 31 53Q18 47 13 32Z" fill={green}/><path d="M20 21Q31 25 42 21V32Q39 41 31 46Q23 41 20 32Z" fill={paper}/><path d="M31 26L34 32L40 34L34 36L31 42L28 36L22 34L28 32Z" fill={gold}/><path d="M7 10L11 12M51 8L48 11" stroke={red}/></>}
+ </g></svg>;
+}

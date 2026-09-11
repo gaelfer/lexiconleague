@@ -3,6 +3,7 @@
 export const TOWN = {
   width: 1280, top: -128, height: 1408, spawn: { x: 640, y: 960 },
   gatehouse: { x:656, y:48, spawn:{x:656,y:80} },
+  bell:{x:528,y:1168},
   buildings: [
     { id: 'archive', x: 1040, y: 320, roof: 0x536576 },
     { id: 'inn', x: 848, y: 1200, roof: 0x647a75 },

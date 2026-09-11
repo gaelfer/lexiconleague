@@ -1,4 +1,9 @@
+import {keeperPeriod} from '../story/keeperActivities';
+import {sleepingInkling} from '../entities/sleepingInkling';
+import {keepersAtHome} from '../world/keeperSchedule';
+import {getStoryProgress} from '../../lib/story/progress';
 import * as Phaser from 'phaser';
+import {sealReward} from '../world/combatEffects';
 import Player from '../entities/Player';
 import Blotling from '../entities/Blotling';
 import type {StoryAvatarConfig} from '../avatar';
@@ -57,7 +62,11 @@ export default class RepositoryScene extends Phaser.Scene{
     this.water=this.add.graphics().setDepth(-7);
     const p=expedition();
     const keepers=this.registry.get('wordwood-keepers')??{gardener:'cooking',bridgekeeper:'home'};
-    if(p.logGuardianFreed){
+    const period=keeperPeriod(getStoryProgress().worldClock);
+    if(p.logGuardianFreed&&keepersAtHome(this)&&this.room==='maintenance'){
+      sleepingInkling(this,576,352,0x65a765,'moss','gardener-base','double-bed-head-left');sleepingInkling(this,608,352,0xb95248,'moss','bridgekeeper-base','double-bed-head-right');
+    }
+    if(p.logGuardianFreed&&period==='day'){
       const kind=this.room==='store'?'gardener':this.room==='maintenance'?'bridgekeeper':null;
       if(kind&&keepers[kind]==='home'){
         const seated=kind==='bridgekeeper';
@@ -156,7 +165,7 @@ export default class RepositoryScene extends Phaser.Scene{
     const answer=({doorId,correct}:{doorId:string;correct:boolean})=>{
       if(this.question?.id!==doorId)return;
       const done=this.question.done;this.question=undefined;
-      if(correct)done();
+      if(correct){sealReward(this.player,`repository-${this.room}`);done();}
     };
     EventBus.on('repository-question-result',answer);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{

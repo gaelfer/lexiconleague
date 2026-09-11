@@ -3,7 +3,7 @@ export interface TrailPoint {x:number;y:number}
 export class TrailFollower {
   private trail:TrailPoint[]=[];
   private last:TrailPoint;
-  constructor(public position:TrailPoint,leader:TrailPoint){this.last={...leader};this.trail.push({...leader});}
+  constructor(public position:TrailPoint,leader:TrailPoint){this.last={x:leader.x,y:leader.y};this.trail.push({x:leader.x,y:leader.y});}
   update(leader:TrailPoint,delta:number):TrailPoint {
     const tile={x:Math.floor(leader.x/32)*32+16,y:Math.floor(leader.y/32)*32+16};
     if(tile.x!==this.last.x||tile.y!==this.last.y){this.trail.push(tile);this.last=tile;}

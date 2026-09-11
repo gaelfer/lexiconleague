@@ -805,7 +805,7 @@ function Home() {
 
           {/* ── Story Mode Alpha ── */}
           <Link
-            href="/story/1"
+            href="/story"
             className="lg:col-span-3 relative overflow-hidden border-[3px] cursor-pointer select-none min-w-0 transition-transform hover:scale-[1.01] group"
             style={{
               borderRadius: "0.5rem 1.25rem 0.5rem 1.25rem",

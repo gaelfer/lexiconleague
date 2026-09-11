@@ -7,14 +7,15 @@ import { EventBus } from '@/game/EventBus';
 import { createGame } from '@/game/PhaserGame';
 import { getChapterQuestions } from '@/lib/story/chapters';
 import HUDOverlay from './HUDOverlay';
+import WorldTime from './WorldTime';
 import WordLockModal from './WordLockModal';
 import type { Question } from '@/types';
 import { createGuestProfile, getProfile } from '@/lib/user/storage';
 import { markChapterComplete, getStoryProgress, isChapterUnlocked, saveStoryProgress } from '@/lib/story/progress';
 import { areaForChapter, getStorySettings } from '@/lib/story/adventure';
 import AdventureMenu from './AdventureMenu';
-import {getStoryInventory} from '@/lib/story/progress';
-import {toolSlots,TOOL_KEYS} from '@/lib/story/equipment';
+import CombatHUD from './CombatHUD';
+import {maxCombatHearts} from '@/lib/story/combatLoadout';
 
 interface StoryGameCanvasProps {
   chapterId: number;
@@ -37,17 +38,15 @@ const TOTAL_CHAPTER_GATES = 3;
  * to reference browser globals (window, Phaser) without guards.
  */
 export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
-  const [slots,setSlots]=useState(()=>toolSlots(getStoryInventory()));
-  useEffect(()=>{const refresh=()=>setSlots(toolSlots(getStoryInventory()));window.addEventListener('story-save',refresh);return()=>window.removeEventListener('story-save',refresh);},[]);
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const questionsByDoorRef = useRef(new Map<string, Question>());
 
   // HUD state (mirrors Phaser-side values)
   const [hearts, setHearts] = useState(3);
-  const [maxHearts] = useState(3);
+  const [bonusHeart,setBonusHeart]=useState(()=>getStoryProgress().bonusHeart??0);
+  const [maxHearts,setMaxHearts] = useState(()=>maxCombatHearts(getStoryProgress()));
   const [lexicoins, setLexicoins] = useState(0);
-  const [openedGates, setOpenedGates] = useState(0);
 
   // Word lock overlay state
   const [wordLock, setWordLock] = useState<WordLockState | null>(null);
@@ -67,7 +66,6 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
 
     const profile = getProfile() ?? createGuestProfile();
     questionsByDoorRef.current.clear();
-    setOpenedGates(0);
     gameRef.current = createGame(containerRef.current, chapterId, profile.avatar_config);
     const settings=getStorySettings();
     gameRef.current.sound.mute=!settings.sound;
@@ -85,9 +83,8 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
   // ── EventBus subscriptions ──────────────────────────────────────────────────
 
   useEffect(() => {
-    const onHealthChanged = ({ hearts: h }: { hearts: number }) => setHearts(h);
+    const onHealthChanged = ({ hearts: h }: { hearts: number }) => {setHearts(h);setMaxHearts(maxCombatHearts(getStoryProgress()));setBonusHeart(getStoryProgress().bonusHeart??0);};
     const onLexicoinsChanged = ({ amount }: { amount: number }) => setLexicoins(amount);
-    const onWordGatesChanged = ({ opened }: { opened: number; total: number }) => setOpenedGates(opened);
     const onRepositoryQuestion = (payload: WordLockState) => setWordLock({...payload, repository:true});
     const onRepositoryQuestionClosed = () => setWordLock(current => current?.repository ? null : current);
 
@@ -114,7 +111,6 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
     EventBus.on('repository-question', onRepositoryQuestion);
     EventBus.on('repository-question-closed', onRepositoryQuestionClosed);
     EventBus.on('lexicoins-changed', onLexicoinsChanged);
-    EventBus.on('word-gates-changed', onWordGatesChanged);
     EventBus.on('player-near-door', onNearDoor);
     EventBus.on('chapter-complete', onChapterComplete);
 
@@ -123,7 +119,6 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
       EventBus.off('repository-question', onRepositoryQuestion);
       EventBus.off('repository-question-closed', onRepositoryQuestionClosed);
       EventBus.off('lexicoins-changed', onLexicoinsChanged);
-      EventBus.off('word-gates-changed', onWordGatesChanged);
       EventBus.off('player-near-door', onNearDoor);
       EventBus.off('chapter-complete', onChapterComplete);
     };
@@ -147,19 +142,20 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
     >
       {/* Phaser canvas container */}
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <WorldTime/>
 
       {/* HUD */}
-      {chapterId !== 0 && <HUDOverlay
+      {<HUDOverlay
+        bonusHeart={bonusHeart}
         hearts={hearts}
         maxHearts={maxHearts}
         lexicoins={lexicoins}
-        openedGates={openedGates}
-        totalGates={TOTAL_CHAPTER_GATES}
         healthOnly={chapterId === 2}
       />}
       {accessDenied && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', color: '#e8d8b0' }}>This route hasn’t opened yet. <Link href="/story">Continue your adventure</Link></div>}
 
       {!accessDenied&&<AdventureMenu game={gameRef} chapterId={chapterId} blocked={!!wordLock} hearts={hearts}/>}
+      {!accessDenied&&!wordLock&&<CombatHUD/>}
 
       <div
         aria-label="Game controls"
@@ -182,7 +178,7 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
           whiteSpace: 'nowrap',
         }}
       >
-        {`WASD · MOVE   ${TOOL_KEYS.filter(key=>slots[key]).map(key=>`${key} · ${slots[key]?.toUpperCase()}`).join('   ')}   E · INTERACT   M · INVENTORY / SKILLS`}
+        {`WASD · MOVE   E · INTERACT   M · MENU${getStoryProgress().combatArtsUnlocked===true?'   Z / X · ARTS   C · INKBURST':''}`}
       </div>
 
       {/* Word lock modal */}
