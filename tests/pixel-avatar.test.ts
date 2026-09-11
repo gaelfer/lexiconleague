@@ -25,13 +25,23 @@ describe('pixel avatar conversion',()=>{
     expect(result[3]).toBe(0);
     expect(result[(5*12+5)*4+3]).toBe(255);
   });
-  it('clusters only when the body conversion requests it',()=>{
+  it('clusters only when requested',()=>{
     const data=new Uint8ClampedArray(4*4*4);
     data.set([255,255,255,255],(1*4+1)*4);
     const face=pixelizeAvatar(data,4,4);
     const body=pixelizeAvatar(data,4,4,undefined,112,true);
     expect([...face].filter((_,i)=>i%4===3&&face[i]===255)).toHaveLength(1);
     expect([...body].filter((_,i)=>i%4===3&&body[i]===255)).toHaveLength(4);
+  });
+  it('retains a dark outline on every exposed clustered body edge',()=>{
+    const data=new Uint8ClampedArray(16*16*4);
+    for(let y=2;y<13;y++)for(let x=2;x<13;x++)data.set([0,0,0,255],(y*16+x)*4);
+    const result=pixelizeAvatar(data,16,16,0x628f79,112,true);
+    const border=[...inkPalette(0x628f79)[0],255];
+    for(let p=2;p<14;p++){
+      for(const [x,y] of [[p,2],[p,13],[2,p],[13,p]])
+        expect([...result.slice((y*16+x)*4,(y*16+x)*4+4)]).toEqual(border);
+    }
   });
   it('retains chosen ink hue while adding a limited shading palette',()=>{
     const result=pixelizeAvatar(source(),12,12,0x628f79),colors=new Set<string>();

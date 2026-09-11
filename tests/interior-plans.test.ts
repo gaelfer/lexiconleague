@@ -12,7 +12,7 @@ describe('medieval tile interiors',()=>{
     }
   });
   it('gives every home a bed and Mira and Luma separate beds',()=>{
-    for(const id of ['home','baker','gardener','guard','guest','mapmaker'] as const)
+    for(const id of ['home','nell','baker','gardener','guard','guest','mapmaker'] as const)
       expect(INTERIOR_PLANS[id].props.some(p=>p.asset==='bed-head'),id).toBe(true);
     expect(INTERIOR_PLANS.mapmaker.props.filter(p=>p.asset==='bed-head')).toHaveLength(2);
   });
@@ -26,7 +26,7 @@ describe('medieval tile interiors',()=>{
       const key=`${p.col},${p.row}`;
       expect(blocked.has(key),`${id}: overlapping ${key}`).toBe(false);blocked.add(key);
     }
-    if(['baker','gardener','guest','mapmaker'].includes(id)){
+    if(['baker','gardener','guest','nell','mapmaker'].includes(id)){
       expect(blocked.has('8,4'),`${id}: resident in furniture`).toBe(false);blocked.add('8,4');
     }
     expect(blocked.has('5,6')).toBe(false);expect(blocked.has('5,7')).toBe(false);

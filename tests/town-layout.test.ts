@@ -13,7 +13,7 @@ describe('Inkwell town model', () => {
     expect(gate.spawn.x%32).toBe(16);expect(gate.spawn.y%32).toBe(16);
   });
   it('has a distinct room plan for every enterable house', () => {
-    const houses = TOWN.buildings.filter((house) => house.id !== 'archive');
+    const houses = TOWN.buildings.filter((house) => house.id !== 'archive'&&house.id!=='inn');
     expect(houses).toHaveLength(8);
     const plans = houses.map((house) => ROOM_LAYOUTS[house.id as keyof typeof ROOM_LAYOUTS]);
     expect(plans.every((plan) => plan?.length >= 3)).toBe(true);

@@ -62,6 +62,8 @@ export function readableText(scene:Phaser.Scene,world:Phaser.Cameras.Scene2D.Cam
         ctx.globalAlpha=alpha;ctx.imageSmoothingEnabled=text;
         if(text)ctx.drawImage(object.canvas,-object.displayOriginX,-object.displayOriginY,object.width,object.height);
         else{
+          const brightness=object.getData('story-brightness');
+          if(typeof brightness==='number'&&brightness<1)ctx.filter=`brightness(${brightness})`;
           if(object.flipX||object.flipY){ctx.translate(object.flipX?object.width-2*object.displayOriginX:0,object.flipY?object.height-2*object.displayOriginY:0);ctx.scale(object.flipX?-1:1,object.flipY?-1:1);}
           ctx.drawImage(object.frame.source.image as CanvasImageSource,object.frame.cutX,object.frame.cutY,object.frame.cutWidth,object.frame.cutHeight,-object.displayOriginX,-object.displayOriginY,object.width,object.height);
         }

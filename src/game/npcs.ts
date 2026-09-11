@@ -73,7 +73,7 @@ export const VILLAGE_NPCS: VillageNpcSpec[] = [
       'When you get back, tell me one thing nobody has put in a book yet.',
     ],
   },
-  { name: 'Nell', x: 2320, y: -430, base: 'droplet_01', eyes: 'eyes_06', accessory: 'scarf_01', color: '#c19772', hubOnly: true,
+  { name: 'Nell', x: 2320, y: -430, base: 'droplet_01', eyes: 'eyes_06', accessory: 'scarf_01', color: '#c19772', hubOnly: true, house:'nell',
     dialogue: ['Fenn saves the crooked rolls for me. Same bread, cheaper price!', 'Please do not tell him I like them better.'] },
   { name: 'Rowan', x: 2480, y: -120, base: 'droplet_04', eyes: 'eyes_03', accessory: 'quill_01', color: '#83b5ab', hubOnly: true,
     dialogue: ['I take the long way home past the pond.', 'It only adds a minute. Best minute of my day.'] },
@@ -82,5 +82,5 @@ export const VILLAGE_NPCS: VillageNpcSpec[] = [
   { name: 'Tansy', x: 550, y: 350, base: 'droplet_02', eyes: 'eyes_08', accessory: 'quill_01', color: '#96bd83', hubOnly: true, house: 'gardener',
     dialogue: ['This cutting came from Wordwood. It grows toward whoever is talking.', 'Bramble says plants cannot have favourites. Easy for him to say. He is not their favourite.'] },
   { name: 'Oren', x: 550, y: 350, base: 'droplet_05', eyes: 'eyes_04', accessory: 'scarf_01', color: '#b9a4cb', hubOnly: true, house: 'guest',
-    dialogue: ['I asked for directions. They gave me tea and a room.', 'I still do not know the way. Not in much of a hurry now.'] },
+    dialogue: ['I painted the front door myself. There’s still a purple thumbprint on the other side.', 'I meant to unpack those boxes last week. They’re holding the shelves up rather nicely now.'] },
 ];

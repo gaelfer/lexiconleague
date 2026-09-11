@@ -1,4 +1,4 @@
-export type VillageBuildingId = 'home' | 'scriptorium' | 'mapmaker' | 'tea-room' | 'baker' | 'gardener' | 'guard' | 'guest';
+export type VillageBuildingId = 'home' | 'nell' | 'scriptorium' | 'mapmaker' | 'tea-room' | 'baker' | 'gardener' | 'guard' | 'guest';
 
 export interface VillageBuildingSpec {
   id: VillageBuildingId;
@@ -12,7 +12,8 @@ export const VILLAGE_BUILDINGS: VillageBuildingSpec[] = [
   { id: 'baker', name: 'BAKER FENN’S HOME', entrance: { x: 1920, y: -554 }, accent: 0xc19772, hubOnly: true },
   { id: 'gardener', name: 'BRAMBLE’S COTTAGE', entrance: { x: 2830, y: -554 }, accent: 0x8fcfb7, hubOnly: true },
   { id: 'guard', name: 'SERIF’S QUARTERS', entrance: { x: 1920, y: -114 }, accent: 0x73a8e8, hubOnly: true },
-  { id: 'guest', name: 'THE GUEST HOUSE', entrance: { x: 2920, y: -114 }, accent: 0xc19772, hubOnly: true },
+  { id: 'guest', name: 'OREN’S HOUSE', entrance: { x: 2920, y: -114 }, accent: 0xb9a4cb, hubOnly: true },
+  { id: 'nell', name: 'NELL’S HOUSE', entrance: { x: 256, y: 646 }, accent: 0xc19772, hubOnly: true },
   {
     id: 'home',
     name: 'YOUR HOME',

@@ -3,6 +3,7 @@ import { grassTiles, villagePaths } from './pixelTerrain';
 import { TOWN } from '../story/townPlan';
 import { buildArchiveExterior } from './archiveExterior';
 import { buildCottageExterior } from './cottageExterior';
+import { buildInnExterior } from './innExterior';
 
 export function buildTown(scene: Phaser.Scene, addObstacle: AddObstacle) {
   const floor = scene.add.graphics().setDepth(-20);
@@ -19,7 +20,8 @@ export function buildTown(scene: Phaser.Scene, addObstacle: AddObstacle) {
       buildArchiveExterior(scene,house.x,house.y,addObstacle);
       continue;
     }
-    buildCottageExterior(scene,house.x,house.y,house.roof,addObstacle);
+    if(house.id==='inn')buildInnExterior(scene,house.x,house.y,addObstacle);
+    else buildCottageExterior(scene,house.x,house.y,house.roof,addObstacle);
     villagePaths(paths, [[house.x - 16, house.y + 64, 32, 40]]);
     if (house.id === 'gardener' || house.id === 'guest') addGarden(scene, house.x - 124, house.y + 24, 48, 64);
     addLantern(scene, house.x + 116, house.y + 96);
@@ -487,23 +489,51 @@ function addGarden(scene: Phaser.Scene, x: number, y: number, width: number, hei
 }
 
 function addFountain(scene: Phaser.Scene, x: number, y: number, addObstacle: AddObstacle) {
-  const g = scene.add.graphics().setDepth(1);
-  g.fillStyle(0x071820, 0.35);
-  g.fillEllipse(x + 5, y + 12, 150, 74);
-  g.fillStyle(COLORS.stoneDark);
-  g.fillEllipse(x, y + 5, 148, 78);
-  g.fillStyle(COLORS.stone);
-  g.fillEllipse(x, y, 140, 70);
-  g.fillStyle(0x38bdf8, 0.75);
-  g.fillEllipse(x, y - 1, 118, 50);
-  g.fillStyle(0x7dd3fc, 0.34);
-  g.fillEllipse(x - 14, y - 8, 58, 18);
-  g.fillStyle(COLORS.stoneDark);
-  g.fillRoundedRect(x - 12, y - 58, 24, 59, 8);
-  g.fillStyle(COLORS.gold);
-  g.fillCircle(x, y - 61, 12);
-  g.fillStyle(COLORS.ink);
-  g.fillCircle(x, y - 61, 6);
+  const g=scene.add.graphics().setPosition(x,y).setScale(2).setDepth(1);
+  const r=(x:number,y:number,w:number,h:number,c:number)=>g.fillStyle(c).fillRect(x,y,w,h);
+  // Native-pixel octagons: chunky masonry, not antialiased ellipse primitives.
+  const basin=(cx:number,cy:number,half:number,height:number,corner:number,color:number)=>{
+    for(let row=0;row<height;row++){
+      const inset=Math.max(0,corner-Math.min(row,height-1-row));
+      r(cx-half+inset,cy+row,half*2-inset*2,1,color);
+    }
+  };
+  basin(3,-10,37,34,9,0x28493e);
+  basin(0,-15,36,36,9,0x354949);
+  basin(0,-16,35,32,9,0x77887c);
+  basin(-1,-17,34,28,8,0xc1c2a0);
+  basin(0,-13,29,21,7,0x425f5c);
+  basin(0,-11,27,17,6,0x347878);
+  basin(-2,-10,24,13,5,0x4b9290);
+  // Shallow ledge and reflected light, with deeper water below the spout.
+  r(-18,-9,12,1,0xa0c9b5);r(-22,-6,7,1,0x7db6a6);
+  r(10,-3,10,1,0x8abfad);r(16,0,6,1,0x6fa99d);
+  r(-9,3,16,1,0x80b4a3);r(-5,-5,14,5,0x386e72);
+  // Front coping stones have lit tops, dark undersides and mortar joints.
+  r(-24,10,48,2,0xd0cba8);r(-25,13,50,2,0x89947f);
+  r(-25,17,50,2,0x566e65);
+  for(const sx of [-22,-10,2,14,24]){r(sx,11,1,6,0x5a7167);r(sx+1,12,1,3,0xa7b194);}
+  r(-32,1,2,7,0xd1caa4);r(31,1,2,7,0x596f66);
+  r(-28,13,4,2,0x6b8760);r(18,17,5,2,0x637e58);
+  // A stone teardrop feeds a small upper bowl and two falling streams.
+  r(-6,-22,12,20,0x354c50);r(-4,-22,8,19,0x8a9b8c);
+  r(-4,-21,2,17,0xc8c5a1);r(3,-20,2,17,0x5e7a72);
+  basin(0,-26,13,8,3,0x354c50);basin(0,-27,12,5,2,0xbabf9d);
+  r(-8,-25,16,2,0x438781);r(-6,-25,7,1,0xaad2bb);
+  r(-2,-41,4,4,0x3b5154);r(-4,-37,8,4,0x3b5154);r(-6,-33,12,6,0x3b5154);
+  r(-2,-37,4,8,0x9caa94);r(-4,-32,8,4,0x9caa94);r(-2,-36,2,7,0xd0caa5);
+  r(-1,-29,2,4,0xb2d9c4);
+  for(const sx of [-10,9]){r(sx,-22,2,14,0x79b9af);r(sx,-21,1,12,0xd0e3c5);r(sx-2,-5,6,1,0xa5ceba);}
+  const flow=scene.add.graphics().setPosition(x,y).setScale(2).setDepth(1.1);
+  let phase=0;
+  const ripple=()=>{
+    flow.clear();phase=(phase+1)%4;
+    for(const sx of [-10,9]){
+      flow.fillStyle(0xe0ebcc).fillRect(sx,-20+phase*3,1,2);
+      flow.fillStyle(0x96c8b8).fillRect(sx-3-phase,-3,5+phase*2,1);
+    }
+  };
+  ripple();scene.time.addEvent({delay:180,loop:true,callback:ripple});
   addObstacle(x, y, 126, 62);
 }
 

@@ -16,6 +16,7 @@ export interface StoryProgress {
   opening?: 'woke' | 'chase' | 'scholar' | 'wordwood';
   defeatedRoadEnemies?: number[];
   visitedInkwell?: boolean;
+  innRoomBooked?: boolean;
 }
 
 export interface StoryInventory {

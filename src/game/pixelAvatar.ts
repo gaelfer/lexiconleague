@@ -64,5 +64,15 @@ export function pixelizeAvatar(source:Uint8ClampedArray,width:number,height:numb
       clustered.set(output.subarray(chosen,chosen+4),(py*width+px)*4);
     }
   }
+  if(palette){
+    // Rebuild the outline on the final block grid. Choosing a block's first
+    // opaque pixel can otherwise replace a lower/right edge with interior shade.
+    const filled=(x:number,y:number)=>x>=0&&y>=0&&x<width&&y<height&&clustered[(y*width+x)*4+3]!==0;
+    for(let y=0;y<height;y+=2)for(let x=0;x<width;x+=2){
+      if(!filled(x,y)||[[-2,0],[2,0],[0,-2],[0,2]].every(([dx,dy])=>filled(x+dx,y+dy)))continue;
+      for(let by=0;by<2&&y+by<height;by++)for(let bx=0;bx<2&&x+bx<width;bx++)
+        clustered.set([...palette[0],255],((y+by)*width+x+bx)*4);
+    }
+  }
   return clustered;
 }

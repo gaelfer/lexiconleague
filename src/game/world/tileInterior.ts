@@ -1,9 +1,9 @@
 import type * as Phaser from 'phaser';
-import { INTERIOR_PLANS, ROOM_GRID, propAsset, type InteriorId } from '../story/interiorPlans';
+import { INTERIOR_PLANS, ROOM_GRID, propAsset, type InteriorId, type InteriorPlan } from '../story/interiorPlans';
 
 /** Native-size sprites are independent floor, rug, furniture and wall layers. */
-export function buildTileInterior(scene:Phaser.Scene,id:InteriorId,wall:(x:number,y:number,w:number,h:number)=>void){
-  const plan=INTERIOR_PLANS[id], {x,y,cols,floorY,rows}=ROOM_GRID;
+export function buildTileInterior(scene:Phaser.Scene,id:InteriorId,wall:(x:number,y:number,w:number,h:number)=>void,customPlan?:InteriorPlan){
+  const plan=customPlan??INTERIOR_PLANS[id], {x,y,cols,floorY,rows}=ROOM_GRID;
   scene.physics.world.setBounds(x,floorY,cols*32,rows*32);
   scene.add.rectangle(x-4,y-4,cols*32+8,64+rows*32+8,0x272832).setOrigin(0).setDepth(-30);
   const tile=(asset:string,col:number,row:number,depth:number,top=floorY)=>scene.add.image(x+col*32,top+row*32,`interior-${asset}`).setDisplaySize(32,32).setOrigin(0).setDepth(depth);

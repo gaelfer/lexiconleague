@@ -1,11 +1,12 @@
 /** Inkwell: user's reference layout, adapted with a dry southern promenade.
  * This is the model consumed by the renderer, doors and NPC placement. */
 export const TOWN = {
-  width: 1280, top: -128, height: 1152, spawn: { x: 640, y: 960 },
+  width: 1280, top: -128, height: 1408, spawn: { x: 640, y: 960 },
   gatehouse: { x:640, y:48, spawn:{x:656,y:80} },
   buildings: [
     { id: 'archive', x: 1040, y: 320, roof: 0x536576 },
-    { id: 'home', x: 256, y: 560, roof: 0x987151 },
+    { id: 'inn', x: 832, y: 1200, roof: 0x647a75 },
+    { id: 'nell', x: 256, y: 560, roof: 0x987151 },
     { id: 'baker', x: 192, y: 176, roof: 0x567e70 },
     { id: 'guard', x: 800, y: 816, roof: 0x526d83 },
     { id: 'mapmaker', x: 480, y: 560, roof: 0x9a7353 },
@@ -16,7 +17,8 @@ export const TOWN = {
   ],
   streets: [
     [608, 32, 64, 32],
-    [608, 64, 64, 1024],
+    [608, 64, 64, 1248],
+    [608, 1248, 416, 64],
     [128, 256, 736, 64],
     [224, 640, 992, 64],
     [1008, 384, 64, 320],

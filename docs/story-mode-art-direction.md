@@ -85,6 +85,28 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   face, hands or sword. Snap character compositor translations to display pixels.
 - Player body texture scale and orientation stay fixed during animations. Turn
   using the face, gear and limbs; do not continuously squeeze or mirror the baked body.
+  Death is an exception: the complete avatar collapses into dark ink before the
+  respawn fade. Hurt briefly darkens the existing artwork without replacing cosmetics.
 - The hub gatehouse sits at the northern approach defined in TOWN.gatehouse;
   use that same source for rendering, arrival and interaction. Keep its roof
   separate from the tea-room and preserve the northward camera/terrain bounds.
+- The player's home exists on Inkwell Road only. The southern Lantern Inn serves
+  the village: two floors, three furnished rooms per floor, reception downstairs.
+  Wren offers 1 to book or 2 to decline. A free booking persists in story progress
+  and unlocks upstairs room 202; it stays locked until accepted. Rest there heals.
+- Nell lives in the former village player-home plot. The old guest-house building
+  is Oren’s private home, with one bed and personal belongings. Keep guest lodging
+  in the inn. Wren is the concierge; each inn room has a named conversational NPC.
+  Fern is the linen attendant in room 202, which remains the player's booked room.
+  Inn bedrooms group beds, storage and rugs into sleeping corners, with separate
+  guest-specific work and tea areas. Working guests stand on the tile directly
+  beside their furniture, with short activity routes that pause for the player.
+  Moss sits with tea; Rue sleeps under her plum quilt. Player sleep uses a closed-eye
+  teardrop on the pillow with the actual bed-quilt texture layered over the body.
+  Move each guest's collision and interaction target with its rig; never leave a
+  static blocker at the original position. Pause activities during dialogue.
+  Wren has black ink and a connected oak reception counter extending from the
+  west wall with a return around the concierge. Keep the northern guest doors clear.
+  Inn corridor doors sit within a continuous, collidable north wall band; the
+  first walkable corridor row is y=272. Stairs assemble three 16px sprites into
+  a landing, tread section, and foot, with matching three-tile collision.

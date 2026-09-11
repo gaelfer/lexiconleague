@@ -40,6 +40,8 @@ export default class Player {
   private feet: [Phaser.GameObjects.Graphics, Phaser.GameObjects.Graphics];
   private walkElapsed = 0;
   private idleElapsed = 0;
+  private swordIdleMs = 0;
+  get swordStowed(){return this.swordIdleMs>=15700;}
   private idleBlend = 0;
   private isMoving = false;
   private gridStep: { from: GridPoint; to: GridPoint; elapsed: number; duration: number } | null = null;
@@ -61,6 +63,9 @@ export default class Player {
   private attackHoldMs = 0;
   private attackCooldown = 0;
   private damageInvulnerabilityMs = 0;
+  private hurtMs=0;
+  private recoil:{from:GridPoint;to:GridPoint;elapsed:number}|null=null;
+  public isDying=false;
   private attackPoseMs = 0;
   private attackPoseDuration = 1;
   private attackPoseType: 'swing' | 'spin' = 'swing';
@@ -186,11 +191,20 @@ export default class Player {
       ...this.feet, ...this.hands, this.sword, this.bow, this.swordTrail,
     ]).setScale(INKLING_SCALE).setDepth(10);
     this.hearts = startHearts;
-    this.syncVisuals(0);
+    // Room scenes create their own Player, while the outdoor Player may remain
+    // paused. Keep the timer on the game, not on any one of those instances.
+    const restoreSword=()=>{
+      this.swordIdleMs=scene.registry.get('story:swordIdleMs')??0;
+      this.syncVisuals(0);
+    };
+    restoreSword();
+    scene.events.on(Phaser.Scenes.Events.RESUME,restoreSword);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>scene.events.off(Phaser.Scenes.Events.RESUME,restoreSword));
   }
 
   get x() { return this.sprite.x; }
   get y() { return this.sprite.y; }
+  setSleeping(value:boolean){this.stopMovement();this.artwork.setVisible(!value);}
 
   healFully() {
     this.hearts=3;
@@ -215,6 +229,7 @@ export default class Player {
 
   stopMovement() {
     if (!this.sprite.active || !this.sprite.body) return;
+    if(this.isDying){this.sprite.setVelocity(0,0);return;}
     if (this.gridStep) {
       this.sprite.body.reset(this.gridStep.to.x, this.gridStep.to.y);
       this.gridStep = null;
@@ -226,6 +241,21 @@ export default class Player {
   }
 
   update(delta: number) {
+    if(this.isDying)return;
+    this.damageInvulnerabilityMs=Math.max(0,this.damageInvulnerabilityMs-delta);
+    if(this.hurtMs>0||this.recoil){
+      this.hurtMs=Math.max(0,this.hurtMs-delta);
+      if(this.recoil){
+        this.recoil.elapsed+=Math.min(delta,50);
+        const p=interpolateStep(this.recoil.from,this.recoil.to,this.recoil.elapsed,200);
+        this.sprite.body!.reset(p.x,p.y);
+        if(this.recoil.elapsed>=200)this.recoil=null;
+      }
+      this.syncVisuals(0);
+      this.visualLayers.forEach(({image})=>image.setData('story-brightness',.4+.6*(1-this.hurtMs/320)));
+      return;
+    }
+    this.visualLayers.forEach(({image})=>image.setData('story-brightness',1));
     if(this.bowReview){this.bowPoseMs=240;this.facing='right';this.syncVisuals(0);return;}
     const previousBowMs = this.bowPoseMs;
     this.bowPoseMs = Math.max(0, this.bowPoseMs - delta);
@@ -233,10 +263,13 @@ export default class Player {
       const pose=bowPose(this.x,this.y,this.facing,BOW_RELEASE,INKLING_SCALE);
       EventBus.emit('player-bow', { ...pose.release, facing: this.facing });
     }
-    this.damageInvulnerabilityMs = Math.max(0, this.damageInvulnerabilityMs - delta);
     this.attackPoseMs = Math.max(0, this.attackPoseMs - delta);
     this.handleMovement(delta);
     this.handleAttack(delta);
+    if(this.attackHeld||this.attackPoseMs>0)this.swordIdleMs=0;
+    else if(this.bowPoseMs<=0)this.swordIdleMs=Math.min(15700,this.swordIdleMs+delta);
+    if(this.sprite.scene.registry.get('story:swordIdleMs')!==this.swordIdleMs)
+      this.sprite.scene.registry.set('story:swordIdleMs',this.swordIdleMs);
     this.syncVisuals(delta);
   }
 
@@ -389,7 +422,22 @@ export default class Player {
     }
     // The sword origin is the center of its grip: hand and hilt share one pivot.
     this.hands[1].setPosition(swordX, swordY).setDepth(this.sword.depth + 0.1);
-    this.sword.setVisible(this.bowPoseMs <= 0);
+    this.sword.setVisible(this.bowPoseMs <= 0&&!this.swordStowed).setAlpha(1);
+    // Reach over the shoulder, slide the blade away, then relax the empty hand.
+    // Interrupting with Q restores the normal grip in the same update as the hit.
+    if(this.swordIdleMs>15000&&this.bowPoseMs<=0){
+      const p=Math.min(1,(this.swordIdleMs-15000)/700);
+      const reach=Math.min(1,p/.4);
+      const slide=Phaser.Math.Clamp((p-.4)/.4,0,1);
+      const relax=Phaser.Math.Clamp((p-.8)/.2,0,1);
+      const side=facesLeft?-1:1;
+      const gripX=this.x+side*(15-7*reach+7*relax);
+      const gripY=this.y+bob+10-26*reach+12*slide+14*relax;
+      this.sword.setPosition(gripX,gripY).setAngle(side*( -8+150*reach))
+        .setDepth(9.5).setAlpha(1-slide);
+      this.hands[1].setPosition(gripX,gripY).setDepth(facesBack?14:9.6);
+      if(this.swordStowed)this.hands[1].setPosition(this.x+side*15,this.y+bob+8-armSwing).setDepth(facesBack?9.6:13.5);
+    }
     this.bow.setVisible(this.bowPoseMs > 0);
     if (this.bowPoseMs > 0) {
       const pose=bowPose(this.x,this.y,this.facing,this.bowPoseMs,INKLING_SCALE);
@@ -476,18 +524,47 @@ export default class Player {
     EventBus.emit('player-attack', { type: 'spin', x: this.x, y: this.y });
   }
 
-  takeDamage(amount: number): boolean {
+  takeDamage(amount: number,source?:{x:number;y:number}): boolean {
     if (this.damageInvulnerabilityMs > 0 || this.hearts <= 0) return false;
     this.damageInvulnerabilityMs = 1300;
+    this.stopMovement();
+    this.attackHeld=false;this.attackHoldMs=0;this.attackPoseMs=0;this.bowPoseMs=0;this.queuedBow=false;
+    this.clearAvatarTint();this.trailPoints=[];this.swordTrail.clear();
+    this.hurtMs=320;
+    if(source){
+      const fallback=facingVector(this.facing);
+      let dx=this.x-source.x,dy=this.y-source.y;
+      if(dx===0&&dy===0){dx=-fallback.x;dy=-fallback.y;}
+      const rx=Math.abs(dx)>=Math.abs(dy)?Math.sign(dx):0;
+      const ry=Math.abs(dx)<Math.abs(dy)?Math.sign(dy):0;
+      const from={x:tileCenter(this.x),y:tileCenter(this.y)};
+      const to=nextGridStep(from,rx,ry,(a,b)=>this.gridPathClear(a,b));
+      if(to)this.recoil={from,to,elapsed:0};
+    }
     this.hearts = Math.max(0, this.hearts - amount);
-    this.setAvatarTint(0xff0000);
+    this.visualLayers.forEach(({image})=>image.setData('story-brightness',.4));
     EventBus.emit('health-changed', { hearts: this.hearts });
-    // Brief invincibility flash
-    this.sprite.scene.time.delayedCall(200, () => this.clearAvatarTint());
     if (this.hearts <= 0) {
-      EventBus.emit('player-died', {});
+      this.playDeath();
     }
     return true;
+  }
+
+  private playDeath(){
+    this.isDying=true;this.recoil=null;this.sprite.setVelocity(0,0);
+    this.sword.setVisible(false);this.bow.setVisible(false);this.swordTrail.clear();
+    const layers=this.visualLayers.map(({image})=>({image,y:image.y,w:image.displayWidth,h:image.displayHeight}));
+    const pose={progress:0};
+    this.sprite.scene.tweens.add({targets:pose,progress:1,duration:760,ease:'Cubic.easeIn',
+      onUpdate:()=>{
+        for(const {image,y,w,h} of layers){
+          image.setDisplaySize(w*(1+pose.progress*.5),h*(1-pose.progress*.88));
+          image.y=y+pose.progress*24;image.setAlpha(1-pose.progress*.45);
+          image.setData('story-brightness',.45-pose.progress*.25);
+        }
+        [...this.hands,...this.feet].forEach(limb=>limb.setAlpha(1-pose.progress));
+      },
+      onComplete:()=>EventBus.emit('player-died',{})});
   }
 
   addLexicoins(amount: number) {

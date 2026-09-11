@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import {interactionScore} from '../interaction';
 import { frameWorld } from '../world/framing';
 import { buildTileInterior } from '../world/tileInterior';
 import { ROOM_GRID } from '../story/interiorPlans';
@@ -110,9 +111,9 @@ export default class ArchiveScene extends Phaser.Scene {
     const nearest = interactions
       .map((interaction) => ({
         interaction,
-        distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, interaction.x, interaction.y),
+        distance: interactionScore(this.player,interaction),
       }))
-      .filter(({ distance }) => distance < 34)
+      .filter(({ distance }) => Number.isFinite(distance))
       .sort((a, b) => a.distance - b.distance)[0];
 
     if (!nearest) {

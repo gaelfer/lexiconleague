@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import Player from '../entities/Player';
-import type { StoryAvatarConfig } from '../avatar';
+import {hexToNumber,type StoryAvatarConfig} from '../avatar';
+import {sleepingInkling} from '../entities/sleepingInkling';
 import { buildTileInterior } from '../world/tileInterior';
 import { frameWorld } from '../world/framing';
 import { EventBus } from '../EventBus';
@@ -17,6 +18,7 @@ export default class WakeScene extends Phaser.Scene {
   private readyAt=0;
   private rested=false;
   private startHearts=3;
+  private sleepPose?:ReturnType<typeof sleepingInkling>;
   constructor(private avatar: StoryAvatarConfig) { super('WakeScene'); }
   init(data:{visit?:boolean;hearts?:number}={}){this.visit=!!data.visit;this.sleeping=false;this.rested=false;this.startHearts=data.hearts??3;}
   create() {
@@ -28,7 +30,7 @@ export default class WakeScene extends Phaser.Scene {
       walls.add(wall);
     });
     this.player = new Player(this,this.visit?400:240,this.visit?432:240,this.avatar,this.startHearts);
-    if(!this.visit)this.player.rest();
+    if(!this.visit){this.player.setSleeping(true);this.sleepPose=sleepingInkling(this,224,224,hexToNumber(this.avatar.color),'teal');}
     this.physics.add.collider(this.player.sprite,walls);
     this.hint = this.add.text(400,510,'Inkwell’s warning bell cuts through your sleep.\n\nE  GET UP', {
       fontFamily:'Georgia, serif', fontSize:'18px',color:'#eee4cc',align:'center',
@@ -44,6 +46,7 @@ export default class WakeScene extends Phaser.Scene {
     if (!this.awake) {
       if (!this.player.isInteractJustDown()) return;
       this.awake = true;
+      this.sleepPose?.destroy();this.sleepPose=undefined;this.player.setSleeping(false);
       // Begin sound on a gesture, respecting browser autoplay policy.
       if (!this.visit && this.sound instanceof Phaser.Sound.WebAudioSoundManager) {
         const context = this.sound.context;
@@ -68,7 +71,8 @@ export default class WakeScene extends Phaser.Scene {
         this.sleeping=true;this.player.stopMovement();this.hint.setText('You settle beneath the quilt…');
         this.cameras.main.fadeOut(450,8,15,24);
         this.time.delayedCall(500,()=>{
-          this.player.sprite.body!.reset(240,240);this.player.rest();
+          this.player.sprite.body!.reset(240,240);this.player.setSleeping(true);
+          this.sleepPose=sleepingInkling(this,224,224,hexToNumber(this.avatar.color),'teal');
           this.hint.setText('A little peace and quiet.\n\nE  GET UP');
           this.time.delayedCall(900,()=>{
             this.player.healFully();this.rested=true;
@@ -79,7 +83,8 @@ export default class WakeScene extends Phaser.Scene {
         return;
       }
     }
-    if (Phaser.Math.Distance.Between(this.player.x,this.player.y,400,464)<10) {
+    const atExit=Math.abs(this.player.x-400)<=40&&this.player.y>=416;
+    if (atExit&&(this.player.y>=450||(this.player.facing==='down'&&this.player.isInteractJustDown()))) {
       this.leaving=true;this.player.stopMovement();this.cameras.main.fadeOut(300);
       this.time.delayedCall(320,()=>{
         if(this.visit){this.scene.stop();this.scene.resume('DungeonScene',{rested:this.rested});return;}

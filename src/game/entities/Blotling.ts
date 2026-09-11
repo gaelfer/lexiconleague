@@ -11,6 +11,10 @@ export default class Blotling {
   private attackCooldown = 0;
   private hitStun = 0;
   private elapsed = 0;
+  private attackMs=-1;
+  private attackDirection={x:0,y:0};
+  private struck=false;
+  get attackPhase(){return this.attackMs<0?'idle':this.attackMs<300?'windup':this.attackMs<440?'strike':'recover';}
   public defeated = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -29,21 +33,33 @@ export default class Blotling {
     const dx = target.x - this.sprite.x;
     const dy = target.y - this.sprite.y;
     const distance = Math.hypot(dx, dy);
+    this.shadow.setPosition(this.sprite.x,this.sprite.y+18);
+
+    if(this.attackMs>=0&&this.hitStun===0){
+      this.attackMs+=Math.min(delta,50);
+      if(this.attackMs<300){
+        const p=this.attackMs/300;
+        this.sprite.setVelocity(0,0).setScale(1+p*.22,1-p*.22).setTint(0xc4a1e2);
+      }else if(this.attackMs<440){
+        this.sprite.clearTint().setScale(.86,1.14);
+        this.sprite.setVelocity(this.attackDirection.x*170,this.attackDirection.y*170);
+        if(!this.struck&&this.attackMs>=350&&distance<=ATTACK_RANGE+10){this.struck=true;return true;}
+      }else{
+        this.sprite.setVelocity(0,0);
+        const p=Math.min(1,(this.attackMs-440)/200);
+        this.sprite.setScale(.86+.14*p,1.14-.14*p);
+        if(p===1){this.attackMs=-1;this.attackCooldown=900;this.sprite.setScale(1);}
+      }
+      return false;
+    }
 
     if (this.hitStun > 0) {
       this.sprite.setVelocity(this.sprite.body!.velocity.x * 0.86, this.sprite.body!.velocity.y * 0.86);
-    } else if (distance <= ATTACK_RANGE) {
+    } else if (distance <= 58) {
       this.sprite.setVelocity(0, 0);
       if (this.attackCooldown === 0) {
-        this.attackCooldown = 1450;
-        this.sprite.scene.tweens.add({
-          targets: this.sprite,
-          scaleX: 1.25,
-          scaleY: 0.78,
-          duration: 90,
-          yoyo: true,
-        });
-        return true;
+        this.attackMs=0;this.struck=false;
+        this.attackDirection={x:dx/(distance||1),y:dy/(distance||1)};
       }
     } else if (distance < CHASE_RANGE) {
       this.sprite.setVelocity((dx / distance) * MOVE_SPEED, (dy / distance) * MOVE_SPEED);
@@ -61,6 +77,7 @@ export default class Blotling {
     if (this.defeated || this.hitStun > 0) return false;
     this.hp -= damage;
     this.hitStun = 260;
+    this.attackMs=-1;this.attackCooldown=600;this.sprite.setScale(1);
 
     const angle = Phaser.Math.Angle.Between(fromX, fromY, this.sprite.x, this.sprite.y);
     this.sprite.setVelocity(Math.cos(angle) * 230, Math.sin(angle) * 230);

@@ -5,6 +5,7 @@ import { hexToNumber, type StoryAvatarConfig } from '../avatar';
 import { convertAvatarTexture, convertAvatarGroup } from '../world/pixelAvatarTextures';
 import { VILLAGE_NPCS } from '../npcs';
 import { INTERIOR_ASSETS, INTERIOR_PLANS } from '../story/interiorPlans';
+import { INN_PEOPLE } from '../story/inn';
 
 /**
  * BootScene — generates all placeholder textures then hands off to DungeonScene.
@@ -21,6 +22,10 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    for(const person of INN_PEOPLE){
+      for(const [part,folder,id] of [['base','base',person.base],['eyes','eyes',person.eyes],['accessory','accessories',person.accessory]])
+        this.load.svg(`inn-${person.id}-${part}`,`/ink/${folder}/${id}.svg`,{width:64,height:64});
+    }
     for (const asset of INTERIOR_ASSETS) this.load.image(`interior-${asset}`, `/story/interiors/${asset}.png`);
     // Every Inkling cosmetic shares a 100x100 viewBox, so the existing locker
     // assets can be layered directly inside Phaser without pre-baking every
@@ -63,6 +68,7 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
+    for(const person of INN_PEOPLE)convertAvatarGroup(this,[{key:`inn-${person.id}-base`,color:person.color},{key:`inn-${person.id}-eyes`},{key:`inn-${person.id}-accessory`}]);
     // Bake each cosmetic separately so facing, gear and avatar customization remain intact.
     convertAvatarTexture(this,'npc-0-base',0xf0a6aa,'luma-base');
     convertAvatarGroup(this,[{key:'scholar-base',color:0xcd7f32},

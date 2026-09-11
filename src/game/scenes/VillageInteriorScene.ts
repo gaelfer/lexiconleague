@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import {interactionScore} from '../interaction';
 import { frameWorld } from '../world/framing';
 import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { buildTileInterior } from '../world/tileInterior';
@@ -68,7 +69,7 @@ export default class VillageInteriorScene extends Phaser.Scene {
     this.interactions = buildTileInterior(this,this.buildingId,(x,y,w,h)=>this.addWall(x,y,w,h))
       .map(site=>({...site,heading:this.building.name}));
     if (this.buildingId === 'mapmaker') {
-      const luma = this.add.container(496, 352).setDepth(10).setScale(0.78);
+      const luma = this.add.container(496, 356).setDepth(10).setScale(0.6);
       const base = this.add.image(0, 0, 'luma-base').setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
       const eyes = this.add.image(0, -4, 'npc-0-eyes').setDisplaySize(AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT);
       luma.add([this.add.ellipse(0, 19, 28, 9, 0x10263a, 0.3), base, eyes,
@@ -104,6 +105,7 @@ export default class VillageInteriorScene extends Phaser.Scene {
     this.player = new Player(this, ROOM_GRID.spawn.x, ROOM_GRID.spawn.y, this.avatar);
     this.physics.add.collider(this.player.sprite, this.walls);
     frameWorld(this);
+    this.cameras.main.setBackgroundColor('#080f1a');
 
     this.prompt = this.add.text(0, 0, '', {
       fontFamily: 'Arial, sans-serif',
@@ -140,13 +142,14 @@ export default class VillageInteriorScene extends Phaser.Scene {
     const nearest = [
       ...this.interactions.map((interaction) => ({
         interaction,
-        distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, interaction.x, interaction.y),
+        distance: interactionScore(this.player,interaction,interaction.label.startsWith('TALK TO')?48:34),
       })),
       {
         interaction: null,
-        distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, EXIT.x, EXIT.y),
+        distance: interactionScore(this.player,EXIT),
       },
-    ].filter(({ distance }) => distance < 34).sort((a, b) => a.distance - b.distance)[0];
+    ].filter(({ distance }) => Number.isFinite(distance)).sort((a, b) => a.distance - b.distance
+      || Number(!!b.interaction?.label.startsWith('TALK TO'))-Number(!!a.interaction?.label.startsWith('TALK TO')))[0];
 
     if (!nearest) {
       this.prompt.setVisible(false);

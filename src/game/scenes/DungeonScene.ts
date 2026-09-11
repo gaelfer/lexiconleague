@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import {interactionScore,atDoorway} from '../interaction';
 import { frameWorld } from '../world/framing';
 import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { buildTown } from '../world/InkwellVillage';
@@ -356,6 +357,7 @@ export default class DungeonScene extends Phaser.Scene {
     if (this.locked || !this.sys.isActive()) return;
 
     this.player.update(delta);
+    if(this.player.isDying)return;
     if(this.luma && this.follower){
       const previousY=this.luma.y;
       const point=this.follower.update({x:this.player.x,y:this.player.y},delta);
@@ -370,8 +372,9 @@ export default class DungeonScene extends Phaser.Scene {
         hasDefeated = true;
         continue;
       }
-      if (enemy.update(delta, this.player) && this.player.takeDamage(1)) {
+      if (enemy.update(delta, this.player) && this.player.takeDamage(1,enemy.sprite)) {
         this.cameras.main.shake(130, 0.008);
+        if(this.player.isDying)return;
       }
     }
     // Defeated Blotlings destroy their sprites but used to stay in the array
@@ -725,7 +728,7 @@ export default class DungeonScene extends Phaser.Scene {
   }
 
   private checkInteractionProximity() {
-    if(this.chapterId===1 && Math.abs(this.player.x-208)<20 && Math.abs(this.player.y-240)<20){
+    if(this.chapterId===1 && Math.abs(this.player.x-208)<=48 && Math.abs(this.player.y-240)<=40){
       this.interactPrompt.setText('[ E ]  ENTER YOUR HOME').setPosition(this.player.x,this.player.y-62).setVisible(true);
       if(this.player.isInteractJustDown())this.enterVillageBuilding('home');
       return;
@@ -738,6 +741,15 @@ export default class DungeonScene extends Phaser.Scene {
           this.showWorldMessage(this.enemies.length ? `There are still ${this.enemies.length} Blotlings on the road. The travellers need a safe way back.` : 'Restore all three seals and meet the travellers in the clearing.','#e3d1a2');return;
         }
         this.player.stopMovement();enterGatehouse(this,this.chapterId===0?'village':'approach');
+      }
+      return;
+    }
+    const innDoor=this.chapterId===0?townDoor('inn'):undefined;
+    if(innDoor&&this.isAtBuildingDoor(innDoor.x,innDoor.y)){
+      this.interactPrompt.setText('[ E ]  ENTER THE LANTERN INN').setPosition(this.player.x,this.player.y-62).setVisible(true);
+      if(this.player.isInteractJustDown()){
+        this.locked=true;this.player.stopMovement();this.scene.pause();
+        this.scene.launch('InnScene',{hearts:this.player.hearts});
       }
       return;
     }
@@ -792,8 +804,8 @@ export default class DungeonScene extends Phaser.Scene {
     let nearestNpc: NpcData | null = null;
     let nearestNpcDistance = Infinity;
     for (const npc of this.npcs) {
-      const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, npc.spec.x, npc.spec.y);
-      if (distance < 82 && distance < nearestNpcDistance) {
+      const distance = interactionScore(this.player,{x:npc.body.x,y:npc.body.y},64);
+      if (distance < nearestNpcDistance) {
         nearestNpc = npc;
         nearestNpcDistance = distance;
       }
@@ -860,9 +872,7 @@ export default class DungeonScene extends Phaser.Scene {
    * stops the player below the visual door before they reach its exact point.
    */
   private isAtBuildingDoor(x: number, y: number) {
-    return Math.abs(this.player.x - x) <= 72
-      && this.player.y >= y - 24
-      && this.player.y <= y + 118;
+    return atDoorway(this.player,{x,y});
   }
 
   // Both doorway transitions lock input for the same reason every other
