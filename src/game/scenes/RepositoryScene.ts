@@ -234,7 +234,7 @@ export default class RepositoryScene extends Phaser.Scene{
     if(ROOM_EXITS[this.room].includes('east')&&at(624,336)){if(this.room==='hall')this.travel('records',208,336);else if(this.room==='drain')this.travel('hall',208,336);return;}
     if(ROOM_EXITS[this.room].includes('north')&&at(400,176)&&this.player.wantsDoor('up')){
       if(this.room==='hall'){
-        if(!repositoryDrained()||!expedition().key)this.say('The northern seal chamber needs its brass key. Look in the record room to the east.');else this.travel('seal');
+        if(!repositoryDrained()||!expedition().key)this.say('The northern seal chamber needs its brass key. Look in the record room to the east.');else{saveExpedition({repositoryKeyUsed:true});this.travel('seal');}
       }else if(this.room==='seal'){
         if(canEnterVault())this.travel('vault');else this.say('Restore the inscription on the lectern before entering the vault.');
       }

@@ -1,0 +1,16 @@
+'use client';
+import {useState} from 'react';
+import {journalQuests,trackedQuests,toggleQuestTracking,type Quest} from '@/lib/story/adventure';
+import type {StoryProgress} from '@/lib/story/progress';
+import s from './AdventureUI.module.css';
+export default function QuestJournal({progress}:{progress:StoryProgress}){
+ const [category,setCategory]=useState<Quest['kind']>('main'),[selected,setSelected]=useState(''),[message,setMessage]=useState('');
+ const quests=journalQuests(progress).filter(q=>q.kind===category),tracked=trackedQuests(progress);
+ const quest=quests.find(q=>q.id===selected)??quests.find(q=>q.status==='active')??quests[0];
+ const chosen=tracked.some(q=>q.id===quest?.id),sideCount=tracked.filter(q=>q.kind==='side').length;
+ const full=category==='side'&&sideCount>=2&&!chosen;
+ function toggle(){if(!quest)return;const result=toggleQuestTracking(quest.id);setMessage(result==='limit'?'Untrack a side quest before tracking another.':result==='error'?'Tracking could not be saved. Please try again.':'');}
+ return <section aria-label="Quest journal"><div className={s.pageHeading}><h2>Adventure log</h2></div><div className={s.questCategories} aria-label="Quest categories">
+  {(['main','side'] as const).map(kind=><button key={kind} className={s.questCategory} data-kind={kind} aria-pressed={category===kind} onClick={()=>{setCategory(kind);setSelected('');setMessage('');}}><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">{kind==='main'?<path d="m12 2 8 9-8 11-8-11Zm0 5v10m-5-6h10"/>:<path d="M3 3h18v13H11l-6 5v-5H3ZM7 9h1m3 0h1m3 0h1"/>}</svg><span>{kind==='main'?'Main quests':'Side quests'}<small>{kind==='main'?`${tracked.some(q=>q.kind==='main')?1:0} / 1 tracked`:`${sideCount} / 2 tracked`}</small></span></button>)}
+ </div><div className={s.questLayout}><div className={s.questList}>{quests.map(q=><button className={`${s.paperQuest} ${s.coloredQuest}`} data-kind={q.kind} key={q.id} aria-pressed={quest?.id===q.id} onClick={()=>{setSelected(q.id);setMessage('');}}><small>{q.status==='completed'?'✓ Complete':q.kind==='main'?'Main quest':'Side quest'}{tracked.some(t=>t.id===q.id)?' · ◆ Tracked':''}</small><br/><strong>{q.title}</strong><small className={s.questLocation}>{q.location}</small></button>)}{!quests.length&&<p className={s.paperNote}>{category==='side'?'No side quests discovered yet. Talk to people during your travels to discover their requests.':'There are no main quests in your log yet.'}</p>}</div>{quest&&<article className={`${s.questDetails} ${s.coloredQuest}`} data-kind={quest.kind}><p className={s.paperNote}>{quest.location}</p><h3>{quest.title}</h3><p>{quest.description}</p><ul className={s.list}>{quest.steps.map(step=><li key={step.id}>{step.done?'✓':'○'} {step.text}</li>)}</ul>{quest.status==='active'&&<button className={s.stoneButton} disabled={full} onClick={toggle}>{chosen?'Stop tracking':full?'2 side quests already tracked':'Track this quest'}</button>}{full&&<p className={s.paperNote}>Untrack one side quest to make room for another.</p>}<p className={s.paperNote}>Track one main quest and up to two side quests. Tab shows or hides your quest overlay while playing.</p><p role="status">{message}</p></article>}</div></section>;
+}

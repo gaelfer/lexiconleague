@@ -99,6 +99,9 @@ export default class Blotling {
     return false;
   }
 
+  /** World restoration removes lingering threats without another combat hit. */
+  dismiss(){if(!this.defeated)this.defeat();}
+
   private defeat() {
     this.defeated = true;
     this.sprite.disableBody();

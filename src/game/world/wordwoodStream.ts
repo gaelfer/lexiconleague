@@ -1,8 +1,9 @@
 import * as Phaser from 'phaser';
+import {WORDWOOD_RIVER} from '../story/mapGeography';
 
 /** A continuous spring-fed stream; rain changes the weather, not its existence. */
-export function wordwoodStream(scene:Phaser.Scene,terrain:Phaser.GameObjects.Graphics){
-  const points=[[0,384],[96,400],[176,448],[288,464],[416,496],[528,464],[624,416],[656,320],[624,224],[656,112],[624,-64]];
+export function wordwoodStream(scene:Phaser.Scene,terrain:Phaser.GameObjects.Graphics,options?:{points:readonly (readonly [number,number])[];covered:(x:number,y:number)=>boolean;name:string}){
+  const points=options?.points??WORDWOOD_RIVER;
   const lengths=points.slice(1).map((p,i)=>Math.hypot(p[0]-points[i][0],p[1]-points[i][1]));
   const total=lengths.reduce((a,b)=>a+b,0);
   const at=(distance:number)=>{
@@ -18,10 +19,10 @@ export function wordwoodStream(scene:Phaser.Scene,terrain:Phaser.GameObjects.Gra
     terrain.fillStyle(color);
     for(let d=0;d<total;d+=4){const p=at(d);terrain.fillRect(Math.round((p.x-width/2)/2)*2,Math.round((p.y-width/2)/2)*2,width,width);}
   }
-  const flow=scene.add.graphics().setDepth(-19).setName('wordwood-stream-current');
+  const flow=scene.add.graphics().setDepth(-19).setName(options?.name??'wordwood-stream-current');
   let elapsed=0;
-  const covered=(x:number,y:number)=>
-    (x>=248&&x<=328&&y>=320&&y<=896)||(x>=256&&x<=1344&&y>=256&&y<=320);
+  const covered=options?.covered??((x:number,y:number)=>
+    (x>=248&&x<=328&&y>=320&&y<=896)||(x>=256&&x<=1344&&y>=256&&y<=320));
   const animate=(_time:number,delta:number)=>{
     elapsed+=delta;flow.clear();
     for(let i=0;i<45;i++){

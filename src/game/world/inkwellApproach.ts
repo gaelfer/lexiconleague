@@ -5,6 +5,7 @@ import { leafCluster } from './InkwellVillage';
 import { drawGatehouse } from './gatehouse';
 import { buildCottageExterior } from './cottageExterior';
 import { ROAD_PATHS,ROAD_CLEARINGS,roadWalkableTile } from '../story/roadPlan';
+import {ROAD_RIVER} from '../story/mapGeography';
 
 /** A crossing, survey camp, abandoned orchard and a sheltered village approach. */
 export function buildInkwellApproach(scene:Phaser.Scene,obstacle:(x:number,y:number,w:number,h:number)=>void){
@@ -44,8 +45,8 @@ export function buildInkwellApproach(scene:Phaser.Scene,obstacle:(x:number,y:num
   villagePaths(ground,[[192,224,32,96]]);
   buildCottageExterior(scene,208,144,0x536e6a,obstacle);
   // Slate riverbanks, reeds and a broad timber crossing.
-  ground.fillStyle(0x223e4c).fillRect(512,32,128,536);
-  ground.fillStyle(0x365f6b).fillRect(522,32,108,536);
+  ground.fillStyle(0x223e4c).fillRect(ROAD_RIVER.x,ROAD_RIVER.y,ROAD_RIVER.width,ROAD_RIVER.height);
+  ground.fillStyle(0x365f6b).fillRect(ROAD_RIVER.x+10,ROAD_RIVER.y,ROAD_RIVER.width-20,ROAD_RIVER.height);
   for(let y=40;y<568;y+=16){
     ground.fillStyle(y%32?0x62888a:0x436e7a).fillRect(532+(y%48),y,38,2);
     for(const x of [496,640]){

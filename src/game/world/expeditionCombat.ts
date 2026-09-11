@@ -5,6 +5,8 @@ import {EventBus} from '../EventBus';
 import {facingVector,isInSwordArc} from '../combat';
 import type {Facing} from '../movement';
 import {expeditionArrowDamage,consumeHerbalReserve} from '../story/repository';
+import {spinProfile} from '../../lib/story/skills';
+import {getStoryProgress} from '../../lib/story/progress';
 
 /** Scoped combat listeners so paused outdoor scenes never receive dungeon attacks. */
 export function expeditionCombat(scene:Phaser.Scene,player:Player,walls:Phaser.Physics.Arcade.StaticGroup,
@@ -12,7 +14,8 @@ export function expeditionCombat(scene:Phaser.Scene,player:Player,walls:Phaser.P
   const arrows=new Set<Phaser.Physics.Arcade.Image>();
   const attack=({x,y,type,facing}:{x:number;y:number;type:string;facing?:Facing})=>{
     if(!scene.sys.isActive()||blocked())return;
-    for(const enemy of enemies)if(!enemy.defeated&&(type==='spin'?Math.hypot(x-enemy.sprite.x,y-enemy.sprite.y)<72+(enemy.meleeRadius??0):isInSwordArc({x,y},enemy.sprite,facing??player.facing,64+(enemy.meleeRadius??0))))enemy.takeHit(x,y,type==='spin'?2:1);
+    const spin=spinProfile(getStoryProgress());
+    for(const enemy of enemies)if(!enemy.defeated&&(type==='spin'?Math.hypot(x-enemy.sprite.x,y-enemy.sprite.y)<spin.radius+(enemy.meleeRadius??0):isInSwordArc({x,y},enemy.sprite,facing??player.facing,64+(enemy.meleeRadius??0))))enemy.takeHit(x,y,type==='spin'?spin.damage:1);
   };
   const bow=({x,y,facing}:{x:number;y:number;facing:Facing})=>{
     if(!scene.sys.isActive()||blocked())return;

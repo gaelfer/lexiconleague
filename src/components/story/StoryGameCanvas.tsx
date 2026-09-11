@@ -10,7 +10,11 @@ import HUDOverlay from './HUDOverlay';
 import WordLockModal from './WordLockModal';
 import type { Question } from '@/types';
 import { createGuestProfile, getProfile } from '@/lib/user/storage';
-import { markChapterComplete, getStoryProgress, isChapterUnlocked } from '@/lib/story/progress';
+import { markChapterComplete, getStoryProgress, isChapterUnlocked, saveStoryProgress } from '@/lib/story/progress';
+import { areaForChapter, getStorySettings } from '@/lib/story/adventure';
+import AdventureMenu from './AdventureMenu';
+import {getStoryInventory} from '@/lib/story/progress';
+import {toolSlots,TOOL_KEYS} from '@/lib/story/equipment';
 
 interface StoryGameCanvasProps {
   chapterId: number;
@@ -33,6 +37,8 @@ const TOTAL_CHAPTER_GATES = 3;
  * to reference browser globals (window, Phaser) without guards.
  */
 export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
+  const [slots,setSlots]=useState(()=>toolSlots(getStoryInventory()));
+  useEffect(()=>{const refresh=()=>setSlots(toolSlots(getStoryInventory()));window.addEventListener('story-save',refresh);return()=>window.removeEventListener('story-save',refresh);},[]);
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const questionsByDoorRef = useRef(new Map<string, Question>());
@@ -63,9 +69,15 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
     questionsByDoorRef.current.clear();
     setOpenedGates(0);
     gameRef.current = createGame(containerRef.current, chapterId, profile.avatar_config);
+    const settings=getStorySettings();
+    gameRef.current.sound.mute=!settings.sound;
+    gameRef.current.sound.volume=settings.volume;
+    saveStoryProgress({resumeArea:areaForChapter(chapterId),startedAt:getStoryProgress().startedAt??Date.now()});
 
     return () => {
       gameRef.current?.destroy(true);
+      // Destruction is deferred to a frame, including when the journal stopped the loop.
+      gameRef.current?.loop.wake();
       gameRef.current = null;
     };
   }, [chapterId]);
@@ -145,29 +157,9 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
         totalGates={TOTAL_CHAPTER_GATES}
         healthOnly={chapterId === 2}
       />}
-      {accessDenied && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', color: '#e8d8b0' }}>Complete the previous chapter to explore here. <Link href="/story">Return to story map</Link></div>}
+      {accessDenied && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', color: '#e8d8b0' }}>This route hasn’t opened yet. <Link href="/story">Continue your adventure</Link></div>}
 
-      <Link
-        href="/story"
-        aria-label="Return to the Story Mode world map"
-        style={{
-          position: 'absolute',
-          top: 14,
-          right: 16,
-          zIndex: 30,
-          color: '#cbd5e1',
-          background: 'rgba(8, 15, 26, 0.82)',
-          border: '1px solid #334155',
-          borderRadius: 8,
-          padding: '7px 11px',
-          textDecoration: 'none',
-          fontFamily: 'Outfit, sans-serif',
-          fontSize: 12,
-          fontWeight: 700,
-        }}
-      >
-        ← World Map
-      </Link>
+      {!accessDenied&&<AdventureMenu game={gameRef} chapterId={chapterId} blocked={!!wordLock} hearts={hearts}/>}
 
       <div
         aria-label="Game controls"
@@ -190,7 +182,7 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
           whiteSpace: 'nowrap',
         }}
       >
-        {chapterId === 2 ? 'WASD · MOVE   Q · SWORD / HOLD TO SPIN   R · BOW   E · INSPECT   J · NOTES' : 'WASD · MOVE   Q · SWORD   HOLD Q · SPIN   R · BOW   E · TALK / INTERACT'}
+        {`WASD · MOVE   ${TOOL_KEYS.filter(key=>slots[key]).map(key=>`${key} · ${slots[key]?.toUpperCase()}`).join('   ')}   E · INTERACT   M · INVENTORY / SKILLS`}
       </div>
 
       {/* Word lock modal */}
@@ -209,13 +201,13 @@ export default function StoryGameCanvas({ chapterId }: StoryGameCanvasProps) {
 
       {/* Chapter complete banner */}
       {chapterDone && (
-        <ChapterCompleteBanner chapterId={chapterId} />
+        <ChapterCompleteBanner />
       )}
     </div>
   );
 }
 
-function ChapterCompleteBanner({ chapterId }: { chapterId: number }) {
+function ChapterCompleteBanner() {
   return (
     <div
       style={{
@@ -239,7 +231,7 @@ function ChapterCompleteBanner({ chapterId }: { chapterId: number }) {
           textAlign: 'center',
         }}
       >
-        Chapter {chapterId} Complete!
+        The way is clear.
       </p>
       <p
         style={{
@@ -265,7 +257,7 @@ function ChapterCompleteBanner({ chapterId }: { chapterId: number }) {
           display: 'inline-block',
         }}
       >
-        Return to World Map
+        Return to title screen
       </Link>
     </div>
   );

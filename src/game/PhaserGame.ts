@@ -84,7 +84,10 @@ export function createGame(
         luma:observed.luma?{x:observed.luma.x,y:observed.luma.y+16}:null,
         residents:observed.npcs?.map(npc=>npc.spec.name),speech:speechState(scene)};
     });
-    const api={state,keeperPositions:()=>game.scene.getScenes(true)[0].children.list.filter((o):o is Phaser.GameObjects.Container=>o instanceof Phaser.GameObjects.Container&&o.name.startsWith('keeper-')).map(o=>({name:o.name,x:o.x,y:o.y,activity:o.getData('activity')})),reviewDialogue:(text:string)=>{
+    const api={state,equipmentState:()=>{
+      const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {player?:{gear:string[];slots:unknown;attackHoldMs:number;attackPoseType:string;attackPoseMs:number;bowPoseMs:number;sword:{visible:boolean}}};
+      return {gear:scene.player?.gear,slots:scene.player?.slots,holdMs:scene.player?.attackHoldMs,attackType:scene.player?.attackPoseType,swordVisible:scene.player?.sword.visible,attackMs:scene.player?.attackPoseMs,bowMs:scene.player?.bowPoseMs};
+    },keeperPositions:()=>game.scene.getScenes(true)[0].children.list.filter((o):o is Phaser.GameObjects.Container=>o instanceof Phaser.GameObjects.Container&&o.name.startsWith('keeper-')).map(o=>({name:o.name,x:o.x,y:o.y,activity:o.getData('activity')})),reviewDialogue:(text:string)=>{
       (game.scene.getScenes(true)[0] as Phaser.Scene & {say(text:string):void}).say(text);
     },reviewKeepers:(gardener:string,bridgekeeper:string)=>{
       game.registry.set('wordwood-keepers',{gardener,bridgekeeper});

@@ -25,6 +25,10 @@ import {keeperWalkHome} from '../world/keeperWalkHome';
 import {compactDialogue} from '../world/compactDialogue';
 import {wordwoodStream} from '../world/wordwoodStream';
 import {secondaryBridge} from '../world/secondaryBridge';
+import {WORDWOOD_PATHS} from '../story/mapGeography';
+import {WORDWOOD_WAYFARER,WORDWOOD_APPROACH,approachEnemySpawns,nearApproach,approachRiverDistance} from '../story/wordwoodApproach';
+import {wordwoodApproachRiver} from '../world/wordwoodApproachRiver';
+import Blotling from '../entities/Blotling';
 
 interface Site { x: number; y: number; label: string; action: () => void }
 
@@ -34,6 +38,7 @@ export default class WordwoodScene extends Phaser.Scene {
   private puzzleObjects:Phaser.GameObjects.GameObject[]=[];
   private gardenPlanted=false;
   private guardian?:LogGuardian;
+  private enemies:Blotling[]=[];
   private guardianCombat?:(delta:number)=>void;
   private prompt!: Phaser.GameObjects.Text;
   private sites: Site[] = [];
@@ -57,9 +62,11 @@ export default class WordwoodScene extends Phaser.Scene {
   private returnPoint?:{x:number;y:number};
   private returnHearts=3;
   private enteredAt=0;
+  private pendingIntroduction=false;
+  private introductionAfterRespawn=false;
 
   constructor(private avatar: StoryAvatarConfig) { super({ key: 'WordwoodScene' }); }
-  init(data:{returnPoint?:{x:number;y:number};hearts?:number}={}){this.returnPoint=data.returnPoint;this.returnHearts=data.hearts??3;}
+  init(data:{returnPoint?:{x:number;y:number};hearts?:number;introduction?:boolean}={}){this.returnPoint=data.returnPoint;this.returnHearts=data.hearts??3;this.introductionAfterRespawn=data.introduction??false;}
 
   create() {
     this.data.set('keeper-speaking',false);
@@ -78,7 +85,7 @@ export default class WordwoodScene extends Phaser.Scene {
       this.echoOpen=this.solved&&saved.echoOpen===true;
       if(this.solved&&Number.isInteger(saved.echoStep)&&saved.echoStep>=0&&saved.echoStep<3)this.echoStep=saved.echoStep;
     } catch { /* Old checkpoint formats safely start a new puzzle. */ }
-    this.physics.world.setBounds(0, 0, 1600, 1200);
+    this.physics.world.setBounds(0, 0, 1600, 2400);
     const walls = this.physics.add.staticGroup();
     const obstacle = (x: number, y: number, w: number, h: number) => {
       const body = this.physics.add.staticImage(x, y, '__DEFAULT').setVisible(false);
@@ -86,11 +93,19 @@ export default class WordwoodScene extends Phaser.Scene {
     };
     const g = this.add.graphics().setDepth(-20);
     grassTiles(g, 0, 0, 1600, 1200);
+    grassTiles(g,0,1200,1600,1200);
+    villagePaths(g,WORDWOOD_APPROACH.slice(1).map((b,i)=>{const a=WORDWOOD_APPROACH[i];return [Math.min(a[0],b[0])-48,Math.min(a[1],b[1])-48,Math.abs(b[0]-a[0])+96,Math.abs(b[1]-a[1])+96];}));
+    wordwoodApproachRiver(this,g,obstacle);
+    // Dense forest banks leave a generous, continuous walking corridor.
+    for(let row=0;row<13;row++)for(let col=0;col<16;col++){
+      const x=48+col*96+(row%2)*32+(col%3)*8,y=1232+row*96+((col*7+row*3)%5)*8;
+      if(nearApproach(x,y,112)||approachRiverDistance(x,y)<112||Math.hypot(x-WORDWOOD_WAYFARER.x,y-WORDWOOD_WAYFARER.y)<176)continue;
+      this.tree(g,x,y);obstacle(x,y+10,56,48);
+    }
     grassTiles(g,0,-128,1600,128);
     wordwoodStream(this,g);
     // Paths make a loop around the central clearing; every clue is reachable in any order.
-    villagePaths(g, [[256,320,64,576],[256,256,1088,64],[1280,320,64,576],
-      [256,896,1088,64],[768,256,64,768],[256,576,1088,64]]);
+    villagePaths(g, WORDWOOD_PATHS.map(rect=>[...rect]));
     const repairSecondaryBridge=secondaryBridge(this,walls,!!expedition().logGuardianFreed);
     for (let sy = -64; sy <= 64; sy += 32) {
       for (let sx = -64; sx <= 64; sx += 32) {
@@ -102,7 +117,7 @@ export default class WordwoodScene extends Phaser.Scene {
     }
     for (let x = 40; x < 1600; x += 80) {
       if(x<704||x>896){this.tree(g,x,80);obstacle(x,75,68,95);}
-      this.tree(g, x, 1135);obstacle(x, 1150, 68, 60);
+      if(x<736||x>896){this.tree(g, x, 1135);obstacle(x, 1150, 68, 60);}
     }
     for (let y = 170; y < 1100; y += 85) {
       this.tree(g, 70, y); this.tree(g, 1530, y);
@@ -126,9 +141,9 @@ export default class WordwoodScene extends Phaser.Scene {
 
     wordwoodDetails(this,obstacle);
     this.landmarkChanges=this.add.graphics().setDepth(-9);
-    villagePaths(g,[[640,1056,128,64],[736,928,64,192]]);
-    drawGatehouse(this,656,1072,obstacle);
-    const gateSign={id:'wayfarer',x:688,y:1072,mountY:1044,name:'WAYFARER GATEHOUSE'};
+    villagePaths(g,[[768,928,96,240]]);
+    drawGatehouse(this,WORDWOOD_WAYFARER.x,WORDWOOD_WAYFARER.y,obstacle);
+    const gateSign={id:'wayfarer',x:WORDWOOD_WAYFARER.x+32,y:WORDWOOD_WAYFARER.y,mountY:WORDWOOD_WAYFARER.y-28,name:'WAYFARER GATEHOUSE'};
     drawBuildingSign(this,gateSign);
     // The final gate spans the entire entrance to the little northern sanctuary.
     obstacle(384,144,768,32);obstacle(1216,144,768,32);
@@ -155,7 +170,7 @@ export default class WordwoodScene extends Phaser.Scene {
     }});
     const arriving=new URLSearchParams(window.location.search).get('arrival')==='gatehouse';
     const checkpoint=expedition().checkpoint&&this.echoOpen&&!arriving?{x:816,y:112}:undefined;
-    this.player = new Player(this,this.returnPoint?.x??checkpoint?.x??(arriving?656:800),this.returnPoint?.y??checkpoint?.y??(arriving?1104:944),this.avatar,this.returnHearts);
+    this.player = new Player(this,this.returnPoint?.x??checkpoint?.x??(arriving?WORDWOOD_WAYFARER.x:800),this.returnPoint?.y??checkpoint?.y??(arriving?WORDWOOD_WAYFARER.y+32:944),this.avatar,this.returnHearts);
     EventBus.emit('health-changed',{hearts:this.player.hearts});
     wallSignReader(this,this.player,[gateSign]);
     if(process.env.NODE_ENV==='development'){
@@ -164,7 +179,7 @@ export default class WordwoodScene extends Phaser.Scene {
       if(review&&points[review])this.player.sprite.body!.reset(...points[review]);
     }
     this.physics.add.collider(this.player.sprite, walls);
-    this.cameras.main.setBounds(0, -128, 1600, 1328).startFollow(this.player.sprite, true, 0.12, 0.12);
+    this.cameras.main.setBounds(0, -128, 1600, 2528).startFollow(this.player.sprite, true, 0.12, 0.12);
     frameWorld(this);
     wordwoodRain(this);
     // Small separate interiors extend the woodland loop without replacing its puzzle.
@@ -227,7 +242,7 @@ export default class WordwoodScene extends Phaser.Scene {
     const beforeVerse=new Set(this.children.list);
     this.add.image(608,768,'interior-desk').setDisplaySize(32,32).setOrigin(0).setDepth(2);obstacle(624,784,32,32);
     this.puzzleObjects.push(...this.children.list.filter(object=>!beforeVerse.has(object)));
-    this.sites.push({x:656,y:1072,label:'RETURN THROUGH THE GATEHOUSE',action:()=>{this.save();this.player.stopMovement();this.locked=true;openDoorAnimation(this,656,1056,()=>this.player.walkThroughDoor(()=>enterGatehouse(this,'wordwood')),'wayfarer');}});
+    this.sites.push({...WORDWOOD_WAYFARER,label:'RETURN THROUGH THE GATEHOUSE',action:()=>{this.save();this.player.stopMovement();this.locked=true;openDoorAnimation(this,WORDWOOD_WAYFARER.x,WORDWOOD_WAYFARER.y-16,()=>this.player.walkThroughDoor(()=>enterGatehouse(this,'wordwood')),'wayfarer');}});
     const resumeVisit=()=>{if(expedition().logGuardianFreed){this.scene.restart({hearts:this.player.hearts});return;}this.locked=false;this.cameras.main.fadeIn(180);};
     this.events.on(Phaser.Scenes.Events.RESUME,resumeVisit);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>this.events.off(Phaser.Scenes.Events.RESUME,resumeVisit));
@@ -259,22 +274,24 @@ export default class WordwoodScene extends Phaser.Scene {
     if(!expedition().logGuardianFreed&&expedition().tablet){
       this.guardian=new LogGuardian(this,(x,y)=>{
         saveExpedition({logGuardianFreed:true});repairSecondaryBridge();this.refreshSigns();this.plantGarden();
+        this.enemies.forEach(enemy=>enemy.dismiss());
         EventBus.emit('wordwood-rain-stop');
         this.feedback.setVisible(false);this.rescuedKeepers(x,y,walls);
-      });
-      this.guardianCombat=expeditionCombat(this,this.player,walls,[this.guardian],()=>this.locked||!!this.panel,()=>{
-        this.locked=true;this.cameras.main.fadeOut(350);
-        this.time.delayedCall(400,()=>this.scene.restart({returnPoint:{x:816,y:208},hearts:3}));
       });
       this.cameras.main.stopFollow().pan(1223,457,650);
       this.time.delayedCall(1800,()=>this.cameras.main.startFollow(this.player.sprite,true,.12,.12));
       this.feedback.setText('The hollow log cracks. Something tangled in violet ink is coming out.').setVisible(true);
       this.time.delayedCall(5000,()=>this.feedback.setVisible(false));
     }
+    this.enemies=approachEnemySpawns(expedition().logGuardianFreed).map(([x,y])=>new Blotling(this,x,y));
+    this.guardianCombat=expeditionCombat(this,this.player,walls,[...this.enemies,...(this.guardian?[this.guardian]:[])],()=>this.locked||!!this.panel||!!this.data.get('keeper-speaking'),()=>{
+      this.locked=true;this.cameras.main.fadeOut(350);
+      const returnPoint=this.player.y>1200?{x:WORDWOOD_WAYFARER.x,y:WORDWOOD_WAYFARER.y+32}:{x:816,y:208};
+      this.time.delayedCall(400,()=>this.scene.restart({returnPoint,hearts:3,introduction:this.pendingIntroduction}));
+    });
     // The gatehouse URL survives indoor trips; returnPoint distinguishes an
     // actual arrival from a building exit or a local death restart.
-    if(arriving&&!this.returnPoint&&this.found.size===0&&!this.solved&&!(process.env.NODE_ENV==='development'&&new URLSearchParams(window.location.search).has('sceneReview')))
-      this.say('THE PATHS THAT FORGOT\n\nRestore the bridge, burrow and winding trail by changing their describing words, then test your answers at the central stone. The field notes offer hints if you need them — collecting them is optional.\n\nThe old gardener left one last puzzle for the sanctuary. J keeps your notes close. Your progress stays saved when you return to Inkwell.');
+    this.pendingIntroduction=(this.introductionAfterRespawn||(arriving&&!this.returnPoint))&&this.found.size===0&&!this.solved&&!(process.env.NODE_ENV==='development'&&new URLSearchParams(window.location.search).has('sceneReview'));
   }
 
   private plantGarden(){
@@ -369,6 +386,7 @@ export default class WordwoodScene extends Phaser.Scene {
     this.nextInput = this.time.now + 220;
   }
   update(_time: number, delta: number) {
+    if(this.locked||this.panel||this.data.get('keeper-speaking'))this.guardianCombat?.(0);
     if(this.data.get('keeper-speaking')||this.time.now<(this.data.get('dialogue-closed-until')??0)){this.player.isInteractJustDown();this.player.stopMovement();this.prompt.setVisible(false);return;}
     if((this.locked||this.panel)&&this.guardian&&!this.guardian.defeated)this.guardian.sprite.setVelocity(0,0);
     if(this.locked)return;
@@ -377,6 +395,11 @@ export default class WordwoodScene extends Phaser.Scene {
     }
     this.player.update(delta);
     this.guardianCombat?.(delta);if(this.player.isDying)return;
+    if(this.pendingIntroduction&&Math.hypot(this.player.x-800,this.player.y-944)<112){
+      this.pendingIntroduction=false;
+      this.say('WORDWOOD CLEARING\n\nTHE PATHS THAT FORGOT\n\nRestore the bridge, burrow and winding trail by changing their describing words, then test your answers at the central stone. The field notes offer hints if you need them — collecting them is optional.\n\nThe old gardener left one last puzzle for the sanctuary. J keeps your notes close. Your progress stays saved when you return to Inkwell.');
+      return;
+    }
     this.labels.forEach(label=>label.setVisible(Phaser.Math.Distance.Between(this.player.x,this.player.y,label.x,label.y+29)<160));
     const stone=[688,816,944].findIndex(x=>Phaser.Math.Distance.Between(this.player.x,this.player.y,x,720)<9);
     if(stone!==this.lastStone){

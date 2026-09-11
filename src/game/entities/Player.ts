@@ -12,9 +12,12 @@ import { INKLING_SCALE } from '../world/pixelTerrain';
 import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { tileCenter, nextGridStep, interpolateStep, type GridPoint } from '../gridMovement';
 import { bowPose,BOW_DURATION,BOW_RELEASE } from '../bowPose';
+import {getStoryInventory,getStoryProgress,saveStoryInventory} from '../../lib/story/progress';
+import {equippedGear,toolSlots,TOOL_KEYS,type GearId} from '../../lib/story/equipment';
+import {spinProfile} from '../../lib/story/skills';
+import {SWORD_HOLD_THRESHOLD_MS,swordChargeMs,swordReleaseAction} from '../swordInput';
 
 const SPEED = 180;
-const SPIN_CHARGE_MS = 700;
 const SWING_COOLDOWN_MS = 300;
 const SPIN_COOLDOWN_MS = 600;
 
@@ -36,6 +39,10 @@ export default class Player {
   private trailPoints: Array<{ x: number; y: number; age: number }> = [];
   private bowPoseMs = 0;
   private keyR: Phaser.Input.Keyboard.Key;
+  private keyF: Phaser.Input.Keyboard.Key;
+  private slots=toolSlots(getStoryInventory());
+  private spin=spinProfile(getStoryProgress());
+  private spinCue!: Phaser.GameObjects.Graphics;
   private hands: [Phaser.GameObjects.Container, Phaser.GameObjects.Container];
   private feet: [Phaser.GameObjects.Graphics, Phaser.GameObjects.Graphics];
   private walkElapsed = 0;
@@ -62,6 +69,8 @@ export default class Player {
   public facing: Facing = 'down';
 
   private attackHeld = false;
+  private swordPressAt:number|null=null;
+  private swordReleaseMs:number|null=null;
   private attackHoldMs = 0;
   private attackCooldown = 0;
   private damageInvulnerabilityMs = 0;
@@ -73,7 +82,8 @@ export default class Player {
   private attackPoseType: 'swing' | 'spin' = 'swing';
 
   public hearts: number;
-  public lexicoins = 0;
+  private gear:GearId[]=equippedGear(getStoryInventory());
+  public get lexicoins(){return getStoryInventory().lexicoins;}
 
   constructor(
     scene: Phaser.Scene,
@@ -160,6 +170,7 @@ export default class Player {
       Phaser.Input.Keyboard.KeyCodes.E,
       Phaser.Input.Keyboard.KeyCodes.Q,
       Phaser.Input.Keyboard.KeyCodes.R,
+      Phaser.Input.Keyboard.KeyCodes.F,
       Phaser.Input.Keyboard.KeyCodes.SPACE,
     ]);
     this.cursors = kb.createCursorKeys();
@@ -169,13 +180,15 @@ export default class Player {
     this.keyD = kb.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     this.keyQ = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this.keyR = kb.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    this.keyF = kb.addKey(Phaser.Input.Keyboard.KeyCodes.F);
     this.keyE = kb.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.keySpace = kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     const queueStep = (event: KeyboardEvent) => {
       if (event.repeat) return;
       const key = event.key.toLowerCase();
+      if(TOOL_KEYS.some(slot=>slot.toLowerCase()===key&&this.slots[slot]==='sword')){this.swordPressAt=performance.now();return;}
       if(['w','arrowup','s','arrowdown'].includes(key))this.doorIntent={direction:key==='w'||key==='arrowup'?'up':'down',until:scene.time.now+220};
-      if(key==='r'){this.queuedBow=true;return;}
+      if(TOOL_KEYS.some(slot=>slot.toLowerCase()===key&&this.slots[slot]==='bow')){this.queuedBow=true;return;}
       if(key==='e'||key===' '){this.interactQueuedUntil=scene.time.now+250;return;}
       if (!['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)) return;
       this.queuedDirection = resolveMovement({
@@ -186,7 +199,13 @@ export default class Player {
       });
     };
     kb.on('keydown', queueStep);
-    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => kb.off('keydown', queueStep));
+    const releaseSword=(event:KeyboardEvent)=>{
+      if(this.swordPressAt!==null&&TOOL_KEYS.some(slot=>slot.toLowerCase()===event.key.toLowerCase()&&this.slots[slot]==='sword')){
+        this.swordReleaseMs=performance.now()-this.swordPressAt;this.swordPressAt=null;
+      }
+    };
+    kb.on('keyup',releaseSword);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {kb.off('keydown', queueStep);kb.off('keyup',releaseSword);});
 
     // Scale the entire rig together: grip, blade, feet and cosmetics retain their alignment.
     this.artwork = scene.add.container(0, 0, [
@@ -194,6 +213,19 @@ export default class Player {
       ...this.feet, ...this.hands, this.sword, this.bow, this.swordTrail,
     ]).setScale(INKLING_SCALE).setDepth(10);
     this.hearts = startHearts;
+    this.spinCue=scene.add.graphics().setDepth(11);
+    const refreshGear=()=>{
+      const next=equippedGear(getStoryInventory());
+      const slots=toolSlots(getStoryInventory());
+      this.spin=spinProfile(getStoryProgress());
+      if(JSON.stringify(slots)===JSON.stringify(this.slots))return;
+      this.slots=slots;
+      this.swordPressAt=null;this.swordReleaseMs=null;
+      this.gear=next;this.attackHeld=false;this.attackHoldMs=0;this.attackPoseMs=0;this.bowPoseMs=0;this.queuedBow=false;
+      this.swordTrail.clear();this.clearAvatarTint();this.syncVisuals(0);
+    };
+    window.addEventListener('story-save',refreshGear);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>window.removeEventListener('story-save',refreshGear));
     // Room scenes create their own Player, while the outdoor Player may remain
     // paused. Keep the timer on the game, not on any one of those instances.
     const restoreSword=()=>{
@@ -409,7 +441,25 @@ export default class Player {
         : -72 + poseProgress * 144
       : 0;
     const attacking = this.attackPoseMs > 0;
-    const charging = this.attackHeld && this.attackHoldMs >= SPIN_CHARGE_MS;
+    const chargeMs=swordChargeMs(this.attackHoldMs);
+    const charging = this.spin.learned && this.attackHeld && chargeMs >= this.spin.chargeMs;
+    this.spinCue?.clear();
+    if(this.spinCue&&this.artwork.visible&&!this.isDying){
+      // Match the rig's scaled offsets and lifted origin, not the invisible hitbox.
+      const ringY=this.y+20*INKLING_SCALE-16;
+      const meterY=this.y-48*INKLING_SCALE-16;
+      if(this.spin.learned&&this.attackHeld&&this.attackHoldMs>=SWORD_HOLD_THRESHOLD_MS){
+        const progress=Math.min(1,chargeMs/this.spin.chargeMs);
+        this.spinCue.lineStyle(charging?3:2,charging?0xffedab:0x67dcca,.95);
+        for(let i=0;i<12;i++)if(i/12<progress){const a=i*Math.PI/6;this.spinCue.strokeRect(this.x+Math.cos(a)*28-2,ringY+Math.sin(a)*15-2,4,4);}
+        this.spinCue.fillStyle(0x162e30,.95).fillRect(this.x-22,meterY,44,7);
+        this.spinCue.fillStyle(charging?0xffedab:0x67dcca,1).fillRect(this.x-20,meterY+2,40*progress,3);
+        if(charging)this.spinCue.lineStyle(2,0xffedab,1).strokeCircle(this.x,ringY,24);
+      }
+      if(attacking&&this.attackPoseType==='spin'){
+        this.spinCue.lineStyle(4,0x8ae7da,1-poseProgress).beginPath().arc(this.x,this.y+12*INKLING_SCALE-16,this.spin.radius*poseProgress,poseProgress*6,poseProgress*6+Math.PI*1.6).strokePath();
+      }
+    }
     const swordAngle = attacking ? baseSwordAngle + attackAngle : -8 + breath * 1.5;
     const swingRadians = Phaser.Math.DegToRad(swordAngle - 90);
     const swordX = this.sprite.x + (attacking ? Math.cos(swingRadians) * 15 : (facesLeft ? -15 : 15));
@@ -461,10 +511,10 @@ export default class Player {
     }
     // The sword origin is the center of its grip: hand and hilt share one pivot.
     this.hands[1].setPosition(swordX, swordY).setDepth(this.sword.depth + 0.1);
-    this.sword.setVisible(this.bowPoseMs <= 0&&!this.swordStowed).setAlpha(1);
+    this.sword.setVisible(this.gear.includes('sword')&&this.bowPoseMs <= 0&&!this.swordStowed).setAlpha(1);
     // Reach over the shoulder, slide the blade away, then relax the empty hand.
     // Interrupting with Q restores the normal grip in the same update as the hit.
-    if(this.swordIdleMs>15000&&this.bowPoseMs<=0){
+    if(this.gear.includes('sword')&&this.swordIdleMs>15000&&this.bowPoseMs<=0){
       const p=Math.min(1,(this.swordIdleMs-15000)/700);
       const reach=Math.min(1,p/.4);
       const slide=Phaser.Math.Clamp((p-.4)/.4,0,1);
@@ -477,7 +527,8 @@ export default class Player {
       this.hands[1].setPosition(gripX,gripY).setDepth(facesBack?14:9.6);
       if(this.swordStowed)this.hands[1].setPosition(this.x+side*15,this.y+bob+8-armSwing).setDepth(facesBack?9.6:13.5);
     }
-    this.bow.setVisible(this.bowPoseMs > 0);
+    if(!this.gear.includes('sword')&&this.bowPoseMs<=0)this.hands[1].setPosition(this.x+(facesLeft?-15:15),this.y+bob+8-armSwing).setDepth(facesBack?9.6:13.5);
+    this.bow.setVisible(this.gear.includes('bow')&&this.bowPoseMs > 0);
     if (this.bowPoseMs > 0) {
       const pose=bowPose(this.x,this.y,this.facing,this.bowPoseMs,INKLING_SCALE);
       this.bow.setPosition(pose.grip.x,pose.grip.y).setRotation(pose.angle).setDepth(facesBack?9.5:14);
@@ -511,38 +562,30 @@ export default class Player {
     if (this.attackCooldown > 0) {
       this.attackCooldown -= delta;
     }
-    const bowPressed=Phaser.Input.Keyboard.JustDown(this.keyR)||this.queuedBow;
+    const keys={Q:this.keyQ,R:this.keyR,F:this.keyF};
+    const bowSlot=TOOL_KEYS.find(key=>this.slots[key]==='bow');
+    const swordSlot=TOOL_KEYS.find(key=>this.slots[key]==='sword');
+    const swordDown=!!swordSlot&&keys[swordSlot].isDown;
+    const bowPressed=(!!bowSlot&&Phaser.Input.Keyboard.JustDown(keys[bowSlot]))||this.queuedBow;
     this.queuedBow=false;
-    if (bowPressed && this.attackCooldown <= 0 && !this.attackHeld) {
+    if (this.gear.includes('bow') && bowPressed && this.attackCooldown <= 0 && !this.attackHeld) {
       this.stopMovement();
       this.bowPoseMs = BOW_DURATION;
       this.attackCooldown = 550;
     }
-    if (this.bowPoseMs > 0) return;
+    if (this.bowPoseMs > 0) {this.swordPressAt=null;this.swordReleaseMs=null;return;}
+    if(!this.gear.includes('sword'))return;
 
-    if (this.keyQ.isDown && !this.attackHeld) {
-      this.attackHeld = true;
-      this.attackHoldMs = 0;
-      // Fire the normal slash on press for a crisp Zelda-like response.
-      this.performSwordSwing();
+    const released=this.swordReleaseMs;
+    this.swordReleaseMs=null;
+    this.attackHeld=swordDown&&this.swordPressAt!==null;
+    this.attackHoldMs=this.attackHeld?performance.now()-this.swordPressAt!:0;
+    if(released!==null){
+      const action=swordReleaseAction(released,this.spin.learned,this.spin.chargeMs);
+      if(action==='swing')this.performSwordSwing();
+      else if(action==='spin')this.performSpinAttack();
     }
-
-    if (this.keyQ.isDown && this.attackHeld) {
-      this.attackHoldMs += delta;
-      // Visual charge cue at spin threshold
-      if (this.attackHoldMs >= SPIN_CHARGE_MS) {
-        this.setAvatarTint(0xfbbf24);
-      }
-    }
-
-    if (!this.keyQ.isDown && this.attackHeld) {
-      this.attackHeld = false;
-      this.clearAvatarTint();
-
-      if (this.attackHoldMs >= SPIN_CHARGE_MS) {
-        this.performSpinAttack();
-      }
-    }
+    if(!swordDown)this.swordPressAt=null;
   }
 
   private performSwordSwing() {
@@ -558,7 +601,7 @@ export default class Player {
     if (this.attackCooldown > 0) return;
     this.attackCooldown = SPIN_COOLDOWN_MS;
     this.attackPoseType = 'spin';
-    this.attackPoseDuration = 320;
+    this.attackPoseDuration = this.spin.durationMs;
     this.attackPoseMs = this.attackPoseDuration;
     EventBus.emit('player-attack', { type: 'spin', x: this.x, y: this.y });
   }
@@ -566,6 +609,7 @@ export default class Player {
   takeDamage(amount: number,source?:{x:number;y:number}): boolean {
     if (this.damageInvulnerabilityMs > 0 || this.hearts <= 0) return false;
     this.damageInvulnerabilityMs = 1300;
+    this.swordPressAt=null;this.swordReleaseMs=null;
     this.stopMovement();
     this.attackHeld=false;this.attackHoldMs=0;this.attackPoseMs=0;this.bowPoseMs=0;this.queuedBow=false;
     this.clearAvatarTint();this.trailPoints=[];this.swordTrail.clear();
@@ -607,8 +651,8 @@ export default class Player {
   }
 
   addLexicoins(amount: number) {
-    this.lexicoins += amount;
-    EventBus.emit('lexicoins-changed', { amount: this.lexicoins });
+    const lexicoins=this.lexicoins+amount;
+    if(saveStoryInventory({lexicoins}))EventBus.emit('lexicoins-changed', { amount: lexicoins });
   }
 
   private setAvatarTint(color: number) {

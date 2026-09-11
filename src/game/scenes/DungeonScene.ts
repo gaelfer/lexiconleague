@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import {spinProfile} from '../../lib/story/skills';
 import {tileCenter} from '../gridMovement';
 import {openDoorAnimation,type DoorStyle} from '../world/doorOpening';
 import {interactionScore,atDoorway} from '../interaction';
@@ -496,9 +497,9 @@ export default class DungeonScene extends Phaser.Scene {
     for (const enemy of this.enemies) {
       if (enemy.defeated) continue;
       const inRange = type === 'spin'
-        ? Phaser.Math.Distance.Between(x, y, enemy.sprite.x, enemy.sprite.y) <= 72
+        ? Phaser.Math.Distance.Between(x, y, enemy.sprite.x, enemy.sprite.y) <= spinProfile(getStoryProgress()).radius
         : isInSwordArc({ x, y }, enemy.sprite, facing ?? this.player.facing, 64);
-      if (inRange && enemy.takeHit(x, y, type === 'spin' ? 2 : 1)) {
+      if (inRange && enemy.takeHit(x, y, type === 'spin' ? spinProfile(getStoryProgress()).damage : 1)) {
         defeatedThisAttack += 1;
         this.spawnInkBurst(enemy.sprite.x, enemy.sprite.y);
       }

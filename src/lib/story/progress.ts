@@ -17,12 +17,22 @@ export interface StoryProgress {
   defeatedRoadEnemies?: number[];
   visitedInkwell?: boolean;
   innRoomBooked?: boolean;
+  startedAt?: number;
+  savedAt?: number;
+  resumeArea?: 'road'|'village'|'wordwood';
+  trackedQuest?: string;
+  trackedMainQuest?: string|null;
+  trackedSideQuests?: string[];
+  questOverlayVisible?: boolean;
+  learnedSkills?: ('spin'|'focused-spin'|'wide-spin')[];
+  quests?: Record<string,{status:'active'|'completed';steps:string[]}>;
   wordwoodExpedition?: {
     drained?: boolean; key?: boolean; seal?: boolean; tablet?: boolean; studied?: boolean; checkpoint?: boolean;
     maintenance?: boolean; gallery?: boolean; store?: boolean;
     herbsUsed?: number;
     gardenGateKey?: boolean;
     gardenGateOpened?: boolean;
+    repositoryKeyUsed?: boolean;
     logGuardianFreed?: boolean;
     cleared?: string[];
   };
@@ -32,6 +42,9 @@ export interface StoryInventory {
   lexicoins: number;
   equippedWeapon: 'sword' | 'bow' | 'shield';
   unlockedWeapons: string[];
+  /** Missing in older saves: both existing tools remain ready to use. Empty means unequipped. */
+  equippedGear?: ('sword'|'bow')[];
+  toolSlots?: {Q:'sword'|'bow'|null;R:'sword'|'bow'|null;F:'sword'|'bow'|null};
   /** itemId → quantity */
   consumables: Record<string, number>;
   keyItems: string[];
@@ -71,12 +84,17 @@ export function getStoryProgress(): StoryProgress {
   }
 }
 
-export function saveStoryProgress(progress: Partial<StoryProgress>): void {
+function saveNotice(ok:boolean){
+  if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('story-save',{detail:{ok}}));
+}
+
+export function saveStoryProgress(progress: Partial<StoryProgress>): boolean {
   try {
     const current = getStoryProgress();
-    localStorage.setItem(PROGRESS_KEY, JSON.stringify({ ...current, ...progress }));
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify({ ...current, ...progress,savedAt:Date.now() }));
+    saveNotice(true);return true;
   } catch {
-    // localStorage unavailable (e.g. private browsing quota exceeded)
+    saveNotice(false);return false;
   }
 }
 
@@ -90,11 +108,12 @@ export function getStoryInventory(): StoryInventory {
   }
 }
 
-export function saveStoryInventory(inventory: Partial<StoryInventory>): void {
+export function saveStoryInventory(inventory: Partial<StoryInventory>): boolean {
   try {
     const current = getStoryInventory();
     localStorage.setItem(INVENTORY_KEY, JSON.stringify({ ...current, ...inventory }));
-  } catch {}
+    return saveStoryProgress({});
+  } catch {saveNotice(false);return false;}
 }
 
 // ── Convenience helpers ──────────────────────────────────────────────────────

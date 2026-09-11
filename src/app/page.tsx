@@ -1006,10 +1006,10 @@ export default function MarketingPage() {
                 Story Mode
               </h2>
               <p style={{ fontSize: "1rem", color: MUTED, lineHeight: 1.75 }}>
-                <strong style={{ color: "#BE123C" }}>Story Mode:</strong> Chapters, boss battles, and exclusive loot. A narrative adventure through the world of words. Defeat vocab villains and unlock story rewards.
+                <strong style={{ color: "#BE123C" }}>Story Mode:</strong> Explore a connected world of words, follow quests, and uncover its secrets.
               </p>
               <Link
-                href="/story/1"
+                href="/story"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",

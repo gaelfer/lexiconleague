@@ -8,6 +8,7 @@ import { registerSpeaker, speak } from '../entities/inklingSpeech';
 import { EventBus } from '../EventBus';
 import type { StoryAvatarConfig } from '../avatar';
 import { getStoryProgress, saveStoryProgress } from '@/lib/story/progress';
+import {acceptSidequest} from '@/lib/story/adventure';
 import { OPENING_STORY } from '../story/openingStory';
 import {expedition,saveExpedition,TABLET_RESEARCH} from '../story/repository';
 import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
@@ -152,6 +153,9 @@ export default class ArchiveScene extends Phaser.Scene {
 
   private talkToScholar() {
     const progress = getStoryProgress();
+    if(progress.opening==='wordwood'&&!progress.quests?.['field-notes']&&!expedition().logGuardianFreed){
+      this.openDialogue('SCHOLAR BELLUM',['One small favour: look for the three survey papers beside Wordwood’s paths. Copy what you find into your notes; they may help us understand the old inscriptions.'],()=>acceptSidequest('field-notes'));return;
+    }
     if(expedition().tablet){
       this.openDialogue('SCHOLAR BELLUM',[...(expedition().studied?[
         'The Tablet’s original lettering survives beneath the violet ink. Interference, not erasure. I’ve labelled the samples. And, this time, my tea.',
@@ -179,8 +183,9 @@ export default class ArchiveScene extends Phaser.Scene {
       this.openDialogue('SCHOLAR BELLUM', ['The road—please, check the road. There are people out there. My notes can wait. All of them.']);
       return;
     }
-    this.openDialogue('SCHOLAR BELLUM', OPENING_STORY.scholar, () => {
+    this.openDialogue('SCHOLAR BELLUM', [...OPENING_STORY.scholar,'One small favour: copy the three survey papers beside Wordwood’s paths into your notes. Their observations may help us.'], () => {
       saveStoryProgress({opening:'wordwood'});
+      acceptSidequest('field-notes');
     });
   }
 

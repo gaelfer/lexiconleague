@@ -12,6 +12,7 @@ import { frameWorld } from '../world/framing';
 import { ROOM_GRID } from '../story/interiorPlans';
 import { canEnterInnRoom, innPlan, innRoutine, INN_ROOM_COLUMNS, INN_PEOPLE, isPlayerInnRoom } from '../story/inn';
 import { getStoryProgress, saveStoryProgress } from '@/lib/story/progress';
+import {acceptSidequest} from '@/lib/story/adventure';
 
 type Arrival={floor?:1|2;room?:number;hearts?:number;rested?:boolean;x?:number;y?:number};
 type Site={x:number;y:number;label:string;action:()=>void};
@@ -129,6 +130,9 @@ export default class InnScene extends Phaser.Scene{
     // Reception is reachable from the front of the desk.
     this.sites=this.sites.filter(site=>site.label!=='RECEPTION');
     this.sites.push({x:304,y:368,label:'TALK TO WREN',action:()=>{
+      acceptSidequest('a-place-to-rest');
+      const caretakers=acceptSidequest('lost-keepers');
+      if(caretakers&&!getStoryProgress().wordwoodExpedition?.logGuardianFreed){this.say('Wren: The bridgekeeper and gardener haven’t come back from Wordwood. Would you look for them on your travels?\n\nAnd if you need a room, just ask me.');return;}
       if(getStoryProgress().innRoomBooked)this.say('Wren: Your key still fits, I promise. Upstairs, middle door — room 202.\n\nThere’s fresh linen if you need it.');
       else this.say('Wren: Welcome to the Lantern Inn. You look like the road has had its say. Shall I put you down for a room? It’s on the house.\n\n1 — Get a room     2 — No thanks',true);
     }});
