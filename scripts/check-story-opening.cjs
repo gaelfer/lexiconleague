@@ -10,9 +10,13 @@ const assert=require('node:assert/strict');
  const ready=scene=>page.waitForFunction(scene=>window.__storyTest?.state()[0]?.scene===scene,scene);
  const tap=async key=>{await page.keyboard.press(key);await page.waitForTimeout(300);};
  const move=async(key,axis,target)=>{
-   await page.keyboard.down(key);
-   try{await page.waitForFunction(({axis,target})=>Math.abs(window.__storyTest.state()[0][axis]-target)<2,{axis,target},{timeout:8000});}
-   finally{await page.keyboard.up(key);}
+   for(let step=0;step<30;step++){
+     const current=(await state())[axis];if(Math.abs(current-target)<2)break;
+     const next=Math.round((current-16)/32)*32+16+Math.sign(target-current)*32;
+     await page.keyboard.press(key);
+     await page.waitForFunction(({axis,target})=>Math.abs(window.__storyTest.state()[0][axis]-target)<.001,{axis,target:next},{timeout:8000});
+   }
+   assert(Math.abs((await state())[axis]-target)<2);
    await page.waitForTimeout(250);
  };
  try{
@@ -59,6 +63,15 @@ const assert=require('node:assert/strict');
   for(let i=0;i<8;i++)await tap('e');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lexiconleague:story:progress')).opening),'wordwood');
   await page.goto('http://localhost:3000/story/village?storyTest');await ready('DungeonScene');
+  assert.equal((await state()).zoom,.75);
+  await page.waitForTimeout(900);await page.screenshot({path:'/tmp/story-town-zoom.png'});
+  const bodyBefore=(await state()).body;
+  await page.keyboard.down('q');await page.waitForTimeout(800);await page.keyboard.up('q');
+  for(let i=0;i<12;i++){
+    await page.waitForTimeout(25);
+    assert.deepEqual((await state()).body,bodyBefore,'Body texture, orientation and scale must remain stable through the spin');
+    if(i===3)await page.screenshot({path:'/tmp/story-stable-spin.png'});
+  }
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lexiconleague:story:progress')).visitedInkwell),true);
   await page.goto('http://localhost:3000/story/1?storyTest&roadReview=arrival');await ready('DungeonScene');
   assert.deepEqual((await state()).residents,['Dame Copper']);

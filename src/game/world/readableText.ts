@@ -1,12 +1,14 @@
 import * as Phaser from 'phaser';
-import { CHARACTER_FRAME, DISPLAY_SCALE } from '../pixelScale';
+import { CHARACTER_FRAME, FACE_FRAME, DISPLAY_SCALE } from '../pixelScale';
 
 /** Keep text out of the half-resolution world framebuffer. Its existing Phaser
  * canvas already contains full-size glyphs and wrapping; composite that at display
  * resolution instead of deleting alternate rows/columns with nearest sampling. */
 export function readableText(scene:Phaser.Scene,world:Phaser.Cameras.Scene2D.Camera,ui:Phaser.Cameras.Scene2D.Camera){
   const detailed=(o:Phaser.GameObjects.GameObject):o is Phaser.GameObjects.Image=>o instanceof Phaser.GameObjects.Image
-    && ((o.frame.realWidth===CHARACTER_FRAME.width&&o.frame.realHeight===CHARACTER_FRAME.height)||o.texture.key==='story-sword'||o.texture.key.startsWith('story-bow-pose-'));
+    && ((o.frame.realWidth===CHARACTER_FRAME.width&&o.frame.realHeight===CHARACTER_FRAME.height)
+      ||(o.frame.realWidth===FACE_FRAME.width&&o.frame.realHeight===FACE_FRAME.height)
+      ||o.texture.key==='story-sword'||o.texture.key.startsWith('story-bow-pose-'));
   const layer=document.createElement('canvas');
   layer.setAttribute('aria-hidden','true');
   Object.assign(layer.style,{position:'absolute',pointerEvents:'none',zIndex:'2'});

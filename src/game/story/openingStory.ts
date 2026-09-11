@@ -1,6 +1,6 @@
 export const RESCUE_POSITIONS:Record<string,{x:number;y:number}>={
-  Mira:{x:2672,y:272}, 'Sir Serif':{x:2736,y:272},
-  Bramble:{x:2672,y:336}, Pip:{x:2736,y:336}, Luma:{x:2640,y:272},
+  Mira:{x:2672,y:272}, 'Sir Serif':{x:2704,y:272},
+  Bramble:{x:2672,y:304}, Pip:{x:2704,y:304}, Luma:{x:2640,y:272},
 };
 
 export const OPENING_STORY = {

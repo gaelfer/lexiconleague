@@ -9,7 +9,7 @@ import { resolveMovement, type Facing } from '../movement';
 import { facingVector } from '../combat';
 import { createInkHand, createInkFoot } from './inkHand';
 import { INKLING_SCALE } from '../world/pixelTerrain';
-import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT } from '../pixelAvatar';
+import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { tileCenter, nextGridStep, interpolateStep, type GridPoint } from '../gridMovement';
 import { bowPose,BOW_DURATION,BOW_RELEASE } from '../bowPose';
 
@@ -123,7 +123,7 @@ export default class Player {
     const offsets = AVATAR_BODY_OFFSETS[avatar.base] ?? AVATAR_BODY_OFFSETS.droplet_01;
     const eyes = scene.add
       .image(x, y + offsets.eyesY, 'player-eyes')
-      .setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT)
+      .setDisplaySize(AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT)
       .setDepth(11);
     this.eyes = eyes;
     this.visualLayers.push({ image: eyes, yOffset: offsets.eyesY });
@@ -306,17 +306,21 @@ export default class Player {
 
     for (const { image, yOffset } of this.visualLayers) {
       image.setPosition(Math.round(this.sprite.x), Math.round(this.sprite.y + bob + yOffset));
-      image.setFlipX(facesLeft);
+      // Keep the body’s baked lighting and any markings fixed. Only the facial
+      // and accessory layers turn; mirroring the body makes its texture pop.
+      image.setFlipX(facesLeft && (image === this.eyes || image.texture.key.startsWith('player-accessory-')));
       image.setAngle(0);
     }
     const facesBack = spinning ? Math.sin(visualAngle) < -0.2 : this.facing === 'up' || this.facing.startsWith('up-');
     this.eyes.setVisible(!facesBack);
     // Shift the facial features toward the travel direction in side/diagonal poses.
     this.eyes.x += (spinning ? Math.cos(visualAngle) : startDirection.x) * 5;
-    // Turn through front, profile and back without tumbling the sprite on its side.
+    // Fixed pixel scale through the entire spin. Continuous profile squeezing
+    // resampled the same texture every frame, making eyes and ink patterns crawl.
     for (const { image } of this.visualLayers) {
       if (image === this.aura) continue;
-      image.scaleX = Math.abs(image.scaleY) * (spinning ? 0.78 + 0.22 * Math.abs(Math.sin(visualAngle)) : 1);
+      image.setDisplaySize(image === this.eyes ? AVATAR_FACE_LAYER_WIDTH : AVATAR_LAYER_WIDTH,
+        image === this.eyes ? AVATAR_FACE_LAYER_HEIGHT : AVATAR_LAYER_HEIGHT);
     }
     for (const { image } of this.visualLayers) {
       if (image.texture.key.startsWith('player-accessory-')) image.setDepth(facesBack ? 9.7 : 12);

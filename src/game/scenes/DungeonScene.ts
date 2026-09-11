@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import { frameWorld } from '../world/framing';
-import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT } from '../pixelAvatar';
+import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { buildTown } from '../world/InkwellVillage';
 import { TOWN, townDoor } from '../story/townPlan';
 import { buildInkwellApproach } from '../world/inkwellApproach';
@@ -436,7 +436,7 @@ export default class DungeonScene extends Phaser.Scene {
       this.add.ellipse(0,23,30,10,0x020617,0.4),
       createInkFoot(this,-10,21,0x111827), createInkFoot(this,10,21,0x111827),
       this.add.image(0,0,'thief-base').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
-      this.add.image(0,-5,'thief-eyes').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
+      this.add.image(0,-5,'thief-eyes').setDisplaySize(AVATAR_FACE_LAYER_WIDTH,AVATAR_FACE_LAYER_HEIGHT),
       this.add.image(0,-7,'thief-scarf').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
       createInkHand(this,-15,7,0x111827), createInkHand(this,15,7,0x111827),
     ]);
@@ -458,7 +458,7 @@ export default class DungeonScene extends Phaser.Scene {
       this.add.ellipse(0,23,30,10,0x020617,0.3),
       createInkFoot(this,-10,21,0xf0a6aa),createInkFoot(this,10,21,0xf0a6aa),
       this.add.image(0,0,'luma-base').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
-      this.add.image(0,-5,'npc-0-eyes').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
+      this.add.image(0,-5,'npc-0-eyes').setDisplaySize(AVATAR_FACE_LAYER_WIDTH,AVATAR_FACE_LAYER_HEIGHT),
       createInkHand(this,-15,7,0xf0a6aa),createInkHand(this,15,7,0xf0a6aa),
     ]);
     registerSpeaker(this,'Luma',this.luma);
@@ -607,7 +607,7 @@ export default class DungeonScene extends Phaser.Scene {
       const rightHand = createInkHand(this, 15, 7, bodyColor);
       const base = this.add.image(0, 0, watch?'road-knight-base':`npc-${index}-base`)
         .setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
-      const eyes = this.add.image(0, offsets.eyesY, `npc-${index}-eyes`).setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
+      const eyes = this.add.image(0, offsets.eyesY, `npc-${index}-eyes`).setDisplaySize(AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT);
       const accessory = this.add.image(0, offsets.accessoryY, `npc-${index}-accessory`)
         .setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
       container.add([shadow, leftFoot, rightFoot, base, eyes, accessory, leftHand, rightHand]);

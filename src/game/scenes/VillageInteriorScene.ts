@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import { frameWorld } from '../world/framing';
-import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT } from '../pixelAvatar';
+import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { buildTileInterior } from '../world/tileInterior';
 import { ROOM_GRID } from '../story/interiorPlans';
 import Player from '../entities/Player';
@@ -70,7 +70,7 @@ export default class VillageInteriorScene extends Phaser.Scene {
     if (this.buildingId === 'mapmaker') {
       const luma = this.add.container(496, 352).setDepth(10).setScale(0.78);
       const base = this.add.image(0, 0, 'luma-base').setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
-      const eyes = this.add.image(0, -4, 'npc-0-eyes').setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
+      const eyes = this.add.image(0, -4, 'npc-0-eyes').setDisplaySize(AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT);
       luma.add([this.add.ellipse(0, 19, 28, 9, 0x10263a, 0.3), base, eyes,
         ...[-7,7].map((x) => createInkFoot(this,x,17,0xf0a6aa).setScale(0.75)),
         ...[-12,12].map((x) => createInkHand(this,x,6,0xf0a6aa).setScale(0.8))]);
@@ -91,7 +91,7 @@ export default class VillageInteriorScene extends Phaser.Scene {
       const shadow = this.add.ellipse(0, 23, 36, 12, 0x10263a, 0.3);
       const feet = [-10, 10].map((x) => createInkFoot(this,x,21,color));
       const base = this.add.image(0, 0, `npc-${index}-base`).setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
-      const eyes = this.add.image(0, offsets.eyesY, `npc-${index}-eyes`).setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
+      const eyes = this.add.image(0, offsets.eyesY, `npc-${index}-eyes`).setDisplaySize(AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT);
       const accessory = this.add.image(0, offsets.accessoryY, `npc-${index}-accessory`).setDisplaySize(AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT);
       const hands = [-15, 15].map((x) => createInkHand(this, x, 7, color));
       person.add([shadow, ...feet, base, eyes, accessory, ...hands]);

@@ -7,11 +7,11 @@ describe('pixel avatar conversion',()=>{
     const result=pixelizeAvatar(data,2,1,undefined,40);
     expect(result[3]).toBe(255);expect(result[7]).toBe(0);
   });
-  it('preserves teardrop proportions inside a padded 28×56 frame',()=>{
+  it('preserves teardrop proportions inside a padded 32×64 frame',()=>{
     const p=avatarRasterPlacement(64,64);
-    expect(AVATAR_FRAME).toEqual({width:28,height:56});
+    expect(AVATAR_FRAME).toEqual({width:32,height:64});
     expect(p.dw/p.sw).toBeCloseTo(p.dh/p.sh,10);
-    expect(p.dy+p.dh).toBeLessThanOrEqual(56);
+    expect(p.dy+p.dh).toBeLessThanOrEqual(64);
   });
   const source=()=>{
     const data=new Uint8ClampedArray(12*12*4);
@@ -24,6 +24,14 @@ describe('pixel avatar conversion',()=>{
     for(let i=3;i<result.length;i+=4)expect([0,255]).toContain(result[i]);
     expect(result[3]).toBe(0);
     expect(result[(5*12+5)*4+3]).toBe(255);
+  });
+  it('clusters only when the body conversion requests it',()=>{
+    const data=new Uint8ClampedArray(4*4*4);
+    data.set([255,255,255,255],(1*4+1)*4);
+    const face=pixelizeAvatar(data,4,4);
+    const body=pixelizeAvatar(data,4,4,undefined,112,true);
+    expect([...face].filter((_,i)=>i%4===3&&face[i]===255)).toHaveLength(1);
+    expect([...body].filter((_,i)=>i%4===3&&body[i]===255)).toHaveLength(4);
   });
   it('retains chosen ink hue while adding a limited shading palette',()=>{
     const result=pixelizeAvatar(source(),12,12,0x628f79),colors=new Set<string>();

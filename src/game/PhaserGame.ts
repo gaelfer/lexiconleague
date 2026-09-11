@@ -68,7 +68,10 @@ export function createGame(
   if (process.env.NODE_ENV === 'development' && new URLSearchParams(location.search).has('storyTest')) {
     const state = () => game.scene.getScenes(true).map(scene => {
       const observed = scene as Phaser.Scene & { player?: {x:number;y:number;hearts:number}; luma?:{x:number;y:number}; npcs?:{spec:{name:string}}[]; activeDialogue?: {text:Phaser.GameObjects.Text}; dialogue?: {text:Phaser.GameObjects.Text} };
+      const body=scene.children.list.flatMap(object=>object instanceof Phaser.GameObjects.Container?object.list:[object])
+        .find((object):object is Phaser.GameObjects.Image=>object instanceof Phaser.GameObjects.Image&&object.texture.key==='player-base');
       return {scene:scene.scene.key,x:observed.player?.x,y:observed.player?.y,hearts:observed.player?.hearts,
+        zoom:scene.cameras.main.zoom,body:body?{texture:body.texture.key,scaleX:body.scaleX,scaleY:body.scaleY,flipX:body.flipX,angle:body.angle}:null,
         dialogue:observed.activeDialogue?.text.text??observed.dialogue?.text.text,
         luma:observed.luma?{x:observed.luma.x,y:observed.luma.y+16}:null,
         residents:observed.npcs?.map(npc=>npc.spec.name),speech:speechState(scene)};

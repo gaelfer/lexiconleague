@@ -58,7 +58,7 @@ export default class BootScene extends Phaser.Scene {
     // The thief reuses the established Inkling silhouette so the cutscene
     // belongs to the same visual world as the player and villagers.
     this.load.svg('thief-base', '/ink/base/droplet_04.svg', { width: 64, height: 64 });
-    this.load.svg('thief-eyes', '/ink/eyes/eyes_07.svg', { width: 64, height: 64 });
+    this.load.svg('thief-eyes', '/ink/eyes/eyes_07.svg', { width:64, height:64 });
     this.load.svg('thief-scarf', '/ink/accessories/scarf_01.svg', { width: 64, height: 64 });
   }
 

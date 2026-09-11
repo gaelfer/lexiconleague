@@ -8,7 +8,7 @@ import { EventBus } from '../EventBus';
 import type { StoryAvatarConfig } from '../avatar';
 import { getStoryProgress, saveStoryProgress } from '@/lib/story/progress';
 import { OPENING_STORY } from '../story/openingStory';
-import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT } from '../pixelAvatar';
+import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
 import { createInkHand, createInkFoot } from '../entities/inkHand';
 
 interface ArchiveDialogue {
@@ -57,7 +57,7 @@ export default class ArchiveScene extends Phaser.Scene {
       this.add.ellipse(0,23,30,10,0x020617,0.3),
       createInkFoot(this,-10,21,0xcd7f32),createInkFoot(this,10,21,0xcd7f32),
       this.add.image(0,0,'scholar-base').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
-      this.add.image(0,0,'scholar-eyes').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
+      this.add.image(0,0,'scholar-eyes').setDisplaySize(AVATAR_FACE_LAYER_WIDTH,AVATAR_FACE_LAYER_HEIGHT),
       this.add.image(0,0,'scholar-glasses').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
       this.add.image(0,0,'scholar-quill').setDisplaySize(AVATAR_LAYER_WIDTH,AVATAR_LAYER_HEIGHT),
       createInkHand(this,-15,7,0xcd7f32),createInkHand(this,15,7,0xcd7f32),

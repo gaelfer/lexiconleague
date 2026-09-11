@@ -18,7 +18,7 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   and signs of ordinary life. Optional buildings must support exploration and lore.
 - Establish and visually inspect a polished reference exterior and interior with the
   player visible before calling a wider visual redesign finished.
-- Story avatars are converted from profile SVG layers into hard-alpha pixel
+- Story bodies and accessories are converted from profile SVG layers into hard-alpha pixel
   textures in Boot. Bodies bake the selected ink color into a five-shade ramp;
   never apply setTintFill to a converted body, which would erase its shading.
   Preserve separate eyes/accessories, facing, and weapon grip alignment. Hands
@@ -31,7 +31,7 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   uses a shared small scale; scale physics and interactions with room migrations.
 - Compactness applies to interiors, not shrinking outdoor scenery. Interiors use
   native 16px tiles at 2× display scale with no fractional room scaling. The native
-  town camera uses 0.625 map-unit zoom; routes and interiors use 0.75.
+  town camera, routes and interiors use 0.75 map-unit zoom.
   The canvas scales exactly 2×; resizing
   changes viewport dimensions rather than stretching pixels. Dialogue has its own camera.
 - House interiors use independent furniture PNGs and stable per-house layouts,
@@ -64,8 +64,15 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   the authored paths; do not turn it back into a single straight road.
 - Wordwood’s signs visibly restore landmarks. Its final stones tell the sequence
   seed, sprout, bloom. Preserve both vocabulary and sanctuary progress on travel.
-- Character cosmetic layers use native 28×56 frames displayed at 32×64, anchored
+- Body, face, and accessory layers use native 32×64 frames. Only the base/body
+  is quantized into 2×2 clusters, retaining the chunky character of 16×32 art;
+  faces, limbs, and accessories retain full pixel detail. Faces display within
+  a centered 24×48 footprint while the other layers remain 32×64, anchored
   over the occupied foot tile. Preserve one-tile movement collision and weapon grips.
+  Crop face source art slightly closer than its body group so the authored eyes
+  and mouth remain prominent inside that smaller footprint.
+  Anchor that crop at the authored expression center (50% across, 58% down),
+  compensating for the face display size so enlarging it never shifts it downward.
   The frame is NOT the silhouette: preserve the SVG's aspect ratio and pad the
   frame. Fit all cosmetic layers together, including wide star bodies; never
   stretch teardrops vertically to fill 32 pixels or crop their side points.
@@ -74,11 +81,14 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   canvas scaling or the old 1.2× world zoom.
 - Text is a readability exception: readableText.ts composites Phaser text canvases
   at full display resolution. Never downsample glyphs with the world framebuffer.
-  Characters also use the full-resolution compositor with nearest-neighbor sampling
-  so their 28×56 expressions are not reduced back to 16×32. Preserve each selected
-  SVG's real mouth; never stamp a generic smile on eye layers. Hide faces for rear views.
+  Characters use the full-resolution compositor with nearest-neighbor sampling.
+  Preserve each expression’s distinct eyes and mouth at full 32×64 resolution;
+  never replace them with a generic smile. Hide faces for
+  rear views.
 - NPCs use a planted stance: no independent fractional bobbing of their body,
   face, hands or sword. Snap character compositor translations to display pixels.
+- Player body texture scale and orientation stay fixed during animations. Turn
+  using the face, gear and limbs; do not continuously squeeze or mirror the baked body.
 - The hub gatehouse sits at the northern approach defined in TOWN.gatehouse;
   use that same source for rendering, arrival and interaction. Keep its roof
   separate from the tea-room and preserve the northward camera/terrain bounds.
