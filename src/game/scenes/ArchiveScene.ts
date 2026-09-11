@@ -121,6 +121,11 @@ export default class ArchiveScene extends Phaser.Scene {
       return;
     }
 
+    if(nearest.interaction.label==='LEAVE THE ARCHIVE'){
+      this.prompt.setVisible(false);
+      if(Math.abs(this.player.x-ROOM_GRID.exit.x)<24&&this.player.wantsDoor('down'))nearest.interaction.action();
+      return;
+    }
     this.prompt
       .setText(`[ E ]  ${nearest.interaction.label}`)
       .setPosition(this.player.x, this.player.y - 62)

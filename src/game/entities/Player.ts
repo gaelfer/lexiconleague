@@ -47,6 +47,8 @@ export default class Player {
   private gridStep: { from: GridPoint; to: GridPoint; elapsed: number; duration: number } | null = null;
   private queuedDirection: ReturnType<typeof resolveMovement> | null = null;
   private interactQueuedUntil=0;
+  private doorIntent:{direction:'up'|'down';until:number}|null=null;
+  private doorReadyAt=0;
 
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   private keyW: Phaser.Input.Keyboard.Key;
@@ -172,6 +174,7 @@ export default class Player {
     const queueStep = (event: KeyboardEvent) => {
       if (event.repeat) return;
       const key = event.key.toLowerCase();
+      if(['w','arrowup','s','arrowdown'].includes(key))this.doorIntent={direction:key==='w'||key==='arrowup'?'up':'down',until:scene.time.now+220};
       if(key==='r'){this.queuedBow=true;return;}
       if(key==='e'||key===' '){this.interactQueuedUntil=scene.time.now+250;return;}
       if (!['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)) return;
@@ -194,6 +197,7 @@ export default class Player {
     // Room scenes create their own Player, while the outdoor Player may remain
     // paused. Keep the timer on the game, not on any one of those instances.
     const restoreSword=()=>{
+      this.doorReadyAt=scene.time.now+450;this.doorIntent=null;
       this.swordIdleMs=scene.registry.get('story:swordIdleMs')??0;
       this.syncVisuals(0);
     };
@@ -204,6 +208,13 @@ export default class Player {
 
   get x() { return this.sprite.x; }
   get y() { return this.sprite.y; }
+  wantsDoor(direction:'up'|'down'){
+    if(this.sprite.scene.time.now<this.doorReadyAt)return false;
+    const requested=(direction==='up'?(this.keyW.isDown||this.cursors.up.isDown):(this.keyS.isDown||this.cursors.down.isDown))
+      ||(this.doorIntent?.direction===direction&&this.doorIntent.until>this.sprite.scene.time.now);
+    if(requested){this.doorReadyAt=this.sprite.scene.time.now+450;this.doorIntent=null;}
+    return requested;
+  }
   setSleeping(value:boolean){this.stopMovement();this.artwork.setVisible(!value);}
 
   healFully() {

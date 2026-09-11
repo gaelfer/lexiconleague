@@ -1,4 +1,5 @@
 import type * as Phaser from 'phaser';
+import {drawDoorLeaves} from './doorOpening';
 
 /** Two timber floors, broad slate roof, and a wall-mounted hanging inn sign. */
 export function buildInnExterior(scene:Phaser.Scene,x:number,y:number,obstacle:(x:number,y:number,w:number,h:number)=>void){
@@ -39,5 +40,6 @@ export function buildInnExterior(scene:Phaser.Scene,x:number,y:number,obstacle:(
   [letters[0],letters[1],letters[1]].forEach((glyph,index)=>glyph.forEach((row,gy)=>{
     [...row].forEach((pixel,gx)=>{if(pixel==='1')r(71+index*6+gx,-44+gy,1,1,0xf0ddb0);});
   }));
+  drawDoorLeaves(scene,x,bottom,'inn');
   obstacle(x,bottom-80,256,160);
 }

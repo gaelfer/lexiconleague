@@ -1,4 +1,5 @@
 import type * as Phaser from 'phaser';
+import {drawDoorLeaves} from './doorOpening';
 
 /** Native-pixel masonry hall, authored around its existing south-facing doorstep. */
 export const ARCHIVE_FOOTPRINT = { dx:-144, dy:-160, width:288, height:224 };
@@ -91,6 +92,7 @@ export function buildArchiveExterior(scene:Phaser.Scene,x:number,y:number,obstac
   for(const [mx,my] of [[-138,31],[-130,43],[119,37],[109,45],[-58,37]]){
     rect(mx,my,9,3,0x536e53);rect(mx+2,my-3,4,5,0x72835b);rect(mx+2,my-3,2,1,0x9b9e70);
   }
+  drawDoorLeaves(scene,x,y+50,'archive');
   const f=ARCHIVE_FOOTPRINT;
   obstacle(x+f.dx+f.width/2,y+f.dy+f.height/2,f.width,f.height);
 }

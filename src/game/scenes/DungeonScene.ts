@@ -1,4 +1,6 @@
 import * as Phaser from 'phaser';
+import {tileCenter} from '../gridMovement';
+import {openDoorAnimation,type DoorStyle} from '../world/doorOpening';
 import {interactionScore,atDoorway} from '../interaction';
 import { frameWorld } from '../world/framing';
 import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
@@ -600,6 +602,7 @@ export default class DungeonScene extends Phaser.Scene {
         ]};
       }
       if (spec.house || (spec.hubOnly && this.chapterId !== 0)) return;
+      if(this.chapterId===0)spec={...spec,x:tileCenter(spec.x),y:tileCenter(spec.y)};
       const offsets = AVATAR_BODY_OFFSETS[spec.base] ?? AVATAR_BODY_OFFSETS.droplet_01;
       const container = this.add.container(spec.x, spec.y - 16).setDepth(10).setScale(0.78);
       const shadow = this.add.ellipse(0, 23, 38, 13, 0x020617, 0.4);
@@ -625,8 +628,8 @@ export default class DungeonScene extends Phaser.Scene {
       // A planted pose avoids fractional layer wobble; the sword and its hand
       // keep one shared, stationary grip instead of separate idle tweens.
 
-      const body = this.physics.add.staticImage(spec.x, spec.y + (this.chapterId===1 ? 0 : 8), '__DEFAULT');
-      body.setDisplaySize(28, 28).setAlpha(0).refreshBody();
+      const body = this.physics.add.staticImage(spec.x, spec.y, '__DEFAULT');
+      body.setDisplaySize(24, 20).setAlpha(0).refreshBody();
       this.physics.add.collider(this.player.sprite, body);
       this.npcs.push({ spec, body });
       registerSpeaker(this,spec.name,container);
@@ -729,28 +732,28 @@ export default class DungeonScene extends Phaser.Scene {
 
   private checkInteractionProximity() {
     if(this.chapterId===1 && Math.abs(this.player.x-208)<=48 && Math.abs(this.player.y-240)<=40){
-      this.interactPrompt.setText('[ E ]  ENTER YOUR HOME').setPosition(this.player.x,this.player.y-62).setVisible(true);
-      if(this.player.isInteractJustDown())this.enterVillageBuilding('home');
+      this.interactPrompt.setVisible(false);
+      if(this.player.wantsDoor('up')&&Math.abs(this.player.x-208)<16)this.openEntrance(208,218,()=>this.enterVillageBuilding('home'),'cottage');
       return;
     }
     const travel=this.chapterId===0?TOWN.gatehouse:this.chapterId===1?{x:3056,y:304}:null;
     if(travel&&Phaser.Math.Distance.Between(this.player.x,this.player.y,travel.x,travel.y)<64){
-      this.interactPrompt.setText('[ E ]  ENTER THE WAYFARER GATEHOUSE').setPosition(this.player.x,this.player.y-62).setVisible(true);
-      if(this.player.isInteractJustDown()){
+      this.interactPrompt.setVisible(false);
+      if(this.player.wantsDoor('up')&&Math.abs(this.player.x-travel.x)<24){
         if(this.chapterId===1&&!getStoryProgress().completedChapters.includes(1)){
           this.showWorldMessage(this.enemies.length ? `There are still ${this.enemies.length} Blotlings on the road. The travellers need a safe way back.` : 'Restore all three seals and meet the travellers in the clearing.','#e3d1a2');return;
         }
-        this.player.stopMovement();enterGatehouse(this,this.chapterId===0?'village':'approach');
+        this.openEntrance(travel.x,travel.y-16,()=>enterGatehouse(this,this.chapterId===0?'village':'approach'),'wayfarer');
       }
       return;
     }
     const innDoor=this.chapterId===0?townDoor('inn'):undefined;
     if(innDoor&&this.isAtBuildingDoor(innDoor.x,innDoor.y)){
-      this.interactPrompt.setText('[ E ]  ENTER THE LANTERN INN').setPosition(this.player.x,this.player.y-62).setVisible(true);
-      if(this.player.isInteractJustDown()){
+      this.interactPrompt.setVisible(false);
+      if(this.player.wantsDoor('up')&&Math.abs(this.player.x-innDoor.x)<16)this.openEntrance(innDoor.x,innDoor.y-6,()=>{
         this.locked=true;this.player.stopMovement();this.scene.pause();
         this.scene.launch('InnScene',{hearts:this.player.hearts});
-      }
+      },'inn');
       return;
     }
     for (const building of VILLAGE_BUILDINGS) {
@@ -758,11 +761,8 @@ export default class DungeonScene extends Phaser.Scene {
       if (building.hubOnly && this.chapterId !== 0) continue;
       const entrance = this.chapterId === 0 ? townDoor(building.id) : building.entrance;
       if (!entrance || !this.isAtBuildingDoor(entrance.x, entrance.y)) continue;
-      this.interactPrompt
-        .setText(`[ E ]  ENTER ${building.name}`)
-        .setPosition(this.player.x, this.player.y - 62)
-        .setVisible(true);
-      if (this.player.isInteractJustDown()) this.enterVillageBuilding(building.id);
+      this.interactPrompt.setVisible(false);
+      if (this.player.wantsDoor('up')&&Math.abs(this.player.x-entrance.x)<16)this.openEntrance(entrance.x,entrance.y-12,()=>this.enterVillageBuilding(building.id),'cottage');
       return;
     }
 
@@ -785,12 +785,9 @@ export default class DungeonScene extends Phaser.Scene {
     const archiveDoor = this.chapterId === 0 ? townDoor('archive')! : { x: 315, y: 205 };
     if (this.chapterId!==1 && this.isAtBuildingDoor(archiveDoor.x, archiveDoor.y)) {
       const archiveReady = this.investigationStage === 'archive' || this.investigationStage === 'seals';
-      this.interactPrompt
-        .setText(archiveReady ? '[ E ]  ENTER THE INKWELL ARCHIVE' : '[ E ]  CHECK THE ARCHIVE DOOR')
-        .setPosition(this.player.x, this.player.y - 62)
-        .setVisible(true);
-      if (this.player.isInteractJustDown()) {
-        if (archiveReady) this.enterArchive();
+      this.interactPrompt.setVisible(false);
+      if (this.player.wantsDoor('up')&&Math.abs(this.player.x-archiveDoor.x)<24) {
+        if (archiveReady)this.openEntrance(archiveDoor.x,archiveDoor.y-36,()=>this.enterArchive(),'archive');
         else this.showWorldMessage(
           this.investigationStage === 'defend'
             ? 'The doors are barred while Blotlings remain on Archive Road'
@@ -872,7 +869,7 @@ export default class DungeonScene extends Phaser.Scene {
    * stops the player below the visual door before they reach its exact point.
    */
   private isAtBuildingDoor(x: number, y: number) {
-    return atDoorway(this.player,{x,y});
+    return atDoorway(this.player,{x,y})&&Math.abs(this.player.x-x)<24&&this.player.y<=y+40;
   }
 
   // Both doorway transitions lock input for the same reason every other
@@ -900,6 +897,11 @@ export default class DungeonScene extends Phaser.Scene {
       if(buildingId==='home')this.scene.launch('WakeScene',{visit:true,hearts:this.player.hearts});
       else this.scene.launch('VillageInteriorScene', { buildingId });
     });
+  }
+
+  private openEntrance(x:number,bottom:number,done:()=>void,style:DoorStyle){
+    this.locked=true;this.player.stopMovement();this.interactPrompt.setVisible(false);
+    openDoorAnimation(this,x,bottom,done,style);
   }
 
   private onArchiveInvestigationComplete = () => {

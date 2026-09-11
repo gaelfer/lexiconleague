@@ -1,4 +1,5 @@
 import type * as Phaser from 'phaser';
+import {drawDoorLeaves} from './doorOpening';
 
 /** Six-tile facade and a deep roof, drawn in native pixels at exactly 2 map units. */
 export function buildCottageExterior(scene:Phaser.Scene,x:number,y:number,roof:number,obstacle:(x:number,y:number,w:number,h:number)=>void){
@@ -38,5 +39,6 @@ export function buildCottageExterior(scene:Phaser.Scene,x:number,y:number,roof:n
     r(wx+2,-29,3,11,0xf0dda4);r(wx+6,-29,1,12,wood);r(wx+2,-24,8,1,wood);
     r(wx-2,-16,16,3,wood);r(wx-2,-16,16,1,0xb99564);
   }
+  drawDoorLeaves(scene,x,bottom-6,'cottage');
   obstacle(x,bottom-64,192,128);
 }

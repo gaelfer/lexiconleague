@@ -7,6 +7,7 @@ import { getStoryProgress, saveStoryProgress } from '@/lib/story/progress';
 import { grassTiles, villagePaths } from '../world/pixelTerrain';
 import { leafCluster } from '../world/InkwellVillage';
 import { drawGatehouse,enterGatehouse } from '../world/gatehouse';
+import {openDoorAnimation} from '../world/doorOpening';
 import { advanceEcho } from '../story/areaTravel';
 import { wordwoodDetails } from '../world/wordwoodDetails';
 import { markChapterComplete } from '@/lib/story/progress';
@@ -28,6 +29,7 @@ export default class WordwoodScene extends Phaser.Scene {
   private gateArt!:Phaser.GameObjects.Graphics;
   private route!: Phaser.GameObjects.Graphics;
   private completed = false;
+  private locked=false;
   private echoStep=0;
   private echoOpen=false;
   private lastStone=-1;
@@ -38,6 +40,7 @@ export default class WordwoodScene extends Phaser.Scene {
   constructor(private avatar: StoryAvatarConfig) { super({ key: 'WordwoodScene' }); }
 
   create() {
+    this.locked=false;
     this.sites = []; this.labels = []; this.panel = null; this.completed = false;
     this.words=['hollow','hollow','hollow'];this.found=new Set();this.solved=false;
     this.echoStep=0;this.echoOpen=false;this.lastStone=-1;this.echoTiles=[];
@@ -99,7 +102,7 @@ export default class WordwoodScene extends Phaser.Scene {
     wordwoodDetails(this,obstacle);
     this.landmarkChanges=this.add.graphics().setDepth(-9);
     villagePaths(g,[[640,1056,128,64],[736,928,64,192]]);
-    drawGatehouse(this,640,1072,obstacle);
+    drawGatehouse(this,656,1072,obstacle);
     this.add.image(608,768,'interior-desk').setDisplaySize(32,32).setOrigin(0).setDepth(2);obstacle(624,784,32,32);
     // The final gate spans the entire entrance to the little northern sanctuary.
     obstacle(384,144,768,32);obstacle(1216,144,768,32);
@@ -153,8 +156,8 @@ export default class WordwoodScene extends Phaser.Scene {
     this.add.image(800,576,'interior-lectern').setDisplaySize(32,32).setOrigin(0).setDepth(2);
     obstacle(800,608,64,64);
     this.sites.push({ x: 800, y: 664, label: 'TEST THE THREE SIGNS', action: () => this.testSigns() });
-    this.sites.push({x:656,y:1104,label:'RETURN THROUGH THE GATEHOUSE',action:()=>{this.save();this.player.stopMovement();enterGatehouse(this,'wordwood');}});
-    this.events.on(Phaser.Scenes.Events.RESUME,()=>{this.cameras.main.fadeIn(180);});
+    this.sites.push({x:656,y:1104,label:'RETURN THROUGH THE GATEHOUSE',action:()=>{this.save();this.player.stopMovement();this.locked=true;openDoorAnimation(this,656,1056,()=>enterGatehouse(this,'wordwood'),'wayfarer');}});
+    this.events.on(Phaser.Scenes.Events.RESUME,()=>{this.locked=false;this.cameras.main.fadeIn(180);});
     this.sites.push({x:624,y:784,label:'READ THE GARDENER’S VERSE',action:()=>this.say('First a SEED sleeps below.\nThen a SPROUT greets the sun.\nAt last the BLOOM opens.\n\nWhen the signs agree, walk this story across the three stones. A wrong step begins the verse again; nothing else is lost.')});
     this.sites.push({ x: 800, y: 80, label: 'RECOVER THE LIVING FRAGMENT', action: () => {
       if (!this.echoOpen || this.completed) return;
@@ -215,6 +218,7 @@ export default class WordwoodScene extends Phaser.Scene {
     this.nextInput = this.time.now + 220;
   }
   update(_time: number, delta: number) {
+    if(this.locked)return;
     if (this.panel) {
       if (this.time.now > this.nextInput && this.player.isInteractJustDown()) { this.panel.destroy(); this.panel = null; }
       return;
@@ -238,6 +242,11 @@ export default class WordwoodScene extends Phaser.Scene {
       .sort((a, b) => Phaser.Math.Distance.Between(this.player.x, this.player.y, a.x, a.y) - Phaser.Math.Distance.Between(this.player.x, this.player.y, b.x, b.y))[0];
     this.prompt.setVisible(!!nearest);
     if (nearest) {
+      if(nearest.label==='RETURN THROUGH THE GATEHOUSE'){
+        this.prompt.setVisible(false);
+        if(Math.abs(this.player.x-nearest.x)<24&&this.player.wantsDoor('up'))nearest.action();
+        return;
+      }
       this.prompt.setText('[ E ] ' + nearest.label).setPosition(this.player.x, this.player.y - 50);
       if (this.player.isInteractJustDown()) nearest.action();
     }

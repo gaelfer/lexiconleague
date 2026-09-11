@@ -38,7 +38,7 @@ export function buildInkwellApproach(scene:Phaser.Scene,obstacle:(x:number,y:num
     for(let px=x;px<=x+length;px+=24){r(px,y-5,6,27,0x423e31);r(px,y-5,2,24,0xbda67a);}
   };
   villagePaths(ground,[[192,224,32,96]]);
-  buildCottageExterior(scene,192,144,0x536e6a,obstacle);
+  buildCottageExterior(scene,208,144,0x536e6a,obstacle);
   // Slate riverbanks, reeds and a broad timber crossing.
   ground.fillStyle(0x223e4c).fillRect(512,32,128,536);
   ground.fillStyle(0x365f6b).fillRect(522,32,108,536);
@@ -91,5 +91,5 @@ export function buildInkwellApproach(scene:Phaser.Scene,obstacle:(x:number,y:num
   for(const x of [2960,3120]){
     r(x,312,4,50,0x67513a);r(x-5,308,14,18,0x31413b);r(x-3,310,10,12,0xe5c997);r(x-3,310,3,12,0xffe7b8);
   }
-  drawGatehouse(scene,3040,304,obstacle);
+  drawGatehouse(scene,3056,304,obstacle);
 }

@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import {openDoorAnimation,drawDoorLeaves} from '../world/doorOpening';
 import {interactionScore} from '../interaction';
 import Player from '../entities/Player';
 import { AVATAR_BODY_OFFSETS, hexToNumber, type StoryAvatarConfig } from '../avatar';
@@ -78,12 +79,14 @@ export default class InnScene extends Phaser.Scene{
         const x=ROOM_GRID.x+col*32+16,y=ROOM_GRID.floorY+16;
         this.add.image(x-16,y-48,'interior-inn-door-top').setOrigin(0).setDisplaySize(32,32).setDepth(1);
         this.add.image(x-16,y-16,'interior-inn-door-bottom').setOrigin(0).setDisplaySize(32,32).setDepth(1);
+        drawDoorLeaves(this,x,y+10,'bedroom',2);
         this.add.text(x,y-36,`${this.floor}0${index+1}`,{fontFamily:'Georgia',fontSize:'10px',color:'#f4e2b3',backgroundColor:'#49382d',padding:{x:2,y:2}}).setOrigin(.5).setDepth(3);
         this.sites.push({x,y,label:`ROOM ${this.floor}0${index+1}`,action:()=>{
           if(!canEnterInnRoom(this.floor,index+1,getStoryProgress().innRoomBooked===true)){
             this.say('Locked. A little brass tag reads “202”.\n\nAsk the innkeeper downstairs for a room.');return;
           }
-          this.change({floor:this.floor,room:index+1});
+          this.transitioning=true;this.player.stopMovement();
+          openDoorAnimation(this,x,y+10,()=>this.change({floor:this.floor,room:index+1}),'bedroom');
         }});
       });
       // Three native tiles: recessed landing, shaded treads, and an open foot.
@@ -155,8 +158,12 @@ export default class InnScene extends Phaser.Scene{
       else this.leave();
     }};
     const near=[...this.sites,exit].map(site=>({site,d:interactionScore(this.player,site,site.label.startsWith('TALK TO')||site===exit||site.label.startsWith('ROOM')||site.label.includes('STAIRS')?48:34)})).filter(({d})=>Number.isFinite(d)).sort((a,b)=>a.d-b.d||Number(b.site.label.startsWith('TALK TO'))-Number(a.site.label.startsWith('TALK TO')))[0];
-    this.prompt.setVisible(!!near);
-    if(near){this.prompt.setText(`[ E ] ${near.site.label}`).setPosition(this.player.x,this.player.y-62);if(this.player.isInteractJustDown())near.site.action();}
+    const door=near&&(near.site===exit||near.site.label.startsWith('ROOM'));
+    this.prompt.setVisible(!!near&&!door);
+    if(near){
+      if(door){if(Math.abs(this.player.x-near.site.x)<24&&this.player.wantsDoor(near.site===exit?'down':'up'))near.site.action();}
+      else{this.prompt.setText(`[ E ] ${near.site.label}`).setPosition(this.player.x,this.player.y-62);if(this.player.isInteractJustDown())near.site.action();}
+    }
   }
   private updateGuest(delta:number){
     const g=this.guest;if(!g)return;

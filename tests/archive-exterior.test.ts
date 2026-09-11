@@ -10,7 +10,7 @@ it('keeps the new Archive on the grid and its existing doorstep unblocked',()=>{
   expect(house.y+f.dy+f.height).toBe(384);
   expect(townDoor('archive')).toEqual({x:1040,y:406});
   expect(400-15.9).toBeGreaterThan(house.y+f.dy+f.height);
-  const g={setPosition:vi.fn().mockReturnThis(),setDepth:vi.fn().mockReturnThis(),fillStyle:vi.fn().mockReturnThis(),fillRect:vi.fn().mockReturnThis()};
+  const g={clear:vi.fn().mockReturnThis(),setPosition:vi.fn().mockReturnThis(),setDepth:vi.fn().mockReturnThis(),fillStyle:vi.fn().mockReturnThis(),fillRect:vi.fn().mockReturnThis()};
   const scene={add:{graphics:()=>g}} as unknown as Phaser.Scene;
   const obstacle=vi.fn();
   buildArchiveExterior(scene,house.x,house.y,obstacle);

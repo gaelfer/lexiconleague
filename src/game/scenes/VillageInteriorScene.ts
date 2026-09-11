@@ -156,8 +156,8 @@ export default class VillageInteriorScene extends Phaser.Scene {
       return;
     }
     if (!nearest.interaction) {
-      this.prompt.setText('[ E ]  LEAVE').setPosition(this.player.x, this.player.y - 62).setVisible(true);
-      if (this.player.isInteractJustDown()) this.exitBuilding();
+      this.prompt.setVisible(false);
+      if (Math.abs(this.player.x-EXIT.x)<24&&this.player.wantsDoor('down'))this.exitBuilding();
       return;
     }
     this.prompt.setText(`[ E ]  ${nearest.interaction.label}`)

@@ -1,4 +1,5 @@
 import type * as Phaser from 'phaser';
+import {drawDoorLeaves} from './doorOpening';
 import type { AreaId } from '../story/areaTravel';
 
 /** Door is the interaction point; the single aligned body ends one tile above it. */
@@ -20,6 +21,7 @@ export function drawGatehouse(scene:Phaser.Scene,x:number,y:number,obstacle:(x:n
   r(-13,-40,26,3,light);r(-13,-37,2,29,0x9b977e);r(11,-37,2,29,0x697f74);
   for(const wx of [-25,18]){r(wx,-35,8,13,ink);r(wx+1,-34,6,10,0xddc18a);r(wx+3,-34,1,10,wood);r(wx,-23,8,2,wood);}
   for(let sy=-8;sy<0;sy+=4){r(-12,sy,24,4,0x839285);r(-12,sy,24,1,light);}
+  drawDoorLeaves(scene,x,y-16,'wayfarer');
   obstacle(x,y-64,128,96);
 }
 

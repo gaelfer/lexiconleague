@@ -29,7 +29,7 @@ const assert=require('node:assert/strict');
   await page.screenshot({path:'/tmp/sword-redrawn.png'});
   await page.evaluate(()=>window.__storyTest.reviewInnRoom(1,undefined));
   await page.waitForFunction(()=>window.__storyTest.state()[0]?.room===undefined);
-  await page.waitForTimeout(400);await page.keyboard.press('e');
+  await page.waitForTimeout(500);await page.keyboard.press('s');
   await page.waitForFunction(()=>window.__storyTest.state()[0]?.scene==='DungeonScene');
   assert.equal(await page.evaluate(()=>window.__storyTest.combatState().swordStowed),false,'Outdoor player restores the sword state changed indoors');
   assert.deepEqual(errors,[]);

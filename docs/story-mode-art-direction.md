@@ -44,6 +44,16 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   south doorstep and tile-aligned collision. Do not substitute an enlarged cottage.
 - Movement is now committed 16-native-pixel (32 map-unit) tile-to-tile stepping, with smooth interpolation,
   buffered taps, and no diagonal corner cutting. Do not restore free movement.
+- Building and bedroom doors open on northward movement (W / up), with a short
+  doorway animation. Center every exterior door on one movement-grid column;
+  move the building, path and collision together, never slide the player off-grid.
+  Assign a matching leaf style explicitly: cottage timber, inn oak, bedroom panel,
+  Archive arched double doors, or reinforced Wayfarer gate. Static and moving leaves
+  share their artwork. Open interior passageways remain open; do not add phantom doors.
+  Entrances use a
+  hinged-door animation; southern room exits use S / down. Do not show E-to-enter
+  labels. E remains for people, objects and stair interactions. NPC foot colliders
+  must stay inside their occupied grid tile so the next row remains walkable.
 - All nine village interiors share a medieval kit: timber, linen quilts, pottery,
   parchment, stone hearths and leaded windows. No TVs, modern taps or glass tables.
   Every home has a bed; Mira and Luma have separate beds.

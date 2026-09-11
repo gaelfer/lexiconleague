@@ -44,7 +44,7 @@ const assert=require('node:assert/strict');
     await page.waitForFunction(()=>window.__storyTest.state()[0].dialogue?.includes('All hearts restored'));
     assert.equal(await page.evaluate(()=>window.__storyTest.state()[0].hearts),3);await step('e');
    }
-   await move('y',368);await move('x',400);await move('y',432);await step('e');
+   await move('y',368);await move('x',400);await move('y',400);await step('s');
    await page.waitForFunction(()=>window.__storyTest.state()[0]?.scene==='InnScene'&&window.__storyTest.state()[0].room===undefined);
   }
   assert.deepEqual(errors,[]);console.log('PASS: six rooms, active and resting guests, player sleeping/healing, conversations and exits');

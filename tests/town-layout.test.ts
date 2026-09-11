@@ -3,6 +3,10 @@ import { TOWN, townDoor } from '../src/game/story/townPlan';
 import { ROOM_LAYOUTS } from '../src/game/story/roomLayouts';
 
 describe('Inkwell town model', () => {
+  it('centers all exterior doorways on single movement-grid columns',()=>{
+    for(const building of TOWN.buildings)expect(townDoor(building.id)!.x%32,building.id).toBe(16);
+    expect(TOWN.gatehouse.x%32).toBe(16);
+  });
   it('keeps the gatehouse clear of the tea-room roof and its arrival outside collision',()=>{
     const gate=TOWN.gatehouse;
     const tea=TOWN.buildings.find(b=>b.id==='tea-room')!;
