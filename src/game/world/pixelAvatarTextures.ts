@@ -16,8 +16,11 @@ export function convertAvatarTexture(scene:Phaser.Scene,key:string,bodyColor?:nu
   // Face SVGs use translucent mouth, eyelid, and highlight strokes. A lower
   // alpha cutoff keeps those authored details—especially Pip's sleepy face—
   // while body silhouettes retain their firmer edge threshold.
-  const alphaThreshold=key.endsWith('-eyes')?48:112;
-  image.data.set(pixelizeAvatar(image.data,canvas.width,canvas.height,bodyColor,alphaThreshold,true));
+  const isFace=key.endsWith('-eyes');
+  const alphaThreshold=isFace?48:112;
+  // Preserve single-pixel gaps in pupils, X-eyes and mouths. Other layers keep
+  // their chunky 2×2 construction on the same aligned 32×64 frame.
+  image.data.set(pixelizeAvatar(image.data,canvas.width,canvas.height,bodyColor,alphaThreshold,!isFace));
   context.putImageData(image,0,0);
   if(scene.textures.exists(outputKey))scene.textures.remove(outputKey);
   scene.textures.addCanvas(outputKey,canvas)?.setFilter(Phaser.Textures.FilterMode.NEAREST);

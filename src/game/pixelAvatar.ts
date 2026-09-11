@@ -48,7 +48,7 @@ export function pixelizeAvatar(source:Uint8ClampedArray,width:number,height:numb
     }
     output.set([...color,255],i);
   }
-  // Story avatar layers share a 2x2 pixel grid within the 32x64 frame.
+  // Bodies/accessories use a 2x2 grid; faces preserve single-pixel detail.
   if(!clusterPixels||width<4||height<4)return output;
   const clustered=new Uint8ClampedArray(output.length);
   for(let y=0;y<height;y+=2)for(let x=0;x<width;x+=2){

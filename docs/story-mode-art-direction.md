@@ -90,8 +90,9 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   Field notes are optional hints, not a completion prerequisite. The completed
   verse opens the existing northern gate and directs the player there; it must
   not paint a new path over the terrain.
-- Body, face, and accessory layers use native 32×64 frames with 2×2 pixel
-  clusters throughout. Hands and feet also use 2×2 blocks for their outlines
+- Body, face, and accessory layers use native 32×64 frames. Bodies and accessories
+  use 2×2 pixel clusters; faces are a 1px-detail exception so pupils, X-eyes and
+  mouths retain their original gaps and expressions. Hands and feet use 2×2 blocks for their outlines
   and shading. All avatar layers share the same 32×64 display footprint, anchored
   over the occupied foot tile. Preserve one-tile movement collision and weapon grips.
   Use the same source crop for faces, bodies, and accessories to preserve alignment.
@@ -104,7 +105,7 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
 - Text is a readability exception: readableText.ts composites Phaser text canvases
   at full display resolution. Never downsample glyphs with the world framebuffer.
   Characters use the full-resolution compositor with nearest-neighbor sampling.
-  Preserve each expression’s distinct eyes and mouth in the clustered 32×64 frame;
+  Preserve each expression’s distinct eyes and mouth in the shared 32×64 frame;
   never replace them with a generic smile. Hide faces for
   rear views.
 - NPCs use a planted stance: no independent fractional bobbing of their body,
