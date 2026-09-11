@@ -6,6 +6,8 @@ import {EventBus} from '../EventBus';
 import {frameWorld} from '../world/framing';
 import {repositoryArt} from '../world/repositoryArt';
 import {wordwoodRain} from '../world/wordwoodRain';
+import {createKeeper,keeperSpeech} from '../world/keepers';
+import {compactDialogue} from '../world/compactDialogue';
 import {expeditionCombat} from '../world/expeditionCombat';
 import {ROOM_EXITS,ROOM_NAMES,expedition,saveExpedition,repositoryDrained,canEnterVault,collectTablet,type RepositoryRoom} from '../story/repository';
 
@@ -38,6 +40,7 @@ export default class RepositoryScene extends Phaser.Scene{
     this.returnPoint=data.returnPoint??{x:816,y:112};
   }
   create(){
+    this.data.set('keeper-speaking',false);
     this.locked=false;this.panel=null;this.question=undefined;this.sites=[];this.enemies=[];this.waterBlock=undefined;this.block=undefined;this.tabletArt=undefined;
     this.arrivedAt=this.time.now;
     this.physics.world.setBounds(160,160,480,320);
@@ -53,6 +56,14 @@ export default class RepositoryScene extends Phaser.Scene{
     this.physics.add.collider(this.player.sprite,this.walls);
     this.water=this.add.graphics().setDepth(-7);
     const p=expedition();
+    const keepers=this.registry.get('wordwood-keepers')??{gardener:'home',bridgekeeper:'home'};
+    if(p.logGuardianFreed){
+      const kind=this.room==='store'?'gardener':this.room==='maintenance'?'bridgekeeper':null;
+      if(kind&&keepers[kind]==='home'){
+        const keeper=createKeeper(this,kind,464,352);
+        this.sites.push({x:464,y:368,label:`TALK TO THE ${kind.toUpperCase()}`,act:()=>keeperSpeech(this,keeper,kind==='gardener'?'It’s lovely to be home. Thank you for bringing us back.':'Home at last. Thank you, friend.')});
+      }
+    }
     this.sideLatch=undefined;
     if((this.room==='hall'&&!p.key)||(this.room==='seal'&&!p.seal)){
       this.sealArt=this.add.graphics().setDepth(-3);
@@ -158,10 +169,7 @@ export default class RepositoryScene extends Phaser.Scene{
   }
   private say(text:string){
     this.question=undefined;this.panel?.destroy();this.player.stopMovement();this.prompt?.setVisible(false);
-    const bg=this.add.rectangle(400,424,704,248,0x10242b,.98).setStrokeStyle(2,0x859b8c);
-    const copy=this.add.text(72,324,text,{fontFamily:'Georgia',fontSize:'17px',color:'#eee1be',wordWrap:{width:656},lineSpacing:5});
-    const hint=this.add.text(728,524,'E · CONTINUE',{fontSize:'12px',color:'#a9c1b4'}).setOrigin(1,0);
-    this.panel=this.add.container(0,0,[bg,copy,hint]).setDepth(100).setScrollFactor(0);this.nextInput=this.time.now+250;
+    this.panel=compactDialogue(this,ROOM_NAMES[this.room],text,()=>{this.panel=null;});this.nextInput=this.time.now+250;
     this.enemies.forEach(e=>{if(!e.defeated)e.sprite.setVelocity(0,0);});
   }
   private ask(text:string,options:string[],correct:number,done:()=>void){
@@ -194,17 +202,17 @@ export default class RepositoryScene extends Phaser.Scene{
     this.time.delayedCall(2400,()=>{item.destroy();title.destroy();this.locked=false;this.say('WORDWOOD TABLET\n\nAn ancient inscription, stained with unfamiliar violet ink.\n\nBring it to Bellum in the Inkwell Archive. The southern passage leads straight back outside.');});
   }
   update(_time:number,delta:number){
+    if(this.data.get('keeper-speaking')||this.time.now<(this.data.get('dialogue-closed-until')??0)){this.player.isInteractJustDown();this.player.stopMovement();this.prompt.setVisible(false);return;}
     if(this.locked)return;
     if(this.question)return;
     if(this.panel){
       if(this.time.now<this.nextInput)return;
-      if(this.panel&&this.player.isInteractJustDown()){this.panel.destroy();this.panel=null;this.question=undefined;}
       return;
     }
     this.player.update(delta);this.combat(delta);if(this.player.isDying)return;
     if(this.enemies.length&&this.enemies.every(e=>e.defeated)&&!expedition().cleared?.includes(this.room))saveExpedition({cleared:[...(expedition().cleared??[]),this.room]});
     const nearby=this.sites.find(s=>Math.abs(s.x-this.player.x)+Math.abs(s.y-this.player.y)<=40);
-    this.prompt.setVisible(!!nearby);if(nearby){this.prompt.setText('[ E ] '+nearby.label).setPosition(this.player.x,this.player.y-52);if(this.player.isInteractJustDown()){nearby.act();return;}}
+    this.prompt.setVisible(!!nearby&&!this.data.get('keeper-speaking'));if(nearby){this.prompt.setText('[ E ] '+nearby.label).setPosition(this.player.x,this.player.y-52);if(this.player.isInteractJustDown()){nearby.act();return;}}
     if(this.time.now-this.arrivedAt<450)return;
     const at=(x:number,y:number)=>Math.abs(this.player.x-x)<1&&Math.abs(this.player.y-y)<1;
     if(ROOM_EXITS[this.room].includes('south')&&at(400,464)&&this.player.wantsDoor('down')){

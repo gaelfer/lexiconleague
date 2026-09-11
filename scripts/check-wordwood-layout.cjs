@@ -10,7 +10,7 @@ const assert=require('node:assert/strict');
  const shot=async(name)=>{await page.waitForTimeout(2600);await page.screenshot({path:`/tmp/wordwood-layout-${name}.png`});};
  const leave=async()=>{await pos(400,432);await page.keyboard.press('s');await outside();};
  const enter=async(r,x,y)=>{await pos(x,y);await page.keyboard.press('w');await room(r);};
- const close=async()=>{await page.waitForTimeout(350);await page.keyboard.press('e');await page.waitForTimeout(350);};
+ const close=async()=>{for(let i=0;i<20&&await page.evaluate(()=>!!window.__storyTest.expeditionState().panel);i++){await page.waitForTimeout(350);await page.keyboard.press('e');await page.waitForTimeout(50);}await page.waitForTimeout(350);};
  try{
   await page.goto('http://localhost:3000/story');
   await page.evaluate(()=>localStorage.setItem('lexiconleague:story:progress',JSON.stringify({completedChapters:[1],wordwoodExpedition:{key:true,seal:true,gardenGateOpened:true,cleared:['maintenance','gallery','store','records','seal','vault']},chapterCheckpoints:{2:JSON.stringify({words:['sturdy','hollow','winding'],solved:true,echoOpen:true,found:[0]})}})));

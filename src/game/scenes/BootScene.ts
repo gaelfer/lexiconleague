@@ -22,6 +22,8 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.svg('gardener-base','/ink/base/droplet_04.svg',{width:64,height:64});
+    this.load.svg('gardener-eyes','/ink/eyes/gardener.svg',{width:64,height:64});
     for(const person of INN_PEOPLE){
       for(const [part,folder,id] of [['base','base',person.base],['eyes','eyes',person.eyes],['accessory','accessories',person.accessory]])
         this.load.svg(`inn-${person.id}-${part}`,`/ink/${folder}/${id}.svg`,{width:64,height:64});
@@ -72,6 +74,7 @@ export default class BootScene extends Phaser.Scene {
     // Bake each cosmetic separately so facing, gear and avatar customization remain intact.
     convertAvatarTexture(this,'npc-0-base',0xf0a6aa,'luma-base');
     convertAvatarTexture(this,'npc-0-base',0xb95248,'bridgekeeper-base');
+    convertAvatarGroup(this,[{key:'gardener-base',color:0x65a765},{key:'gardener-eyes'}]);
     convertAvatarGroup(this,[{key:'scholar-base',color:0xcd7f32},
       {key:'scholar-eyes'},{key:'scholar-glasses',color:0x483a32},{key:'scholar-quill'}]);
     convertAvatarTexture(this,'npc-2-base',0xcd7f32,'road-knight-base');

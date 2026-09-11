@@ -84,7 +84,12 @@ export function createGame(
         luma:observed.luma?{x:observed.luma.x,y:observed.luma.y+16}:null,
         residents:observed.npcs?.map(npc=>npc.spec.name),speech:speechState(scene)};
     });
-    const api={state,expeditionState:()=>{
+    const api={state,reviewDialogue:(text:string)=>{
+      (game.scene.getScenes(true)[0] as Phaser.Scene & {say(text:string):void}).say(text);
+    },reviewKeepers:(gardener:string,bridgekeeper:string)=>{
+      game.registry.set('wordwood-keepers',{gardener,bridgekeeper});
+      game.scene.getScenes(true)[0].scene.start('WordwoodScene',{returnPoint:{x:816,y:720}});
+    },keeperState:()=>game.scene.getScenes(true)[0].children.list.filter(o=>o instanceof Phaser.GameObjects.Container&&o.name.startsWith('keeper-')).map(o=>({name:o.name,activity:o.getData('activity')})),expeditionState:()=>{
       const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {room?:string;locked?:boolean;enemies?:{defeated:boolean}[];panel?:Phaser.GameObjects.Container};
       return {room:scene.room,locked:scene.locked,enemies:scene.enemies?.filter(e=>!e.defeated).length,
         panel:scene.panel?.list.filter((o):o is Phaser.GameObjects.Text=>o instanceof Phaser.GameObjects.Text).map(o=>o.text)};

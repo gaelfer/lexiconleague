@@ -19,8 +19,11 @@ import {wordwoodExterior} from '../world/wordwoodExteriors';
 import {EventBus} from '../EventBus';
 import {LogGuardian} from '../entities/LogGuardian';
 import {expeditionCombat} from '../world/expeditionCombat';
-import {createInkHand,createInkFoot} from '../entities/inkHand';
+import {createKeeper,keeperSpeech} from '../world/keepers';
+import {rollKeeperActivities} from '../story/keeperActivities';
 import {keeperWalkHome} from '../world/keeperWalkHome';
+import {compactDialogue} from '../world/compactDialogue';
+import {wordwoodStream} from '../world/wordwoodStream';
 
 interface Site { x: number; y: number; label: string; action: () => void }
 
@@ -58,6 +61,7 @@ export default class WordwoodScene extends Phaser.Scene {
   init(data:{returnPoint?:{x:number;y:number};hearts?:number}={}){this.returnPoint=data.returnPoint;this.returnHearts=data.hearts??3;}
 
   create() {
+    this.data.set('keeper-speaking',false);
     this.locked=false;
     this.puzzleObjects=[];this.gardenPlanted=false;
     this.guardian=undefined;this.guardianCombat=undefined;
@@ -82,6 +86,7 @@ export default class WordwoodScene extends Phaser.Scene {
     const g = this.add.graphics().setDepth(-20);
     grassTiles(g, 0, 0, 1600, 1200);
     grassTiles(g,0,-128,1600,128);
+    wordwoodStream(this,g);
     // Paths make a loop around the central clearing; every clue is reachable in any order.
     villagePaths(g, [[256,320,64,576],[256,256,1088,64],[1280,320,64,576],
       [256,896,1088,64],[768,256,64,768],[256,576,1088,64]]);
@@ -105,9 +110,6 @@ export default class WordwoodScene extends Phaser.Scene {
       this.tree(g, x, y); obstacle(x, y + 10, 40, 38);
     }
     // Three exhibits illustrate the meanings without requiring outside knowledge.
-    g.fillStyle(0x496858).fillRect(128,408,256,112);
-    g.fillStyle(0x31586a).fillRect(128,416,256,96);
-    for(let y=422;y<512;y+=16){g.fillStyle(0x759790).fillRect(136+(y%32),y,68,2).fillRect(328,y+6,42,1);}
     g.fillStyle(0x433e32).fillRect(256,400,64,128);
     for(let y=402;y<528;y+=10){
       g.fillStyle(0xa7895e).fillRect(258,y,60,8);g.fillStyle(0xd4bb85).fillRect(258,y,58,1);
@@ -224,10 +226,34 @@ export default class WordwoodScene extends Phaser.Scene {
     this.add.image(608,768,'interior-desk').setDisplaySize(32,32).setOrigin(0).setDepth(2);obstacle(624,784,32,32);
     this.puzzleObjects.push(...this.children.list.filter(object=>!beforeVerse.has(object)));
     this.sites.push({x:656,y:1072,label:'RETURN THROUGH THE GATEHOUSE',action:()=>{this.save();this.player.stopMovement();this.locked=true;openDoorAnimation(this,656,1056,()=>this.player.walkThroughDoor(()=>enterGatehouse(this,'wordwood')),'wayfarer');}});
-    this.events.on(Phaser.Scenes.Events.RESUME,()=>{this.locked=false;this.cameras.main.fadeIn(180);});
+    const resumeVisit=()=>{if(expedition().logGuardianFreed){this.scene.restart({hearts:this.player.hearts});return;}this.locked=false;this.cameras.main.fadeIn(180);};
+    this.events.on(Phaser.Scenes.Events.RESUME,resumeVisit);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>this.events.off(Phaser.Scenes.Events.RESUME,resumeVisit));
     this.sites.push({x:624,y:784,label:'READ THE GARDENER’S VERSE',action:()=>this.say('First a SEED sleeps below.\nThen a SPROUT greets the sun.\nAt last the BLOOM opens.\n\nWhen the signs agree, walk this story across the three stones. A wrong step begins the verse again; nothing else is lost.')});
     this.refreshSigns(); if (this.echoOpen) this.openRoute();
-    if(expedition().logGuardianFreed)this.plantGarden();
+    if(expedition().logGuardianFreed){
+      this.plantGarden();
+      if(!this.returnPoint||!this.registry.has('wordwood-keepers'))this.registry.set('wordwood-keepers',rollKeeperActivities());
+      const activities=this.registry.get('wordwood-keepers');
+      if(activities.gardener==='garden'){
+        const gardener=createKeeper(this,'gardener',848,688,'garden');
+        this.sites.push({x:848,y:720,label:'TALK TO THE GARDENER',action:()=>keeperSpeech(this,gardener,'A little water, a little sun. They’re coming along nicely.')});
+      }
+      if(activities.bridgekeeper!=='home'){
+        const tree=activities.bridgekeeper==='tree',x=tree?400:272,y=tree?336:464;
+        const keeper=createKeeper(this,'bridgekeeper',x,y,activities.bridgekeeper);
+        if(tree){
+          obstacle(x+34,y+16,20,16);
+          const timber=this.add.graphics().setDepth(9);
+          timber.fillStyle(0x433b30).fillRect(x+24,y-36,20,58);
+          timber.fillStyle(0x947047).fillRect(x+26,y-36,15,55);
+          timber.fillStyle(0xc2a271).fillRect(x+26,y-35,3,48);
+          timber.fillStyle(0x263e33).fillRect(x+22,y+7,10,6);
+          leafCluster(timber,x+35,y-51,25,0x284a37,0x6a8050);
+        }
+        this.sites.push({x,y:y+32,label:'TALK TO THE BRIDGEKEEPER',action:()=>keeperSpeech(this,keeper,tree?'A few sound timbers will keep that bridge standing.':'Good to hear the stream again.')});
+      }
+    }
     if(!expedition().logGuardianFreed&&expedition().tablet){
       this.guardian=new LogGuardian(this,(x,y)=>{
         saveExpedition({logGuardianFreed:true});this.refreshSigns();this.plantGarden();
@@ -270,11 +296,9 @@ export default class WordwoodScene extends Phaser.Scene {
   }
 
   private rescuedKeepers(x:number,y:number,walls:Phaser.Physics.Arcade.StaticGroup){
-    for(const [name,dx,key,color] of [['BRIDGEKEEPER',-32,'bridgekeeper-base',0xb95248],['GARDENER',32,'npc-1-base',0x65c58f]] as const){
-      const parts=[this.add.ellipse(0,22,32,10,0x10252b,.4),createInkFoot(this,-8,21,color),createInkFoot(this,8,21,color),
-        this.add.image(0,0,key).setDisplaySize(32/.78,64/.78),this.add.image(0,0,'npc-1-eyes').setDisplaySize(32/.78,64/.78),
-        createInkHand(this,-14,7,color),createInkHand(this,14,7,color)];
-      const actor=this.add.container(x+dx,y-16,parts).setScale(.78).setDepth(10).setName(`rescued-${name.toLowerCase()}`);
+    this.registry.set('wordwood-keepers',{gardener:'home',bridgekeeper:'home'});
+    for(const [name,dx,kind] of [['BRIDGEKEEPER',-32,'bridgekeeper'],['GARDENER',32,'gardener']] as const){
+      const actor=createKeeper(this,kind,x+dx,y-16,'walking').setName(`rescued-${kind}`);
       this.time.delayedCall(name==='BRIDGEKEEPER'?650:3200,()=>{
         const bubble=this.add.text(actor.x,actor.y-58,name==='BRIDGEKEEPER'?'Thanks! I don’t remember a thing.':'Thank you! What happened?',{fontSize:'12px',fontFamily:'Georgia',color:'#eee1be',backgroundColor:'#1c3430',padding:{x:8,y:6},wordWrap:{width:170}}).setOrigin(.5,1).setDepth(80);
         this.time.delayedCall(2500,()=>{bubble.destroy();keeperWalkHome(this,actor,walls,name==='BRIDGEKEEPER'?{x:432,y:272}:{x:1008,y:912});});
@@ -337,17 +361,14 @@ export default class WordwoodScene extends Phaser.Scene {
   }
   private say(text: string) {
     this.panel?.destroy(); this.player.stopMovement(); this.prompt.setVisible(false);
-    const bg = this.add.rectangle(400, 402, 710, 312, 0x122a25, 0.98).setStrokeStyle(2, 0x8d9974);
-    const copy = this.add.text(65, 265, text, { fontFamily: 'Georgia', fontSize: '17px', color: '#eee1be', wordWrap: { width: 666 }, lineSpacing: 5 });
-    const hint = this.add.text(735, 535, 'E · CLOSE', { fontSize: '12px', color: '#a7c2a4' }).setOrigin(1,0);
-    this.panel = this.add.container(0, 0, [bg, copy, hint]).setScrollFactor(0).setDepth(100);
+    this.panel=compactDialogue(this,'Wordwood',text,()=>{this.panel=null;});
     this.nextInput = this.time.now + 220;
   }
   update(_time: number, delta: number) {
+    if(this.data.get('keeper-speaking')||this.time.now<(this.data.get('dialogue-closed-until')??0)){this.player.isInteractJustDown();this.player.stopMovement();this.prompt.setVisible(false);return;}
     if((this.locked||this.panel)&&this.guardian&&!this.guardian.defeated)this.guardian.sprite.setVelocity(0,0);
     if(this.locked)return;
     if (this.panel) {
-      if (this.time.now > this.nextInput && this.player.isInteractJustDown()) { this.panel.destroy(); this.panel = null; }
       return;
     }
     this.player.update(delta);
@@ -368,7 +389,7 @@ export default class WordwoodScene extends Phaser.Scene {
     }
     const nearest = this.sites.filter((site) => Phaser.Math.Distance.Between(this.player.x, this.player.y, site.x, site.y) < 62)
       .sort((a, b) => Phaser.Math.Distance.Between(this.player.x, this.player.y, a.x, a.y) - Phaser.Math.Distance.Between(this.player.x, this.player.y, b.x, b.y))[0];
-    this.prompt.setVisible(!!nearest);
+    this.prompt.setVisible(!!nearest&&!this.data.get('keeper-speaking'));
     if (nearest) {
       if(nearest.label.startsWith('ENTER ')){
         this.prompt.setVisible(false);
