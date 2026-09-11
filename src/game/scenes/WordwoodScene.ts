@@ -271,7 +271,9 @@ export default class WordwoodScene extends Phaser.Scene {
       this.feedback.setText('The hollow log cracks. Something tangled in violet ink is coming out.').setVisible(true);
       this.time.delayedCall(5000,()=>this.feedback.setVisible(false));
     }
-    if(this.found.size===0&&!this.solved&&!(process.env.NODE_ENV==='development'&&new URLSearchParams(window.location.search).has('sceneReview')))
+    // The gatehouse URL survives indoor trips; returnPoint distinguishes an
+    // actual arrival from a building exit or a local death restart.
+    if(arriving&&!this.returnPoint&&this.found.size===0&&!this.solved&&!(process.env.NODE_ENV==='development'&&new URLSearchParams(window.location.search).has('sceneReview')))
       this.say('THE PATHS THAT FORGOT\n\nRestore the bridge, burrow and winding trail by changing their describing words, then test your answers at the central stone. The field notes offer hints if you need them — collecting them is optional.\n\nThe old gardener left one last puzzle for the sanctuary. J keeps your notes close. Your progress stays saved when you return to Inkwell.');
   }
 
