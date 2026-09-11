@@ -153,10 +153,15 @@ export default class ArchiveScene extends Phaser.Scene {
   private talkToScholar() {
     const progress = getStoryProgress();
     if(expedition().tablet){
-      this.openDialogue('SCHOLAR BELLUM',expedition().studied?[
+      this.openDialogue('SCHOLAR BELLUM',[...(expedition().studied?[
         'The Tablet’s original lettering survives beneath the violet ink. Interference, not erasure. I’ve labelled the samples. And, this time, my tea.',
         'I’m recording the changes before drawing any conclusions. You brought back evidence, not a guess. Thank you.',
-      ]:TABLET_RESEARCH,()=>saveExpedition({studied:true}));return;
+      ]:TABLET_RESEARCH),...(expedition().logGuardianFreed?[
+        'You tell Bellum that after the Blotlings and the large corrupted woodling were defeated, the bridgekeeper and gardener returned. They are finally home together, but remember nothing of their corruption.',
+        'They turned back into Inklings? Both of them? Oh. That changes rather a lot. I’m putting my pen down for this.',
+        'Then these creatures may be corrupted Inklings after all—not merely ink that learned to move. You brought two people home. That is more important than any of my theories.',
+        'It does not prove every Blotling has someone inside. But it gives us a reason to look for a way to bring them back. Carefully. And with considerably more hope.',
+      ]:[])],()=>saveExpedition({studied:true}));return;
     }
     if (progress.opening === 'wordwood') {
       this.openDialogue('SCHOLAR BELLUM', progress.completedChapters.includes(2) ? [

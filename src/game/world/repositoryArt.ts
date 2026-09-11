@@ -108,7 +108,7 @@ export function repositoryArt(scene:Phaser.Scene,room:RepositoryRoom,wall:(x:num
   }else if(room==='store'){
     mass(160,160,96,64);mass(544,160,96,64);
     mass(160,416,128,64);mass(576,288,64,32);
-    prop('bed-head-moss',608,352);prop('bed-foot-moss',608,384);
+    prop('seedling-rack',608,352);prop('seed-bin',608,384);
     // A working potting bay opposite the sealed apothecary cabinet.
     for(const x of [192,224,256])for(const y of [384,416])tile('rug-mc-moss',x,y,-18);
     prop('seedling-rack',544,384);prop('seed-sacks',576,384);
@@ -135,15 +135,20 @@ export function repositoryArt(scene:Phaser.Scene,room:RepositoryRoom,wall:(x:num
     prop('lectern',384,224);
     for(const [x,asset] of [[256,'stone-seed'],[384,'stone-sprout'],[512,'stone-bloom']] as const)tile(asset,x,384,-8);
   }else if(room==='maintenance'){
-    mass(160,384,96,96,true);mass(544,288,96,32,true);
-    prop('bed-head-rust',576,352);prop('bed-foot-rust',576,384);
+    mass(160,384,96,96,true);
+    prop('double-bed-head-left',576,352);prop('double-bed-foot-left',576,384);
+    prop('double-bed-head-right',608,352);prop('double-bed-foot-right',608,384);
     for(const x of [448,480,512])for(const y of [352,384,416])tile('rug-mc-rust',x,y,-18);
-    prop('bridge-model-left',448,384);prop('bridge-model-right',480,384);prop('chair-rust',448,416);
-    prop('hearth',608,224);prop('barrel',192,256);
+    prop('table',448,384);prop('tea-table',480,384);prop('chair-rust',448,416);prop('chair-moss',480,416);
+    // Shared kitchen: hearth, preparation counter, bread board and pantry.
+    for(const x of [480,512,544])prop('counter-straight',x,160);
+    prop('bread',576,160);prop('counter-corner',608,160);
+    prop('hearth',576,192);prop('counter-side',608,192);prop('counter-side',608,224);prop('cupboard',608,256);
+    prop('counter-straight',480,256);prop('counter-straight',512,256);prop('barrel',192,256);
     tile('window',224,112,-11);tile('window',512,112,-11);
     prop('rope-coil',192,320);prop('sawhorse',224,352);prop('sawhorse',256,416);
     for(const x of [192,224,256])prop('workbench',x,192);
-    prop('sluice-wheel',512,192);prop('tool-rack',544,192);prop('bridge-clamp',576,256);
+    prop('sluice-wheel',512,192);prop('tool-rack',256,224);
     for(let y=224;y<448;y+=32)tile('stone',288,y,-18).setTint(0x698882);
   }else if(room==='drain'){
     mass(160,160,64,128);mass(160,384,96,96);mass(544,384,96,96);
@@ -199,7 +204,7 @@ export function repositoryArt(scene:Phaser.Scene,room:RepositoryRoom,wall:(x:num
   return {tile,prop,updateDepth:(playerY:number)=>{
     for(const {image,foot} of layers){
       const inFront=playerY<foot-8;
-      image.setDepth(inFront?30:2).setData('story-foreground',inFront);
+      image.setDepth(inFront?30:2).setData('story-foreground',inFront).setData('story-occlusion-foot',foot);
     }
   }};
 }

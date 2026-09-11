@@ -56,12 +56,21 @@ export default class RepositoryScene extends Phaser.Scene{
     this.physics.add.collider(this.player.sprite,this.walls);
     this.water=this.add.graphics().setDepth(-7);
     const p=expedition();
-    const keepers=this.registry.get('wordwood-keepers')??{gardener:'home',bridgekeeper:'home'};
+    const keepers=this.registry.get('wordwood-keepers')??{gardener:'cooking',bridgekeeper:'home'};
     if(p.logGuardianFreed){
       const kind=this.room==='store'?'gardener':this.room==='maintenance'?'bridgekeeper':null;
       if(kind&&keepers[kind]==='home'){
-        const keeper=createKeeper(this,kind,464,352);
-        this.sites.push({x:464,y:368,label:`TALK TO THE ${kind.toUpperCase()}`,act:()=>keeperSpeech(this,keeper,kind==='gardener'?'It’s lovely to be home. Thank you for bringing us back.':'Home at last. Thank you, friend.')});
+        const seated=kind==='bridgekeeper';
+        const keeper=createKeeper(this,kind,464,seated?416:352,seated?'sitting':'home');
+        this.sites.push({x:464,y:seated?448:368,label:`TALK TO THE ${kind.toUpperCase()}`,act:()=>keeperSpeech(this,keeper,kind==='gardener'?'Just sorting seeds. Then it’s back to our cottage for supper.':'A home for two. I’m glad we’re both back.')});
+      }
+      if(this.room==='maintenance'&&keepers.gardener==='cooking'){
+        const gardener=createKeeper(this,'gardener',592,224,'cooking');
+        const site={x:592,y:240,label:'TALK TO THE GARDENER',act:()=>keeperSpeech(this,gardener,gardener.getData('activity')==='sitting'?'A quiet moment while the soup simmers. There’s room for two here.':'His favourite soup. He’ll insist the secret ingredient is my garden.')};
+        this.sites.push(site);
+        const follow=()=>{site.x=gardener.x;site.y=gardener.y+16;};
+        this.events.on(Phaser.Scenes.Events.UPDATE,follow);
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>this.events.off(Phaser.Scenes.Events.UPDATE,follow));
       }
     }
     this.sideLatch=undefined;

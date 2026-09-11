@@ -84,7 +84,7 @@ export function createGame(
         luma:observed.luma?{x:observed.luma.x,y:observed.luma.y+16}:null,
         residents:observed.npcs?.map(npc=>npc.spec.name),speech:speechState(scene)};
     });
-    const api={state,reviewDialogue:(text:string)=>{
+    const api={state,keeperPositions:()=>game.scene.getScenes(true)[0].children.list.filter((o):o is Phaser.GameObjects.Container=>o instanceof Phaser.GameObjects.Container&&o.name.startsWith('keeper-')).map(o=>({name:o.name,x:o.x,y:o.y,activity:o.getData('activity')})),reviewDialogue:(text:string)=>{
       (game.scene.getScenes(true)[0] as Phaser.Scene & {say(text:string):void}).say(text);
     },reviewKeepers:(gardener:string,bridgekeeper:string)=>{
       game.registry.set('wordwood-keepers',{gardener,bridgekeeper});

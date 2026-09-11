@@ -24,6 +24,7 @@ import {rollKeeperActivities} from '../story/keeperActivities';
 import {keeperWalkHome} from '../world/keeperWalkHome';
 import {compactDialogue} from '../world/compactDialogue';
 import {wordwoodStream} from '../world/wordwoodStream';
+import {secondaryBridge} from '../world/secondaryBridge';
 
 interface Site { x: number; y: number; label: string; action: () => void }
 
@@ -90,6 +91,7 @@ export default class WordwoodScene extends Phaser.Scene {
     // Paths make a loop around the central clearing; every clue is reachable in any order.
     villagePaths(g, [[256,320,64,576],[256,256,1088,64],[1280,320,64,576],
       [256,896,1088,64],[768,256,64,768],[256,576,1088,64]]);
+    const repairSecondaryBridge=secondaryBridge(this,walls,!!expedition().logGuardianFreed);
     for (let sy = -64; sy <= 64; sy += 32) {
       for (let sx = -64; sx <= 64; sx += 32) {
         if (sx * sx + sy * sy > 80 * 80) continue;
@@ -256,7 +258,7 @@ export default class WordwoodScene extends Phaser.Scene {
     }
     if(!expedition().logGuardianFreed&&expedition().tablet){
       this.guardian=new LogGuardian(this,(x,y)=>{
-        saveExpedition({logGuardianFreed:true});this.refreshSigns();this.plantGarden();
+        saveExpedition({logGuardianFreed:true});repairSecondaryBridge();this.refreshSigns();this.plantGarden();
         EventBus.emit('wordwood-rain-stop');
         this.feedback.setVisible(false);this.rescuedKeepers(x,y,walls);
       });
@@ -296,12 +298,12 @@ export default class WordwoodScene extends Phaser.Scene {
   }
 
   private rescuedKeepers(x:number,y:number,walls:Phaser.Physics.Arcade.StaticGroup){
-    this.registry.set('wordwood-keepers',{gardener:'home',bridgekeeper:'home'});
+    this.registry.set('wordwood-keepers',{gardener:'cooking',bridgekeeper:'home'});
     for(const [name,dx,kind] of [['BRIDGEKEEPER',-32,'bridgekeeper'],['GARDENER',32,'gardener']] as const){
       const actor=createKeeper(this,kind,x+dx,y-16,'walking').setName(`rescued-${kind}`);
       this.time.delayedCall(name==='BRIDGEKEEPER'?650:3200,()=>{
         const bubble=this.add.text(actor.x,actor.y-58,name==='BRIDGEKEEPER'?'Thanks! I don’t remember a thing.':'Thank you! What happened?',{fontSize:'12px',fontFamily:'Georgia',color:'#eee1be',backgroundColor:'#1c3430',padding:{x:8,y:6},wordWrap:{width:170}}).setOrigin(.5,1).setDepth(80);
-        this.time.delayedCall(2500,()=>{bubble.destroy();keeperWalkHome(this,actor,walls,name==='BRIDGEKEEPER'?{x:432,y:272}:{x:1008,y:912});});
+        this.time.delayedCall(2500,()=>{bubble.destroy();keeperWalkHome(this,actor,walls,{x:432,y:272});});
       });
     }
   }

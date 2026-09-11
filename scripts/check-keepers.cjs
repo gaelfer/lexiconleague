@@ -22,8 +22,8 @@ const assert=require('node:assert/strict');
   for(const [room,x,y,kind] of [['store',1008,912,'gardener'],['maintenance',432,272,'bridgekeeper']]){
    await pos(x,y);await page.keyboard.press('w');
    await page.waitForFunction(r=>window.__storyTest.state()[0].room===r,room);
-   assert.deepEqual(await keepers(),[{name:`keeper-${kind}`,activity:'home'}]);
-   await pos(432,368);await shot(`${kind}-home`);
+   assert.deepEqual(await keepers(),[{name:`keeper-${kind}`,activity:kind==='bridgekeeper'?'sitting':'home'}]);
+   await pos(432,kind==='bridgekeeper'?448:368);await shot(`${kind}-home`);
    await page.keyboard.press('e');await page.waitForTimeout(150);
    assert.equal(await page.evaluate(()=>!!window.__storyTest.expeditionState().panel),false,'Caretaker speech does not open a large panel');
    await shot(`${kind}-speech`);

@@ -3,6 +3,7 @@ import type { VillageBuildingId } from './buildings';
 export const INTERIOR_PALETTES = ['teal', 'rust', 'moss', 'plum'] as const;
 export type InteriorPalette = typeof INTERIOR_PALETTES[number];
 export const INTERIOR_ASSETS = ['way-sign','stone-seed','stone-sprout','stone-bloom','shelf','cupboard','chest','table','tea-table','desk','map','washstand','hearth','bread','barrel','plant','seed-shelf','armour','lectern','candles','chimes','mural','tablet','floor','stone','wall','beam','skirting','window','threshold',
+  'double-bed-head-left','double-bed-head-right','double-bed-foot-left','double-bed-foot-right',
   'archery-target','workbench','bridge-clamp','tool-rack','rain-frame','rain-collector','gallery-lectern','seed-bin','drying-herbs',
   'rope-coil','sawhorse','sluice-wheel','specimen-case','gallery-bench','potting-tray','root-basket',
   'bridge-model-left','bridge-model-right','rain-cascade-top','rain-cascade-basin','garden-spades','seed-sacks','seedling-rack','rain-relief',

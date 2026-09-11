@@ -13,10 +13,13 @@ export function readableText(scene:Phaser.Scene,world:Phaser.Cameras.Scene2D.Cam
   layer.setAttribute('aria-hidden','true');
   Object.assign(layer.style,{position:'absolute',pointerEvents:'none',zIndex:'2'});
   scene.game.canvas.parentElement!.appendChild(layer);
-  const ctx=layer.getContext('2d')!;
+  const mainContext=layer.getContext('2d')!;
+  let ctx=mainContext;
+  const residentLayer=document.createElement('canvas');
   const resize=()=>{
     const canvas=scene.game.canvas;
     layer.width=canvas.width*DISPLAY_SCALE;layer.height=canvas.height*DISPLAY_SCALE;
+    residentLayer.width=layer.width;residentLayer.height=layer.height;
     layer.style.width=`${layer.width}px`;layer.style.height=`${layer.height}px`;
     layer.style.left=`${canvas.offsetLeft}px`;layer.style.top=`${canvas.offsetTop}px`;
   };
@@ -75,8 +78,10 @@ export function readableText(scene:Phaser.Scene,world:Phaser.Cameras.Scene2D.Cam
         for(const child of object.list)visit(child,camera,visible,alpha);
       }
     };
+    const residents=scene.children.list.filter((o):o is Phaser.GameObjects.Container=>o instanceof Phaser.GameObjects.Container&&(o.name.startsWith('keeper-')||o.name.startsWith('rescued-')));
     for(const object of scene.children.list){
       // frameWorld has already routed each root object to its intended camera.
+      if(residents.includes(object as Phaser.GameObjects.Container))continue;
       visit(object,(object.cameraFilter&world.id)?ui:world,true,1);
     }
     // Erase only character pixels beneath actual roof/canopy pixels. The same
@@ -89,6 +94,24 @@ export function readableText(scene:Phaser.Scene,world:Phaser.Cameras.Scene2D.Cam
       ctx.drawImage(object.frame.source.image as CanvasImageSource,0,0);
     }
     ctx.restore();
+    // Mask caretakers using their own feet, independently of the player's layer.
+    for(const resident of residents){
+      ctx=residentLayer.getContext('2d')!;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,layer.width,layer.height);
+      visit(resident,world,true,1);
+      ctx.save();ctx.globalCompositeOperation='destination-out';ctx.imageSmoothingEnabled=false;
+      for(const object of scene.children.list){
+        if(!(object instanceof Phaser.GameObjects.Image)||!object.visible)continue;
+        // A seated resident is on their chair, not behind its entire silhouette.
+        if(resident.getData('activity')==='sitting'&&object.texture.key.startsWith('interior-chair-')
+          &&Math.abs(object.x+16-resident.x)<1&&Math.abs(object.y-resident.y)<1)continue;
+        const foot=object.getData('story-occlusion-foot');
+        if(typeof foot==='number'?resident.y+16>=foot-8:!object.getData('story-foreground'))continue;
+        const m=Phaser.GameObjects.GetCalcMatrix(object,world).calc;
+        ctx.setTransform(m.a*DISPLAY_SCALE,m.b*DISPLAY_SCALE,m.c*DISPLAY_SCALE,m.d*DISPLAY_SCALE,Math.round(m.e*DISPLAY_SCALE),Math.round(m.f*DISPLAY_SCALE));
+        ctx.drawImage(object.frame.source.image as CanvasImageSource,0,0);
+      }
+      ctx.restore();ctx=mainContext;ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(residentLayer,0,0);ctx.restore();
+    }
     // Text/UI remains readable above the overhead layer.
     textPass=true;
     for(const object of scene.children.list)visit(object,(object.cameraFilter&world.id)?ui:world,true,1);
