@@ -1,12 +1,21 @@
 import type * as Phaser from 'phaser';
 import {drawDoorLeaves} from './doorOpening';
+import {foreground} from './foreground';
 
 /** Native-pixel masonry hall, authored around its existing south-facing doorstep. */
 export const ARCHIVE_FOOTPRINT = { dx:-144, dy:-160, width:288, height:224 };
 
 export function buildArchiveExterior(scene:Phaser.Scene,x:number,y:number,obstacle:(x:number,y:number,w:number,h:number)=>void){
   const g=scene.add.graphics().setPosition(x,y).setDepth(2);
-  const rect=(px:number,py:number,w:number,h:number,c:number)=>g.fillStyle(c).fillRect(px,py,w,h);
+  let brush=g;
+  let backRoof=false;
+  const rect=(px:number,py:number,w:number,h:number,c:number)=>{
+    // The projecting central gable sits in front of the broad rear roof.
+    if(backRoof&&py>=-102){
+      if(px<-48)brush.fillStyle(c).fillRect(px,py,Math.min(w,-48-px),h);
+      if(px+w>48)brush.fillStyle(c).fillRect(Math.max(px,48),py,px+w-Math.max(px,48),h);
+    }else brush.fillStyle(c).fillRect(px,py,w,h);
+  };
   const ink=0x29383f, stone=0xb6b29a, light=0xe0d0a4, mortar=0x7a8279;
   // Foundation and a short, walkable stone stair: no sign or doorway icon.
   g.fillStyle(0x152d2d,0.35).fillRect(-138,-52,296,128);
@@ -30,6 +39,8 @@ export function buildArchiveExterior(scene:Phaser.Scene,x:number,y:number,obstac
 
   // Slate courses follow the slope; offset joints describe real roofing tiles.
   const roof=(cx:number,peak:number,half:number,height:number)=>{
+    foreground(scene,x+cx-half,y+peak,half*2,height+10,roofArt=>{
+    roofArt.translateCanvas(half-cx,-peak);brush=roofArt;backRoof=half===156;
     for(let row=0;row<height;row++){
       const extent=Math.floor(half*(row+1)/height);
       rect(cx-extent,peak+row,extent*2,1,ink);
@@ -43,6 +54,7 @@ export function buildArchiveExterior(scene:Phaser.Scene,x:number,y:number,obstac
     rect(cx-half,peak+height,half*2,5,ink);
     rect(cx-half+4,peak+height,half*2-8,2,0x8b9d99);
     for(let offset=-half+8;offset<half-4;offset+=16){rect(cx+offset,peak+height+5,5,5,0x5d5042);rect(cx+offset,peak+height+5,2,4,0xaa936b);}
+    });brush=g;backRoof=false;
   };
   roof(0,-144,156,76);
 

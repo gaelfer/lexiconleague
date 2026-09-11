@@ -123,7 +123,7 @@ export default class ArchiveScene extends Phaser.Scene {
 
     if(nearest.interaction.label==='LEAVE THE ARCHIVE'){
       this.prompt.setVisible(false);
-      if(Math.abs(this.player.x-ROOM_GRID.exit.x)<24&&this.player.wantsDoor('down'))nearest.interaction.action();
+      if(this.player.wantsDoorAt(ROOM_GRID.exit.x,ROOM_GRID.exit.y,'down'))nearest.interaction.action();
       return;
     }
     this.prompt

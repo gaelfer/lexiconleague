@@ -72,13 +72,21 @@ export function createGame(
       const observed = scene as Phaser.Scene & { floor?:number;room?:number;player?: {x:number;y:number;hearts:number}; luma?:{x:number;y:number}; npcs?:{spec:{name:string}}[]; activeDialogue?: {text:Phaser.GameObjects.Text}; dialogue?: {text:Phaser.GameObjects.Text} };
       const body=scene.children.list.flatMap(object=>object instanceof Phaser.GameObjects.Container?object.list:[object])
         .find((object):object is Phaser.GameObjects.Image=>object instanceof Phaser.GameObjects.Image&&object.texture.key==='player-base');
+      const sign=scene.children.getByName('building-sign-label') as Phaser.GameObjects.Text|undefined;
       return {scene:scene.scene.key,floor:observed.floor,room:observed.room,x:observed.player?.x,y:observed.player?.y,hearts:observed.player?.hearts,
         zoom:scene.cameras.main.zoom,body:body?{texture:body.texture.key,scaleX:body.scaleX,scaleY:body.scaleY,flipX:body.flipX,angle:body.angle}:null,
-        dialogue:observed.activeDialogue?.text.text??observed.dialogue?.text.text,
+        dialogue:observed.activeDialogue?.text.text??observed.dialogue?.text.text,sign:sign?.visible?sign.text:undefined,
         luma:observed.luma?{x:observed.luma.x,y:observed.luma.y+16}:null,
         residents:observed.npcs?.map(npc=>npc.spec.name),speech:speechState(scene)};
     });
-    const api={state,reviewInnRoom:(floor:1|2,room:number)=>{
+    const api={state,reviewPosition:(x:number,y:number)=>{
+      const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {player?:{stopMovement():void;sprite:Phaser.Physics.Arcade.Sprite}};
+      if(Number.isFinite(x)&&Number.isFinite(y)){scene.player?.stopMovement();scene.player?.sprite.body?.reset(x,y);}
+    },puzzleState:()=>{
+      const scene=game.scene.getScenes(true)[0] as Phaser.Scene & {solved?:boolean;echoOpen?:boolean;found?:Set<number>;gate?:Phaser.Physics.Arcade.Image;feedback?:Phaser.GameObjects.Text;panel?:Phaser.GameObjects.Container};
+      return {solved:scene.solved,open:scene.echoOpen,notes:scene.found?.size,gateBlocked:scene.gate?.body?.enable,
+        feedback:scene.feedback?.text,panel:scene.panel?.list.filter((o):o is Phaser.GameObjects.Text=>o instanceof Phaser.GameObjects.Text).map(o=>o.text)};
+    },reviewInnRoom:(floor:1|2,room:number)=>{
       const active=game.scene.getScenes(true)[0];
       if(active.scene.key==='InnScene')active.scene.restart({floor,room});
       else if(active.scene.key==='DungeonScene'){active.scene.pause();active.scene.launch('InnScene',{floor,room});}

@@ -197,6 +197,7 @@ export default class Player {
     // Room scenes create their own Player, while the outdoor Player may remain
     // paused. Keep the timer on the game, not on any one of those instances.
     const restoreSword=()=>{
+      if(this.doorReturn){this.sprite.body!.reset(this.doorReturn.x,this.doorReturn.y);this.sprite.body!.enable=true;this.doorReturn=null;}
       this.doorReadyAt=scene.time.now+450;this.doorIntent=null;
       this.swordIdleMs=scene.registry.get('story:swordIdleMs')??0;
       this.syncVisuals(0);
@@ -208,6 +209,24 @@ export default class Player {
 
   get x() { return this.sprite.x; }
   get y() { return this.sprite.y; }
+  private doorReturn:{x:number;y:number}|null=null;
+  /** Only a finished step onto the threshold can request a doorway. */
+  wantsDoorAt(x:number,y:number,direction:'up'|'down'){
+    return !this.gridStep&&Math.abs(this.x-x)<1&&Math.abs(this.y-y)<1&&this.wantsDoor(direction);
+  }
+  isPushingSignAt(x:number,y:number){
+    return !this.gridStep&&Math.abs(this.x-x)<1&&Math.abs(this.y-y)<1&&this.facing==='up'
+      &&(this.keyW.isDown||this.cursors.up.isDown||(this.doorIntent?.direction==='up'&&this.doorIntent.until>this.sprite.scene.time.now));
+  }
+  walkThroughDoor(done:()=>void){
+    this.stopMovement();this.facing='up';this.isMoving=true;
+    const body=this.sprite.body!;
+    this.doorReturn={x:this.x,y:this.y};body.enable=false;
+    const pose={y:this.y},x=this.x;
+    this.sprite.scene.tweens.add({targets:pose,y:this.y-32,duration:240,ease:'Linear',
+      onUpdate:()=>{body.reset(x,pose.y);this.isMoving=true;this.syncVisuals(16);},
+      onComplete:()=>{this.isMoving=false;done();}});
+  }
   wantsDoor(direction:'up'|'down'){
     if(this.sprite.scene.time.now<this.doorReadyAt)return false;
     const requested=(direction==='up'?(this.keyW.isDown||this.cursors.up.isDown):(this.keyS.isDown||this.cursors.down.isDown))

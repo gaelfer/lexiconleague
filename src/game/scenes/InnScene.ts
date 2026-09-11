@@ -86,7 +86,7 @@ export default class InnScene extends Phaser.Scene{
             this.say('Locked. A little brass tag reads “202”.\n\nAsk the innkeeper downstairs for a room.');return;
           }
           this.transitioning=true;this.player.stopMovement();
-          openDoorAnimation(this,x,y+10,()=>this.change({floor:this.floor,room:index+1}),'bedroom');
+          openDoorAnimation(this,x,y+10,()=>this.player.walkThroughDoor(()=>this.change({floor:this.floor,room:index+1})),'bedroom');
         }});
       });
       // Three native tiles: recessed landing, shaded treads, and an open foot.
@@ -161,7 +161,7 @@ export default class InnScene extends Phaser.Scene{
     const door=near&&(near.site===exit||near.site.label.startsWith('ROOM'));
     this.prompt.setVisible(!!near&&!door);
     if(near){
-      if(door){if(Math.abs(this.player.x-near.site.x)<24&&this.player.wantsDoor(near.site===exit?'down':'up'))near.site.action();}
+      if(door){if(this.player.wantsDoorAt(near.site.x,near.site===exit?exit.y:near.site.y+32,near.site===exit?'down':'up'))near.site.action();}
       else{this.prompt.setText(`[ E ] ${near.site.label}`).setPosition(this.player.x,this.player.y-62);if(this.player.isInteractJustDown())near.site.action();}
     }
   }

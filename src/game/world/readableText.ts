@@ -37,13 +37,16 @@ export function readableText(scene:Phaser.Scene,world:Phaser.Cameras.Scene2D.Cam
       const candidates=root instanceof Phaser.GameObjects.Container&&root.visible?root.list:[root];
       for(const item of candidates)if(item instanceof Phaser.GameObjects.Rectangle&&item.visible&&item.alpha>0&&item.width>300&&item.height>90)covers.push(item);
     }
+    let textPass=false;
     const visit=(object:Phaser.GameObjects.GameObject,camera:Phaser.Cameras.Scene2D.Camera,visible:boolean,alpha:number)=>{
       if('visible' in object)visible=visible&&!!object.visible;
       if('alpha' in object)alpha*=Number(object.alpha);
       if(object instanceof Phaser.GameObjects.Text||detailed(object)){
-        // Exclude from both Phaser cameras, but preserve visible/alpha for this pass.
-        object.cameraFilter|=world.id|ui.id;
         const text=object instanceof Phaser.GameObjects.Text;
+        if(text!==textPass)return;
+        // Exclude from both Phaser cameras only in this object's pass so root
+        // world labels retain their camera routing until the text pass.
+        object.cameraFilter|=world.id|ui.id;
         if(!visible||alpha<=0||(text&&modal&&camera===world))return;
         ctx.save();
         if(!text){
@@ -76,6 +79,19 @@ export function readableText(scene:Phaser.Scene,world:Phaser.Cameras.Scene2D.Cam
       // frameWorld has already routed each root object to its intended camera.
       visit(object,(object.cameraFilter&world.id)?ui:world,true,1);
     }
+    // Erase only character pixels beneath actual roof/canopy pixels. The same
+    // foreground image is already drawn above limbs and props by Phaser.
+    ctx.save();ctx.globalCompositeOperation='destination-out';ctx.imageSmoothingEnabled=false;
+    for(const object of scene.children.list){
+      if(!(object instanceof Phaser.GameObjects.Image)||!object.getData('story-foreground')||!object.visible)continue;
+      const m=Phaser.GameObjects.GetCalcMatrix(object,world).calc;
+      ctx.setTransform(m.a*DISPLAY_SCALE,m.b*DISPLAY_SCALE,m.c*DISPLAY_SCALE,m.d*DISPLAY_SCALE,Math.round(m.e*DISPLAY_SCALE),Math.round(m.f*DISPLAY_SCALE));
+      ctx.drawImage(object.frame.source.image as CanvasImageSource,0,0);
+    }
+    ctx.restore();
+    // Text/UI remains readable above the overhead layer.
+    textPass=true;
+    for(const object of scene.children.list)visit(object,(object.cameraFilter&world.id)?ui:world,true,1);
   };
   // Camera matrices are current after Phaser renders; text is suppressed before it.
   const suppress=()=>{

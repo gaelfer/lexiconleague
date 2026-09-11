@@ -1,4 +1,5 @@
 import type * as Phaser from 'phaser';
+import {foreground} from './foreground';
 import { grassTiles,villagePaths } from './pixelTerrain';
 import { leafCluster } from './InkwellVillage';
 import { drawGatehouse } from './gatehouse';
@@ -20,9 +21,12 @@ export function buildInkwellApproach(scene:Phaser.Scene,obstacle:(x:number,y:num
   const tree=(x:number,y:number,fruit=false)=>{
     ground.fillStyle(0x203e34).fillEllipse(x+8,y+13,68,26);
     r(x-6,y-22,12,36,0x493f32);r(x-4,y-20,3,30,0x95734b);
-    leafCluster(props,x,y-35,35,0x1c3b32,fruit?0x6d8051:0x426746);
-    leafCluster(props,x-12,y-48,23,0x365b40,fruit?0x99a468:0x718b59);
-    if(fruit)for(const [dx,dy] of [[-18,-31],[12,-46],[20,-22]]){r(x+dx,y+dy,5,5,0xa56449);r(x+dx,y+dy,2,2,0xe2b47d);}
+    foreground(scene,x-40,y-76,80,80,canopy=>{
+      canopy.translateCanvas(40-x,76-y);
+      leafCluster(canopy,x,y-35,35,0x1c3b32,fruit?0x6d8051:0x426746);
+      leafCluster(canopy,x-12,y-48,23,0x365b40,fruit?0x99a468:0x718b59);
+      if(fruit)for(const [dx,dy] of [[-18,-31],[12,-46],[20,-22]]){canopy.fillStyle(0xa56449).fillRect(x+dx,y+dy,5,5);canopy.fillStyle(0xe2b47d).fillRect(x+dx,y+dy,2,2);}
+    });
     obstacle(x,y,32,32);
   };
   for(let y=80;y<592;y+=64)for(let x=48;x<3184;x+=64){

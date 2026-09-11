@@ -1,4 +1,5 @@
 import type * as Phaser from 'phaser';
+import {foreground} from './foreground';
 import { leafCluster } from './InkwellVillage';
 
 /** Authored landmarks and quiet forest texture; no noise on the readable walking lanes. */
@@ -7,8 +8,11 @@ export function wordwoodDetails(scene:Phaser.Scene,obstacle:(x:number,y:number,w
   for(const [cx,cy] of [[464,176],[1056,176],[480,496],[1088,496],[432,720],[1120,720],[560,1008],[1072,1040]]){
     for(const [dx,dy] of [[-32,-16],[32,0],[0,32]]){
       g.fillStyle(0x294331).fillRect(cx+dx-6,cy+dy,12,28);
-      leafCluster(g,cx+dx,cy+dy-18,28,0x1d4233,0x507349);
-      leafCluster(g,cx+dx-8,cy+dy-29,18,0x426942,0x819662);
+      foreground(scene,cx+dx-32,cy+dy-52,64,64,canopy=>{
+        canopy.translateCanvas(32-cx-dx,52-cy-dy);
+        leafCluster(canopy,cx+dx,cy+dy-18,28,0x1d4233,0x507349);
+        leafCluster(canopy,cx+dx-8,cy+dy-29,18,0x426942,0x819662);
+      });
       obstacle(cx+dx,cy+dy+16,32,32);
     }
   }

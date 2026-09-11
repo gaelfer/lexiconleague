@@ -22,6 +22,9 @@ import { VILLAGE_NPCS, type VillageNpcSpec } from '../npcs';
 import { CHAPTER_ONE_STORY } from '../story/chapterOne';
 import { OPENING_STORY, RESCUED_CHATTER, RESCUE_POSITIONS } from '../story/openingStory';
 import { VILLAGE_BUILDINGS, type VillageBuildingId } from '../story/buildings';
+import {buildingSigns,type BuildingSign} from '../story/buildingSigns';
+import {drawBuildingSign} from '../world/buildingSign';
+import {wallSignReader} from '../world/wallSignReader';
 import {
   buildInkwellVillage,
   buildResidentialLanes,
@@ -143,6 +146,7 @@ export default class DungeonScene extends Phaser.Scene {
   }
 
   create() {
+    this.buildingNotices=buildingSigns(this.chapterId);
     if(this.chapterId===0)saveStoryProgress({visitedInkwell:true});
     const worldW = this.chapterId === 0 ? TOWN.width : VILLAGE_ROOM_WIDTH * VILLAGE_ROOM_COUNT;
     const top = this.chapterId === 0 ? TOWN.top : 0;
@@ -169,6 +173,8 @@ export default class DungeonScene extends Phaser.Scene {
 
     // Scenery and gate colliders need the player to exist first.
     this.buildVillage();
+    this.buildingNotices.forEach(sign=>drawBuildingSign(this,sign));
+    wallSignReader(this,this.player,this.buildingNotices);
 
     // Wall collision (single collider covers all static wall bodies)
     this.physics.add.collider(this.player.sprite, this.walls);
@@ -249,7 +255,10 @@ export default class DungeonScene extends Phaser.Scene {
     if (this.chapterId === 0) {
       buildTown(this, this.addObstacle);
       drawGatehouse(this,TOWN.gatehouse.x,TOWN.gatehouse.y,this.addObstacle);
-      this.addWall(TOWN.width / 2, 24, TOWN.width, 32);
+      // Keep one grid column open through the north boundary to the threshold.
+      const gapLeft=TOWN.gatehouse.x-16,gapRight=TOWN.gatehouse.x+48;
+      this.addWall(gapLeft/2,24,gapLeft,32);
+      this.addWall((gapRight+TOWN.width)/2,24,TOWN.width-gapRight,32);
       this.addWall(TOWN.width / 2, TOWN.height - 16, TOWN.width, 32);
       this.addWall(16, TOWN.height / 2, 32, TOWN.height);
       this.addWall(TOWN.width - 16, TOWN.height / 2, 32, TOWN.height);
@@ -692,7 +701,7 @@ export default class DungeonScene extends Phaser.Scene {
       lineSpacing: 7,
       wordWrap: { width: 630 },
     }).setScrollFactor(0).setDepth(101);
-    const hint = this.add.text(730, 563, 'E  NEXT', {
+    const hint = this.add.text(730, 563, speakerLabel==='SIGNPOST'?'E  CLOSE':'E  NEXT', {
       fontFamily: 'Arial, sans-serif',
       fontSize: '10px',
       fontStyle: 'bold',
@@ -730,16 +739,17 @@ export default class DungeonScene extends Phaser.Scene {
     onComplete?.();
   }
 
+  private buildingNotices:BuildingSign[]=[];
   private checkInteractionProximity() {
     if(this.chapterId===1 && Math.abs(this.player.x-208)<=48 && Math.abs(this.player.y-240)<=40){
       this.interactPrompt.setVisible(false);
-      if(this.player.wantsDoor('up')&&Math.abs(this.player.x-208)<16)this.openEntrance(208,218,()=>this.enterVillageBuilding('home'),'cottage');
+      if(this.player.wantsDoorAt(208,240,'up'))this.openEntrance(208,218,()=>this.enterVillageBuilding('home'),'cottage');
       return;
     }
     const travel=this.chapterId===0?TOWN.gatehouse:this.chapterId===1?{x:3056,y:304}:null;
     if(travel&&Phaser.Math.Distance.Between(this.player.x,this.player.y,travel.x,travel.y)<64){
       this.interactPrompt.setVisible(false);
-      if(this.player.wantsDoor('up')&&Math.abs(this.player.x-travel.x)<24){
+      if(this.player.wantsDoorAt(travel.x,travel.y,'up')){
         if(this.chapterId===1&&!getStoryProgress().completedChapters.includes(1)){
           this.showWorldMessage(this.enemies.length ? `There are still ${this.enemies.length} Blotlings on the road. The travellers need a safe way back.` : 'Restore all three seals and meet the travellers in the clearing.','#e3d1a2');return;
         }
@@ -750,7 +760,7 @@ export default class DungeonScene extends Phaser.Scene {
     const innDoor=this.chapterId===0?townDoor('inn'):undefined;
     if(innDoor&&this.isAtBuildingDoor(innDoor.x,innDoor.y)){
       this.interactPrompt.setVisible(false);
-      if(this.player.wantsDoor('up')&&Math.abs(this.player.x-innDoor.x)<16)this.openEntrance(innDoor.x,innDoor.y-6,()=>{
+      if(this.player.wantsDoorAt(innDoor.x,tileCenter(innDoor.y),'up'))this.openEntrance(innDoor.x,innDoor.y-6,()=>{
         this.locked=true;this.player.stopMovement();this.scene.pause();
         this.scene.launch('InnScene',{hearts:this.player.hearts});
       },'inn');
@@ -762,7 +772,7 @@ export default class DungeonScene extends Phaser.Scene {
       const entrance = this.chapterId === 0 ? townDoor(building.id) : building.entrance;
       if (!entrance || !this.isAtBuildingDoor(entrance.x, entrance.y)) continue;
       this.interactPrompt.setVisible(false);
-      if (this.player.wantsDoor('up')&&Math.abs(this.player.x-entrance.x)<16)this.openEntrance(entrance.x,entrance.y-12,()=>this.enterVillageBuilding(building.id),'cottage');
+      if (this.player.wantsDoorAt(entrance.x,tileCenter(entrance.y),'up'))this.openEntrance(entrance.x,entrance.y-12,()=>this.enterVillageBuilding(building.id),'cottage');
       return;
     }
 
@@ -786,7 +796,7 @@ export default class DungeonScene extends Phaser.Scene {
     if (this.chapterId!==1 && this.isAtBuildingDoor(archiveDoor.x, archiveDoor.y)) {
       const archiveReady = this.investigationStage === 'archive' || this.investigationStage === 'seals';
       this.interactPrompt.setVisible(false);
-      if (this.player.wantsDoor('up')&&Math.abs(this.player.x-archiveDoor.x)<24) {
+      if (this.player.wantsDoorAt(archiveDoor.x,tileCenter(archiveDoor.y),'up')) {
         if (archiveReady)this.openEntrance(archiveDoor.x,archiveDoor.y-36,()=>this.enterArchive(),'archive');
         else this.showWorldMessage(
           this.investigationStage === 'defend'
@@ -901,7 +911,7 @@ export default class DungeonScene extends Phaser.Scene {
 
   private openEntrance(x:number,bottom:number,done:()=>void,style:DoorStyle){
     this.locked=true;this.player.stopMovement();this.interactPrompt.setVisible(false);
-    openDoorAnimation(this,x,bottom,done,style);
+    openDoorAnimation(this,x,bottom,()=>this.player.walkThroughDoor(done),style);
   }
 
   private onArchiveInvestigationComplete = () => {

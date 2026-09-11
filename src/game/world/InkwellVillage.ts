@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import {foreground} from './foreground';
 import { grassTiles, villagePaths } from './pixelTerrain';
 import { TOWN } from '../story/townPlan';
 import { buildArchiveExterior } from './archiveExterior';
@@ -616,9 +617,12 @@ function addTree(scene: Phaser.Scene, x: number, y: number, scale: number, addOb
   g.fillStyle(0x3a3b2d).fillRect(x + 5 * scale, y - 4, 3 * scale, 38 * scale);
   g.fillRect(x - 13 * scale, y + 29 * scale, 27 * scale, 4 * scale);
   // Stepped canopy clusters share a two-pixel contour and directional leaf lighting.
-  leafCluster(g, x, y - 30 * scale, 43 * scale, 0x183d32, 0x386747);
-  leafCluster(g, x - 15 * scale, y - 42 * scale, 27 * scale, 0x315d40, 0x62824f);
-  leafCluster(g, x + 19 * scale, y - 34 * scale, 25 * scale, 0x284f38, 0x4b7548);
+  foreground(scene,x-52*scale,y-80*scale,Math.ceil(104*scale),Math.ceil(96*scale),canopy=>{
+    canopy.translateCanvas(52*scale-x,80*scale-y);
+    leafCluster(canopy, x, y - 30 * scale, 43 * scale, 0x183d32, 0x386747);
+    leafCluster(canopy, x - 15 * scale, y - 42 * scale, 27 * scale, 0x315d40, 0x62824f);
+    leafCluster(canopy, x + 19 * scale, y - 34 * scale, 25 * scale, 0x284f38, 0x4b7548);
+  });
   addObstacle(x, y + 16 * scale, 34 * scale, 26 * scale);
 }
 

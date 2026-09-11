@@ -14,6 +14,12 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   construction and wear, not be arbitrary decorative shapes or noisy checkerboards.
 - Buildings share the same architectural family. The Archive is older and grander,
   but belongs to the village. No floating building labels or doorway icons.
+  Small timber plaques are mounted directly on building walls. Walking up against
+  a plaque reveals its name without E or a dialogue lock; moving away hides it.
+  Keep the reading tile off the doorway column and add no ground signpost collision. The
+  Wayfarer uses directional boards and a separate, responsive instruction panel;
+  labels must not cover the player or exits. All gatehouse triggers use the actual
+  threshold tile, not the arrival tile one step south of it.
 - Interiors have furnished edges, open walking space, one memorable centerpiece,
   and signs of ordinary life. Optional buildings must support exploration and lore.
 - Establish and visually inspect a polished reference exterior and interior with the
@@ -47,6 +53,9 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
 - Building and bedroom doors open on northward movement (W / up), with a short
   doorway animation. Center every exterior door on one movement-grid column;
   move the building, path and collision together, never slide the player off-grid.
+  Wait for the player to finish stepping onto the exact doorstep; proximity alone
+  must not trigger entry or snap an unfinished step. Open the leaf, then visibly
+  walk through it before changing scenes. Exits require reaching their actual tile.
   Assign a matching leaf style explicitly: cottage timber, inn oak, bedroom panel,
   Archive arched double doors, or reinforced Wayfarer gate. Static and moving leaves
   share their artwork. Open interior passageways remain open; do not add phantom doors.
@@ -64,6 +73,10 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   Use upper-left highlights, cool dark outlines, undersides, grain and hardware.
   Details must make objects recognizable, not add arbitrary noise.
 - Floors, rugs, walls and furniture remain separate layers.
+- Outdoor roofs and tree canopies use foreground.ts: a real alpha-silhouette
+  overhead layer at depth 30, above actors but below UI. readableText.ts masks
+  the full-resolution character pass with the same silhouette; never reduce
+  avatar resolution to fix occlusion. Trunks and building footprints stay solid.
 - Development screenshot entry: /story/1?interiorReview=home (or another interiorPlans key).
 - Chapter 1 is the woodland approach, not a second copy of Inkwell. Only the hub
   contains village homes and the Archive. Use the Wayfarer Gatehouse for travel
@@ -74,6 +87,9 @@ silhouettes and Lexicon League's ink, paper, and living-language identity.
   the authored paths; do not turn it back into a single straight road.
 - Wordwood’s signs visibly restore landmarks. Its final stones tell the sequence
   seed, sprout, bloom. Preserve both vocabulary and sanctuary progress on travel.
+  Field notes are optional hints, not a completion prerequisite. The completed
+  verse opens the existing northern gate and directs the player there; it must
+  not paint a new path over the terrain.
 - Body, face, and accessory layers use native 32×64 frames with 2×2 pixel
   clusters throughout. Hands and feet also use 2×2 blocks for their outlines
   and shading. All avatar layers share the same 32×64 display footprint, anchored

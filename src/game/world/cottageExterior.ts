@@ -1,11 +1,13 @@
 import type * as Phaser from 'phaser';
 import {drawDoorLeaves} from './doorOpening';
+import {foreground} from './foreground';
 
 /** Six-tile facade and a deep roof, drawn in native pixels at exactly 2 map units. */
 export function buildCottageExterior(scene:Phaser.Scene,x:number,y:number,roof:number,obstacle:(x:number,y:number,w:number,h:number)=>void){
   const bottom=Math.ceil((y+64)/32)*32;
   const g=scene.add.graphics().setPosition(x,bottom).setScale(2).setDepth(2);
-  const r=(px:number,py:number,w:number,h:number,c:number)=>g.fillStyle(c).fillRect(px,py,w,h);
+  let brush=g;
+  const r=(px:number,py:number,w:number,h:number,c:number)=>brush.fillStyle(c).fillRect(px,py,w,h);
   const ink=0x28373b,light=0xe6d1a2,wood=0x694632;
   r(-46,-38,96,40,0x223b36);
   r(-48,-40,96,40,ink);r(-46,-39,92,36,0xc4b58e);r(-46,-39,6,36,light);
@@ -13,6 +15,8 @@ export function buildCottageExterior(scene:Phaser.Scene,x:number,y:number,roof:n
   for(const bx of [-43,-20,18,40]){r(bx,-34,3,32,wood);r(bx,-34,1,30,0xa67a50);}
   r(-46,-15,92,3,wood);r(-48,-3,96,3,0x596b66);r(-47,-3,94,1,0xb8b69a);
   // Broad trapezoid rather than a pinched triangular facade.
+  foreground(scene,x-108,bottom-174,216,102,roofArt=>{
+  roofArt.scaleCanvas(2,2).translateCanvas(54,87);brush=roofArt;
   for(let row=0;row<44;row++){
     const half=32+Math.floor(row/2);
     r(-half,-84+row,half*2,1,ink);
@@ -29,6 +33,7 @@ export function buildCottageExterior(scene:Phaser.Scene,x:number,y:number,roof:n
   r(29,-86,11,22,ink);r(30,-84,9,18,0x9b8066);
   for(let cy=-82;cy<-65;cy+=4){r(30,cy,9,1,0xc6ad86);r(cy%8?33:36,cy+1,1,3,0x695d51);}
   r(27,-87,15,3,0xb9b598);r(30,-87,9,1,ink);
+  });brush=g;
   // Recessed double door; one walkable threshold tile below it.
   r(-10,-29,20,27,wood);r(-8,-27,16,25,0x352f2d);r(-7,-26,14,23,0x805c3d);
   for(const dx of [-5,-2,1,4])r(dx,-25,1,22,0x5c4232);

@@ -1,5 +1,8 @@
 import * as Phaser from 'phaser';
 import { frameWorld } from '../world/framing';
+import {foreground} from '../world/foreground';
+import {drawBuildingSign} from '../world/buildingSign';
+import {wallSignReader} from '../world/wallSignReader';
 import Player from '../entities/Player';
 import type { StoryAvatarConfig } from '../avatar';
 import { CLUES, WORDS, checkWordwood, type Word } from '../story/wordwoodPuzzle';
@@ -27,7 +30,6 @@ export default class WordwoodScene extends Phaser.Scene {
   private solved = false;
   private gate!: Phaser.Physics.Arcade.Image;
   private gateArt!:Phaser.GameObjects.Graphics;
-  private route!: Phaser.GameObjects.Graphics;
   private completed = false;
   private locked=false;
   private echoStep=0;
@@ -98,11 +100,12 @@ export default class WordwoodScene extends Phaser.Scene {
     villagePaths(g,[[640,800,64,32],[672,768,64,32],[704,768,32,64],[704,800,64,32],[736,768,32,64],[768,768,32,32]]);
     for(let x=1256;x<1424;x+=16){g.fillStyle(0x4f4634).fillRect(x,432,2,43);g.fillStyle(0xb59460).fillRect(x+3,432,2,30);}
 
-    this.route = this.add.graphics().setDepth(-10);
     wordwoodDetails(this,obstacle);
     this.landmarkChanges=this.add.graphics().setDepth(-9);
     villagePaths(g,[[640,1056,128,64],[736,928,64,192]]);
     drawGatehouse(this,656,1072,obstacle);
+    const gateSign={id:'wayfarer',x:688,y:1072,mountY:1044,name:'WAYFARER GATEHOUSE'};
+    drawBuildingSign(this,gateSign);
     this.add.image(608,768,'interior-desk').setDisplaySize(32,32).setOrigin(0).setDepth(2);obstacle(624,784,32,32);
     // The final gate spans the entire entrance to the little northern sanctuary.
     obstacle(384,144,768,32);obstacle(1216,144,768,32);
@@ -115,6 +118,7 @@ export default class WordwoodScene extends Phaser.Scene {
     for(let x=776;x<828;x+=12){this.gateArt.fillStyle(0x647b58).fillRect(x,123,4,27);this.gateArt.fillStyle(0x9ba778).fillRect(x,123,1,22);}
     const arriving=new URLSearchParams(window.location.search).get('arrival')==='gatehouse';
     this.player = new Player(this, arriving?656:800, arriving?1104:944, this.avatar);
+    wallSignReader(this,this.player,[gateSign]);
     if(process.env.NODE_ENV==='development'){
       const review=new URLSearchParams(window.location.search).get('sceneReview');
       const points:Record<string,[number,number]>={stone:[816,784],bridge:[272,592],burrow:[1296,592],sanctuary:[816,208]};
@@ -156,7 +160,7 @@ export default class WordwoodScene extends Phaser.Scene {
     this.add.image(800,576,'interior-lectern').setDisplaySize(32,32).setOrigin(0).setDepth(2);
     obstacle(800,608,64,64);
     this.sites.push({ x: 800, y: 664, label: 'TEST THE THREE SIGNS', action: () => this.testSigns() });
-    this.sites.push({x:656,y:1104,label:'RETURN THROUGH THE GATEHOUSE',action:()=>{this.save();this.player.stopMovement();this.locked=true;openDoorAnimation(this,656,1056,()=>enterGatehouse(this,'wordwood'),'wayfarer');}});
+    this.sites.push({x:656,y:1072,label:'RETURN THROUGH THE GATEHOUSE',action:()=>{this.save();this.player.stopMovement();this.locked=true;openDoorAnimation(this,656,1056,()=>this.player.walkThroughDoor(()=>enterGatehouse(this,'wordwood')),'wayfarer');}});
     this.events.on(Phaser.Scenes.Events.RESUME,()=>{this.locked=false;this.cameras.main.fadeIn(180);});
     this.sites.push({x:624,y:784,label:'READ THE GARDENER’S VERSE',action:()=>this.say('First a SEED sleeps below.\nThen a SPROUT greets the sun.\nAt last the BLOOM opens.\n\nWhen the signs agree, walk this story across the three stones. A wrong step begins the verse again; nothing else is lost.')});
     this.sites.push({ x: 800, y: 80, label: 'RECOVER THE LIVING FRAGMENT', action: () => {
@@ -166,16 +170,19 @@ export default class WordwoodScene extends Phaser.Scene {
     } });
     this.refreshSigns(); if (this.echoOpen) this.openRoute();
     if(this.found.size===0&&!this.solved&&!(process.env.NODE_ENV==='development'&&new URLSearchParams(window.location.search).has('sceneReview')))
-      this.say('THE PATHS THAT FORGOT\n\nRestore the bridge, burrow and winding trail by changing their describing words. Find the survey notes, then test your answers at the central stone.\n\nThe old gardener left one last puzzle for the sanctuary. J keeps your notes close. Your progress stays saved when you return to Inkwell.');
+      this.say('THE PATHS THAT FORGOT\n\nRestore the bridge, burrow and winding trail by changing their describing words, then test your answers at the central stone. The field notes offer hints if you need them — collecting them is optional.\n\nThe old gardener left one last puzzle for the sanctuary. J keeps your notes close. Your progress stays saved when you return to Inkwell.');
   }
 
   private tree(g: Phaser.GameObjects.Graphics, x: number, y: number) {
     g.fillStyle(0x0c2926, 0.6); g.fillEllipse(x + 14, y + 35, 90, 34);
     g.fillStyle(0x76533b); g.fillRect(x - 9, y, 18, 35);
     g.fillStyle(0xa28355).fillRect(x - 8, y + 3, 4, 29);
-    leafCluster(g, x, y - 20, 43, 0x183d32, 0x386747);
-    leafCluster(g, x - 14, y - 34, 28, 0x315d40, 0x62824f);
-    leafCluster(g, x + 20, y - 25, 24, 0x284f38, 0x4b7548);
+    foreground(this,x-48,y-68,96,96,canopy=>{
+      canopy.translateCanvas(48-x,68-y);
+      leafCluster(canopy, x, y - 20, 43, 0x183d32, 0x386747);
+      leafCluster(canopy, x - 14, y - 34, 28, 0x315d40, 0x62824f);
+      leafCluster(canopy, x + 20, y - 25, 24, 0x284f38, 0x4b7548);
+    });
   }
   private openJournal() {
     if (this.panel) return;
@@ -196,18 +203,16 @@ export default class WordwoodScene extends Phaser.Scene {
     saveStoryProgress({ chapterCheckpoints: { ...progress.chapterCheckpoints, 2: JSON.stringify({ words: this.words, found: [...this.found], solved: this.solved,echoOpen:this.echoOpen,echoStep:this.echoStep }) } });
   }
   private testSigns() {
-    if (this.solved) { this.say(this.echoOpen?'The sanctuary is open. Follow the northern path.':'The signs agree. Now walk the gardener’s verse across the stones: seed, sprout, bloom.'); return; }
-    if (this.found.size < 3) { this.say(`You have found ${this.found.size} of 3 field notes. Explore the northwest, northeast, and southeast paths before asking the forest to trust your answer.`); return; }
+    if (this.solved) { this.say(this.echoOpen?'The northern sanctuary gate is open. Head north through the newly opened gate.':'The signs agree. Now walk the gardener’s verse across the stones: seed, sprout, bloom.'); return; }
     const error = checkWordwood(this.words);
     if (error) { this.say(error + '\n\nNothing is lost. Revisit a sign with E and consult your field notes with J.'); return; }
     this.solved = true; this.save();
     this.say('STURDY bears weight. HOLLOW leaves space inside. WINDING bends along its route.\n\nThe three stones south of here wake up. Read the gardener’s verse and walk its stages in order to open the sanctuary.');
   }
-  private openRoute() {
+  private openRoute(animate=false) {
     this.gate.body!.enable = false; this.gate.setVisible(false);
-    this.gateArt.setVisible(false);
-    this.route.fillStyle(0xc0a679); this.route.fillRect(768,96,64,480);
-    this.cameras.main.flash(250, 160, 200, 170);
+    if(animate)this.tweens.add({targets:this.gateArt,y:-24,alpha:0,duration:500,ease:'Sine.easeInOut',onComplete:()=>this.gateArt.setVisible(false)});
+    else this.gateArt.setVisible(false);
   }
   private say(text: string) {
     this.panel?.destroy(); this.player.stopMovement(); this.prompt.setVisible(false);
@@ -232,9 +237,9 @@ export default class WordwoodScene extends Phaser.Scene {
         this.echoStep=advanceEcho(this.echoStep,stone);
         this.echoTiles.forEach(tile=>tile.setStrokeStyle(1,0x67796a));
         this.echoTiles[stone].setStrokeStyle(2,0xdce1a7);
-        this.feedback.setText(this.echoStep===3?'The sanctuary opens. Follow the northern path.':this.echoStep?`${this.echoStep} / 3 — the verse continues.`:'The verse restarts. Seed, sprout, bloom.').setVisible(true);
-        this.time.delayedCall(3200,()=>this.feedback.setVisible(false));
-        if(this.echoStep===3){this.echoOpen=true;this.openRoute();}
+        this.feedback.setText(this.echoStep===3?'The northern gate is open! Head north to the newly opened sanctuary gate.':this.echoStep?`${this.echoStep} / 3 — the verse continues.`:'The verse restarts. Seed, sprout, bloom.').setVisible(true);
+        if(this.echoStep!==3)this.time.delayedCall(3200,()=>{if(!this.echoOpen)this.feedback.setVisible(false);});
+        if(this.echoStep===3){this.echoOpen=true;this.openRoute(true);}
         this.save();
       }
     }
@@ -244,7 +249,7 @@ export default class WordwoodScene extends Phaser.Scene {
     if (nearest) {
       if(nearest.label==='RETURN THROUGH THE GATEHOUSE'){
         this.prompt.setVisible(false);
-        if(Math.abs(this.player.x-nearest.x)<24&&this.player.wantsDoor('up'))nearest.action();
+        if(this.player.wantsDoorAt(nearest.x,nearest.y,'up'))nearest.action();
         return;
       }
       this.prompt.setText('[ E ] ' + nearest.label).setPosition(this.player.x, this.player.y - 50);
