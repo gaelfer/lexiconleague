@@ -255,7 +255,7 @@ export default class ArchiveScene extends Phaser.Scene {
     this.cameras.main.fadeOut(240, 7, 18, 26);
     this.time.delayedCall(260, () => {
       this.scene.stop();
-      this.scene.resume('DungeonScene');
+      this.scene.resume('DungeonScene',{fromArchive:true});
     });
   }
 }

@@ -7,6 +7,7 @@ import {dailyWork} from '../world/dailyWork';
 import {storyResident} from '../entities/storyResident';
 import {createKeeper} from '../world/keepers';
 import {residentLocation} from '../story/villageRoutine';
+import {TAVERN_LINES} from '../story/tavernGathering';
 import {interactionScore} from '../interaction';
 import { frameWorld } from '../world/framing';
 import { AVATAR_LAYER_WIDTH, AVATAR_LAYER_HEIGHT, AVATAR_FACE_LAYER_WIDTH, AVATAR_FACE_LAYER_HEIGHT } from '../pixelAvatar';
@@ -63,6 +64,8 @@ export default class VillageInteriorScene extends Phaser.Scene {
   private approaching = false;
   private arrival?:{x:number;y:number};
   private routinePhase='';
+  private teaCups:Phaser.GameObjects.Graphics[]=[];
+  private toasting=false;
 
   constructor(avatar: StoryAvatarConfig) {
     super({ key: 'VillageInteriorScene' });
@@ -80,6 +83,7 @@ export default class VillageInteriorScene extends Phaser.Scene {
     this.serif = undefined;
     this.serifWall = undefined;
     this.approaching = false;
+    this.teaCups=[];this.toasting=false;
   }
 
   create() {
@@ -137,12 +141,13 @@ export default class VillageInteriorScene extends Phaser.Scene {
       for(const [name,x,y] of seats){
         const index=VILLAGE_NPCS.findIndex(n=>n.name===name),resident=VILLAGE_NPCS[index];
         const guest=storyResident(this,x,y,index,name.toUpperCase(),hexToNumber(resident.color));
-        const cup=this.add.graphics({x:12,y:7});
-        cup.fillStyle(0xefe0b6).fillRect(-3,-3,6,6).lineStyle(1,0xefe0b6).strokeRect(3,-2,3,3);guest.rig.add(cup);
-        this.tweens.add({targets:cup,y:0,duration:550,hold:800,yoyo:true,repeat:-1,repeatDelay:3000+index*350});
-        this.interactions.push({x,y,label:name==='Nell'?'TALK TO NELL · SHARE TEA':`TALK TO ${name.toUpperCase()}`,heading:name.toUpperCase(),
-          lines:name==='Nell'?['To our friends from Wordwood. It’s good to have you both at the table again.','Pip: I saved you a cake. Well… the second one.','You share a warm pot while the evening bell rolls over the rooftops.']:name==='Fenn'?['The honey cakes are still warm. Pass them along.']:resident.hubDialogue??resident.dialogue,
-          onComplete:name==='Nell'?()=>northernProgress({tea:true}):undefined});
+        const cup=this.add.graphics({x:26,y:7}).setName('tea-cup');
+        cup.fillStyle(0x394642).fillRect(-5,-5,9,10).fillStyle(0xefe0b6).fillRect(-4,-4,7,8).lineStyle(2,0xefe0b6).strokeRect(3,-3,3,4).fillStyle(0x987146).fillRect(-3,-3,5,2);guest.rig.add(cup);
+        this.teaCups.push(cup);
+        const hand=guest.rig.list[7] as Phaser.GameObjects.Image;hand.setPosition(22,11);cup.setData('hand',hand);
+        // Nell speaks across the counter at its public-facing edge.
+        this.interactions.push({x,y:name==='Nell'?304:y,label:name==='Nell'?'TALK TO NELL · SHARE TEA':`TALK TO ${name.toUpperCase()}`,heading:name.toUpperCase(),
+          lines:TAVERN_LINES[name],onComplete:name==='Nell'?()=>this.raiseTea():undefined});
       }
       for(const [kind,x] of [['gardener',432],['bridgekeeper',464]] as const){
         const actor=createKeeper(this,kind,x,384,'home');registerSpeaker(this,kind.toUpperCase(),actor);
@@ -171,6 +176,7 @@ export default class VillageInteriorScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number) {
+    if(this.toasting){this.player.stopMovement();return;}
     if(this.approaching){this.player.stopMovement();this.serif?.pose(this.time.now,true);if(this.serif)this.serifWall?.setPosition(this.serif.rig.x,this.serif.rig.y+16).refreshBody();return;}
     if (this.dialogue) {
       this.player.stopMovement();
@@ -280,5 +286,15 @@ export default class VillageInteriorScene extends Phaser.Scene {
       this.scene.stop();
       this.scene.resume('DungeonScene');
     });
+  }
+
+  private raiseTea(){
+    if(getStoryProgress().northernStory?.tea)return;
+    this.toasting=true;this.player.stopMovement();this.prompt.setVisible(false);
+    this.teaCups.forEach((cup,index)=>{
+      this.tweens.add({targets:cup,y:-12,angle:-12,duration:400,delay:index*80,hold:950,yoyo:true});
+      this.tweens.add({targets:cup.getData('hand'),y:-8,duration:400,delay:index*80,hold:950,yoyo:true});
+    });
+    this.time.delayedCall(2200,()=>{northernProgress({tea:true});this.toasting=false;});
   }
 }

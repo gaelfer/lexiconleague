@@ -49,4 +49,5 @@ export function openDoorAnimation(scene:Phaser.Scene,x:number,bottom:number,done
   scene.events.once('resume',cleanup);
   scene.events.once('shutdown',cleanup);
   scene.tweens.add({targets:leaves,scaleX:.08,duration:style==='archive'?420:style==='wayfarer'?360:280,ease:'Sine.easeInOut',onComplete:done});
+  return cleanup;
 }

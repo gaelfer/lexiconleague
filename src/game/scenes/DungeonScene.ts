@@ -92,6 +92,7 @@ export default class DungeonScene extends Phaser.Scene {
   private chapterCompleteTriggered = false;
   /** When true, ignore player input (word lock open, transition, etc.) */
   private locked = false;
+  private serifEntering = false;
   private avatar: StoryAvatarConfig;
   private openedGates = 0;
   private enemies: Blotling[] = [];
@@ -126,6 +127,7 @@ export default class DungeonScene extends Phaser.Scene {
     this.pendingQuestionDoor = null;
     this.chapterCompleteTriggered = false;
     this.locked = false;
+    this.serifEntering = false;
     this.enemies = [];
     this.openingEnemies = [];
     this.roadEnemyIds = new Map();
@@ -648,7 +650,7 @@ export default class DungeonScene extends Phaser.Scene {
   private buildVillageNpcs() {
     VILLAGE_NPCS.forEach((original, index) => {
       const position = this.chapterId === 0 ? TOWN.people[original.name] : undefined;
-      let spec = position ? { ...original, x: position[0], y: position[1] } : original;
+      let spec = position ? { ...original, x: position[0], y: position[1] } : {...original};
       if(this.chapterId===1&&RESCUE_POSITIONS[original.name])spec={...spec,...RESCUE_POSITIONS[original.name]};
       const watch = this.chapterId===1 && getStoryProgress().visitedInkwell;
       if(watch){
@@ -873,6 +875,7 @@ export default class DungeonScene extends Phaser.Scene {
     let nearestNpc: NpcData | null = null;
     let nearestNpcDistance = Infinity;
     for (const npc of this.npcs) {
+      if(!npc.rig?.visible||!npc.body.body?.enable)continue;
       const distance = interactionScore(this.player,{x:npc.body.x,y:npc.body.y},64);
       if (distance < nearestNpcDistance) {
         nearestNpc = npc;
@@ -1110,14 +1113,36 @@ export default class DungeonScene extends Phaser.Scene {
     this.scene.resume();
   };
 
-  private onSceneResumed = (_systems:Phaser.Scenes.Systems,data?:{rested?:boolean;fromNorth?:boolean}) => {
+  private onSceneResumed = (_systems:Phaser.Scenes.Systems,data?:{rested?:boolean;fromNorth?:boolean;fromArchive?:boolean}) => {
     if(data?.fromNorth){const npc=this.npcs.find(n=>n.spec.name==='Dame Copper');if(npc?.rig&&!getStoryProgress().northernStory?.returnedToPost){npc.body.setPosition(1168,16).refreshBody();npc.rig.setPosition(1168,0);npc.spec.x=1168;npc.spec.y=16;npc.follower=new TrailFollower({x:1168,y:16},this.player);}}
     if(data?.rested)this.player.healFully();
     // Returning from an interior releases the lock taken by the doorway fade.
-    this.locked = false;
+    this.locked = this.serifEntering;
     this.chapterCompleteTriggered=false;
     this.cameras.main.fadeIn(240, 7, 18, 26);
+    if(data?.fromArchive&&!this.serifEntering&&this.chapterId===0&&getStoryProgress().worldClock&&!getStoryProgress().northernStory?.serifEntered&&!getStoryProgress().northernStory?.rumour)this.serifEntersTavern();
   };
+
+  private serifEntersTavern(){
+    const npc=this.npcs.find(n=>n.spec.name==='Sir Serif');if(!npc?.rig)return;
+    this.serifEntering=true;
+    this.locked=true;this.player.stopMovement();this.interactPrompt.setVisible(false);
+    npc.body.setPosition(976,432).refreshBody();npc.body.body!.enable=true;npc.rig.setPosition(976,416).setVisible(true);
+    this.cameras.main.startFollow(npc.rig,true,.08,.08);
+    const route=[[656,432],[656,304],[784,304],[784,272]];
+    const walk=()=>{const next=route.shift();if(!next){
+      const closeDoor=openDoorAnimation(this,784,250,()=>this.tweens.add({targets:npc.rig,y:224,duration:350,onComplete:()=>{
+        npc.rig!.setVisible(false);npc.body.body!.enable=false;npc.spec.x=-9999;npc.spec.y=-9999;
+        closeDoor();northernProgress({serifEntered:true});this.cameras.main.startFollow(this.player.sprite,true,.08,.08);this.serifEntering=false;this.locked=false;
+      }}),'cottage');return;
+    }
+    const [x,y]=next,dy=y-npc.body.y;
+    (npc.rig!.list[4] as Phaser.GameObjects.Image).setVisible(dy>=0);
+    this.tweens.add({targets:npc.body,x,y,duration:Math.hypot(x-npc.body.x,y-npc.body.y)/.14,onUpdate:()=>{
+      npc.body.refreshBody();npc.rig!.setPosition(Math.round(npc.body.x),Math.round(npc.body.y)-16);npc.spec.x=npc.body.x;npc.spec.y=npc.body.y;
+      (npc.rig!.list.slice(1,3) as Phaser.GameObjects.Image[]).forEach((foot,i)=>foot.setY(21+Math.round(Math.sin(this.time.now/100+i*Math.PI)*3)));
+    },onComplete:walk});};walk();
+  }
 
   private saveRoad(){
     const progress=getStoryProgress();

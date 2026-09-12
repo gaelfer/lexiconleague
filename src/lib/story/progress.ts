@@ -30,7 +30,7 @@ export interface StoryProgress {
   combatArtsUnlocked?: boolean;
   bonusHeart?: number;
   worldClock?: {day:number;elapsed:number};
-  northernStory?: {tea?:boolean;rumour?:boolean;escortDay?:number;escort?:boolean;campCleared?:boolean;outpostFloors?:number[];dictionary?:boolean;cured?:boolean;returnedToPost?:boolean;reported?:boolean};
+  northernStory?: {serifEntered?:boolean;tea?:boolean;rumour?:boolean;escortDay?:number;escort?:boolean;campCleared?:boolean;outpostFloors?:number[];dictionary?:boolean;cured?:boolean;returnedToPost?:boolean;reported?:boolean};
   inkMeter?:number;
   quests?: Record<string,{status:'active'|'completed';steps:string[]}>;
   wordwoodExpedition?: {

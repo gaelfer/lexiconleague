@@ -129,7 +129,7 @@ export function createGame(
     }};
     Object.assign(api,{worldClock:()=>game.registry.get('world-clock'),northernState:()=>{const s=game.scene.getScenes(true)[0] as Phaser.Scene&{enemies?:Blotling[];copper?:{rig:Phaser.GameObjects.Container}};return{enemies:s.enemies?.filter(e=>!e.defeated).map(e=>({x:e.sprite.x,y:e.sprite.y})),copper:s.copper?{x:s.copper.rig.x,y:s.copper.rig.y}:undefined};}});
     Object.assign(window,{__storyTest:api});
-    Object.assign(api,{residentState:()=>game.scene.getScenes(true)[0].children.list.filter((o):o is Phaser.GameObjects.Container=>o instanceof Phaser.GameObjects.Container&&o.name.startsWith('resident-')).map(o=>({name:o.name,x:o.x,y:o.y,visible:o.visible}))});
+    Object.assign(api,{residentState:()=>game.scene.getScenes(true)[0].children.list.filter((o):o is Phaser.GameObjects.Container=>o instanceof Phaser.GameObjects.Container&&o.name.startsWith('resident-')).map(o=>({name:o.name,x:o.x,y:o.y,visible:o.visible,cups:o.list.filter(c=>c.name==='tea-cup').map(c=>({y:(c as Phaser.GameObjects.Graphics).y}))}))});
     game.events.once(Phaser.Core.Events.DESTROY,()=>{
       if(Reflect.get(window,'__storyTest')===api)Reflect.deleteProperty(window,'__storyTest');
     });
