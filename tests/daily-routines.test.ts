@@ -20,3 +20,14 @@ it('gives Copper a real inn bunk and a short coffee stop without abandoning an e
 it('keeps scheduled inn work and tea on accessible furniture neighbours',()=>{
  for(const floor of [1,2] as const)for(const room of [1,2,3])for(const elapsed of [120000,400000,700000])for(const stop of innRoutine(floor,room,{day:3,elapsed}))expect(innPlan(floor,room).props.some(p=>p.col===stop.col&&p.row===stop.row&&p.asset!=='chair')).toBe(false);
 });
+it('puts Copper on quest duty immediately on the appointed morning, then restores her routine',()=>{
+ saveStoryProgress({northernStory:{rumour:true,escortDay:2}});
+ expect(copperLocation({day:1,elapsed:1100000})).toBe('inn-bed');
+ expect(copperLocation({day:2,elapsed:0})).toBe('post');
+ expect(copperLocation({day:2,elapsed:59999})).toBe('post');
+ expect(copperLocation({day:4,elapsed:0})).toBe('post');
+ saveStoryProgress({northernStory:{rumour:true,escortDay:2,returnedToPost:true}});
+ expect(copperLocation({day:4,elapsed:0})).toBe('inn-coffee');
+ saveStoryProgress({northernStory:{rumour:true,reported:true}});
+ expect(copperLocation({day:4,elapsed:0})).toBe('inn-coffee');
+});

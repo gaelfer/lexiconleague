@@ -1,5 +1,5 @@
 import {getStoryProgress} from '../../lib/story/progress';
-import {clockPhase,type WorldClock} from '../../lib/story/worldClock';
+import {clockPhase,normalizeClock,type WorldClock} from '../../lib/story/worldClock';
 import {TOWN} from './townPlan';
 export const RESIDENT_HOMES:Record<string,string>={Mira:'mapmaker',Bramble:'gardener','Sir Serif':'guard',Pip:'scriptorium',Nell:'nell',Rowan:'guest',Fenn:'baker',Tansy:'gardener',Oren:'guest'};
 export const TEA_REGULARS=['Mira','Nell','Pip','Fenn','Tansy','Oren','Sir Serif'];
@@ -25,6 +25,10 @@ export function residentActivity(name:string,clock?:WorldClock){
 }
 export function copperLocation(clock?:WorldClock){
  const p=getStoryProgress();if(!clock||(p.northernStory?.escort&&!p.northernStory.returnedToPost))return 'post';
+ // Once the appointed morning arrives, the invitation takes priority over coffee
+ // (and remains available if the player comes back on a later day).
+ const quest=p.northernStory;
+ if(quest?.rumour&&!quest.returnedToPost&&!quest.reported&&normalizeClock(clock).day>=(quest.escortDay??1))return 'post';
  return clockPhase(clock)==='Night'?'inn-bed':clock.elapsed<60000?'inn-coffee':'post';
 }
 export function residentDoor(id:string){const b=TOWN.buildings.find(b=>b.id===id);return{x:b?.x??656,y:(b?.y??176)+96};}
